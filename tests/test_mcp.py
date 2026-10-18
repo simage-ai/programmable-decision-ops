@@ -367,7 +367,8 @@ def test_plain_makes_values_json_ready():
 
 EXPECTED_TOOLS = {f"pdo_{name}" for name in (
     "describe_schema", "validate", "run", "explain", "flip", "scenarios", "readiness", "pending_actions",
-    "program_status", "refresh", "impact", "uncertainty", "list_examples", "apply_change", "record_human_action",
+    "program_status", "refresh", "impact", "uncertainty", "sensitivity", "list_examples", "apply_change",
+    "record_human_action",
     "package", "import_sysml", "copy_example")}
 
 

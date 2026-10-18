@@ -106,7 +106,12 @@ def register(app: typer.Typer) -> None:
     @app.command()
     def package(path: Path = PathArg, episode: str = EpisodeOpt,
                 out: Path = typer.Option(Path("decision-package"), "--out", "-o", help="Output directory."),
-                span: float = SpanOpt, grid: int = GridOpt, as_json: bool = JsonOpt) -> None:
+                span: float = SpanOpt, grid: int = GridOpt,
+                sensitivity: bool = typer.Option(False, "--sensitivity",
+                                                 help="Add a tornado and, for uncertain inputs, Sobol indices and "
+                                                      "value of information (pdo sensitivity)."),
+                samples: int = typer.Option(None, help="Draws per Saltelli matrix for --sensitivity."),
+                as_json: bool = JsonOpt) -> None:
         """Write the Decision Package: package.md (for people) and record.json (validated, replayable)."""
         from pdo.cli import emit, fail
         from pdo.flip import scenario_sweep
@@ -116,7 +121,13 @@ def register(app: typer.Typer) -> None:
         try:
             scans, flips = _analyse(result, None, span, grid)
             outcomes = scenario_sweep(result.graph.state, base=result)
+            sens = None
+            if sensitivity:
+                from pdo.sensitivity import analyze as sensitivity_analysis
+
+                sens = sensitivity_analysis(result.graph.state, result.graph.base_dir, samples=samples)
             record = episode_record(result, episode=ep, parent=parent, source=path.resolve(), flips=flips,
+                                    sensitivity=sens,
                                     scenarios=outcomes, scans=scans)
             paths = write_package(record, out)
         except (KeyError, ValueError) as exc:

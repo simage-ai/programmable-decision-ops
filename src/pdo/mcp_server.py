@@ -188,6 +188,23 @@ def pdo_uncertainty(
     return _call(tools.uncertainty, path, episode, samples, seed)
 
 
+def pdo_sensitivity(
+    path: StatePath,
+    episode: Episode = None,
+    param: Annotated[str | None, Field(description="One input as '<object id>.<slot>', e.g. obs:B.cost.value or "
+                                       "req:min-range.threshold_value. Omit for every input at once.")] = None,
+    samples: Annotated[int | None, Field(ge=8, description="Draws (default 1000 for one input, 256 per "
+                                                           "Saltelli matrix).")] = None,
+    seed: Annotated[int | None, Field(description="Seed (default: the decision rule's seed, else 0).")] = None,
+) -> dict[str, Any]:
+    """Sensitivity analysis beyond the flip point. With `param`: how each alternative's utility responds
+    across the input's range (slope, elasticity, nonlinearity, where the recommendation changes) and to its
+    distribution (spread, P(win), P(feasible), expected regret, P(decision changes)). Without: a tornado of
+    the decision margin, Sobol first-order and total indices, and value of information (EVPI, EVPPI per
+    input, and which evidence to collect next)."""
+    return _call(tools.sensitivity, path, episode, param, samples, seed)
+
+
 def pdo_list_examples() -> dict[str, Any]:
     """The example decisions bundled with pdo, with their paths. Copy one with pdo_copy_example before
     changing it."""
@@ -262,7 +279,8 @@ def pdo_copy_example(
 
 
 READ_ONLY = (pdo_describe_schema, pdo_validate, pdo_run, pdo_explain, pdo_flip, pdo_scenarios, pdo_readiness,
-             pdo_pending_actions, pdo_program_status, pdo_refresh, pdo_impact, pdo_uncertainty, pdo_list_examples)
+             pdo_pending_actions, pdo_program_status, pdo_refresh, pdo_impact, pdo_uncertainty, pdo_sensitivity,
+             pdo_list_examples)
 WRITES = (pdo_apply_change, pdo_record_human_action, pdo_package, pdo_import_sysml, pdo_copy_example)
 
 

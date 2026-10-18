@@ -182,7 +182,7 @@ def _claims(result: RunResult) -> tuple[list[m.Proposition], list[m.Claim]]:
 def episode_record(result: RunResult, episode: str | None = None, parent: str | None = None,
                    source: str | Path | None = None, flips: list[dict] | None = None,
                    scenarios: list[dict] | None = None, impact: Any = None,
-                   scans: list[dict] | None = None) -> m.DecisionEpisodeRecord:
+                   scans: list[dict] | None = None, sensitivity: dict | None = None) -> m.DecisionEpisodeRecord:
     """The validated record of one evaluated episode.
 
     `source` (the path the state was read from) and `episode` are what replay needs. Pass flips (from
@@ -205,9 +205,41 @@ def episode_record(result: RunResult, episode: str | None = None, parent: str | 
         parameter_scans=[m.ParameterScan(**s) for s in scans] if scans is not None else None,
         scenario_outcomes=[m.ScenarioOutcome(**s) for s in scenarios] if scenarios is not None else None,
         robust=all(s["robust"] for s in scenarios) if scenarios else None,
+        **_sensitivity_fields(sensitivity),
         pending_actions=actions, runs=_runs(result), propositions=propositions, claims=claims,
         impact=_impact(result, impact),
     )
+
+
+def _sensitivity_fields(result: dict | None) -> dict:
+    """The record's sensitivity slots: one entry per tornado input, joined with its global index and EVPPI
+    when those were computed, plus the settings that let `pdo replay` re-run the analysis."""
+    if result is None:
+        return {}
+    glob = result.get("global") or {}
+    main = glob.get("main_target")
+    total = {r["parameter"]: r.get(main, {}) for r in glob.get("indices", [])} if main else {}
+    voi_result = result.get("value_of_information") or {}
+    voi = {r["parameter"]: r for r in voi_result.get("parameters", [])}
+    entries = []
+    for row in (result.get("tornado") or {}).get("rows", []):
+        pid = row["parameter"]
+        t, v = total.get(pid, {}), voi.get(pid, {})
+        t_iv, v_iv = t.get("total_interval") or [None, None], v.get("interval") or [None, None]
+        entries.append(m.SensitivityEntry(
+            parameter=pid, low_number=row["low"], high_number=row["high"], range_source=row["range_source"],
+            margin_low=row["margin_low"], margin_high=row["margin_high"], swing=row["swing"],
+            flips_within=row["flips_within"], first_order=t.get("first_order"), total_index=t.get("total"),
+            total_low=t_iv[0], total_high=t_iv[1], evppi=v.get("evppi"), evppi_low=v_iv[0], evppi_high=v_iv[1],
+            worth_resolving=v.get("above_noise"), evidence=v.get("evidence")))
+    settings = result.get("settings") or {}
+    evpi_iv = voi_result.get("evpi_interval") or [None, None]
+    return {"sensitivity": entries,
+            "sensitivity_settings": m.SensitivitySettings(
+                seed=settings.get("seed"), samples=settings.get("samples"), span=settings.get("span"),
+                infeasible_value=settings.get("infeasible_value"), estimator=voi_result.get("estimator")),
+            "evpi": voi_result.get("evpi"), "evpi_low": evpi_iv[0], "evpi_high": evpi_iv[1],
+            "expected_value_choice": voi_result.get("expected_value_choice")}
 
 
 # --- the readable package -----------------------------------------------------------------------
@@ -377,6 +409,41 @@ def _readiness_section(r: m.DecisionEpisodeRecord) -> list[str]:
     return lines
 
 
+def _sensitivity_section(r: m.DecisionEpisodeRecord) -> list[str]:
+    if r.sensitivity is None:
+        return []
+    lines = ["## Sensitivity and value of information", "",
+             "Each input across its range with everything else fixed: the decision margin (the recommendation's "
+             "value minus the best other alternative's; infeasible choices count as 0) at the low and high end. "
+             "Where inputs declare distributions, the Sobol total index is the input's share of the margin's "
+             "variance, and EVPPI is the expected gain in utility from resolving it.", "",
+             "| input | range | margin at low | margin at high | flips | total index | EVPPI | evidence |",
+             "|---|---|---|---|---|---|---|---|"]
+    for e in r.sensitivity[:15]:
+        distributed = "percentile" in (e.range_source or "")  # only inputs with a distribution get indices
+        dash = "–" if not distributed else "?"
+        evppi = dash if e.evppi is None else _num(e.evppi) + (" *" if e.worth_resolving else "")
+        lines.append(f"| {e.parameter} | [{_num(e.low_number)}, {_num(e.high_number)}] | {_num(e.margin_low)} | "
+                     f"{_num(e.margin_high)} | {'yes' if e.flips_within else ''} | "
+                     f"{dash if e.total_index is None else _num(e.total_index)} | {evppi} | {e.evidence or ''} |")
+    if len(r.sensitivity) > 15:
+        lines.append(f"| ... {len(r.sensitivity) - 15} more in record.json | | | | | | | |")
+    if r.evpi is not None:
+        best: dict[str, float] = {}  # an evidence item is worth its most valuable input's EVPPI
+        for e in r.sensitivity:
+            if e.worth_resolving and e.evppi:
+                key = e.evidence or e.parameter
+                best[key] = max(best.get(key, 0.0), e.evppi)
+        top = sorted(best.items(), key=lambda kv: -kv[1])[:3]
+        choice = f" for the expected-value choice {_alts(r.expected_value_choice)}" if r.expected_value_choice else ""
+        interval = f" (90% interval {_num(r.evpi_low)} to {_num(r.evpi_high)})" if r.evpi_low is not None else ""
+        lines += ["", f"Resolving every uncertain input would be worth {_num(r.evpi)} utility points on expectation "
+                  f"(EVPI{choice}){interval}. " + ("Evidence worth collecting next (EVPPI interval excludes zero, "
+                  "marked *): " + "; ".join(f"{k} ({_num(v)})" for k, v in top) + "." if top else
+                  "No single input's EVPPI interval excludes zero.")]
+    return lines + [""]
+
+
 def _scenarios(r: m.DecisionEpisodeRecord) -> list[str]:
     lines = ["## Scenario robustness", ""]
     if r.scenario_outcomes is None:
@@ -438,7 +505,7 @@ def render_markdown(record: m.DecisionEpisodeRecord) -> str:
     if record.question:
         lines += [f"> {record.question.strip()}", ""]
     lines += _summary(record, outcomes) + _why(record, outcomes) + _feasibility(outcomes) + _flips(record)
-    lines += _readiness_section(record) + _scenarios(record)
+    lines += _readiness_section(record) + _scenarios(record) + _sensitivity_section(record)
     lines += ["## Decision graph", "", "```mermaid", mermaid(record).rstrip(), "```", ""]
     lines += _provenance(record)
     claims = Counter(c.basis for c in record.claims or [])
@@ -507,8 +574,20 @@ def replay(record: m.DecisionEpisodeRecord, record_path: str | Path | None = Non
     missing = sorted(set(recorded) - set(replayed))
     extra = sorted(set(replayed) - set(recorded))
     state_matches = full.actionable["state_digest"] == record.state_digest
+    sensitivity = None
+    if record.sensitivity is not None and record.sensitivity_settings is not None:
+        from pdo.sensitivity import analyze
+
+        s = record.sensitivity_settings
+        again = analyze(full.graph.state, full.graph.base_dir, seed=s.seed, samples=s.samples,
+                        span=s.span if s.span is not None else 0.10,
+                        infeasible_value=s.infeasible_value if s.infeasible_value is not None else 0.0)
+        fields = _sensitivity_fields(again)
+        sensitivity = ([e.model_dump() for e in fields["sensitivity"]] == [e.model_dump() for e in record.sensitivity]
+                       and fields["evpi"] == record.evpi)
+    reproduced = not mismatched and not missing and not extra and state_matches and sensitivity is not False
     return {"source": str(source), "episode": record.episode, "nodes": len(recorded),
             "matched": len(recorded) - len(mismatched) - len(missing), "mismatched": mismatched,
             "missing": missing, "extra": extra, "state_digest_matches": state_matches,
-            "reproduced": not mismatched and not missing and not extra and state_matches,
+            "sensitivity_reproduced": sensitivity, "reproduced": reproduced,
             "recommended": full.decision["recommended"], "recorded_recommended": record.recommended or []}

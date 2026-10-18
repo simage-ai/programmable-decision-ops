@@ -76,6 +76,9 @@ NODE_HINT = ("Node ids: decision, readiness, actionable, state_digest, clock, U/
              "(criteria as <crit>#vf and <crit>#w). Start from decision and follow its inputs.")
 SYSML_HINT = ("Pass SysML v2 textual files (.sysml) or directories holding them, and optionally a mapping file "
               "(path, YAML text or a dict). skills/sysml-to-decision/SKILL.md describes the procedure.")
+SENSITIVITY_HINT = ("Inputs are '<object id>.<slot>': observation or assumption values, requirement "
+                    "thresholds, criterion anchors or evaluator parameters. Run without param to see them "
+                    "all (the tornado lists every one).")
 UNCERTAINTY_HINT = ("Uncertain inputs are observations or assumptions with an `uncertainty` distribution; samples "
                     "must be at least 1 and the rule's chance_alpha in [0, 1).")
 
@@ -908,6 +911,26 @@ def uncertainty(path: str | Path, episode: str | None = None, samples: int | Non
                         "Omit the episode for a single state, or pass the program directory.")
     where = {"path": str(p), "episode": episode} if is_program(p) else {"path": str(p)}
     return _ok(**where, **uncertainty_summary(analyze_path(p, episode, samples, seed)))
+
+
+@tool(SENSITIVITY_HINT)
+def sensitivity(path: str | Path, episode: str | None = None, param: str | None = None,
+                samples: int | None = None, seed: int | None = None, span: float = 0.10) -> dict:
+    """How the decision responds to its inputs. With `param` (e.g. obs:B.cost.value): its response curve
+    and the response to its distribution. Without: a tornado of the decision margin, global (Sobol)
+    indices and value of information per input, when inputs declare distributions."""
+    from pdo.sensitivity import analyze_path as sensitivity_path
+
+    p = _path(path)
+    if episode is not None and is_program(p):
+        _episode(Program.load(p), episode)
+    elif episode is not None:
+        raise ToolError(f"{p} is not a program directory (no program.yaml), so it has no episodes",
+                        "Omit the episode for a single state, or pass the program directory.")
+    result = sensitivity_path(p, episode, param, samples=samples, seed=seed, span=span)
+    if "response" in result:  # the curve's rows are long; agents get the summary and the change points
+        result["response"] = {k: v for k, v in result["response"].items() if k != "rows"}
+    return _ok(**result)
 
 
 # --- examples -------------------------------------------------------------------------------------

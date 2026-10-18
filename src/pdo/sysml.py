@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
@@ -1667,13 +1668,20 @@ def import_sysml(paths: str | Path | Iterable[str | Path], mapping: Mapping | di
     """Import SysML v2 textual files (or directories of them) into a draft decision state.
 
     `mapping` is a mapping file (path) or its parsed content; `base` is the directory that recorded
-    paths are relative to (default: the current directory).
+    paths are relative to. By default it is the mapping file's directory, else the inputs' common
+    directory, never the current directory: the evidence source_ref is hashable, so importing the same
+    model from somewhere else must not change the state digest.
     """
     paths = [paths] if isinstance(paths, str | Path) else list(paths)
     files = _expand(paths)
     if not files:
         raise SysMLError("no .sysml files given")
-    base_dir = Path.cwd() if base is None else Path(base)
+    if base is not None:
+        base_dir = Path(base)
+    elif isinstance(mapping, str | Path):
+        base_dir = Path(mapping).resolve().parent
+    else:
+        base_dir = Path(os.path.commonpath([str(f.resolve().parent) for f in files]))
     sources = sorted((_source(p, base_dir) for p in files), key=lambda s: s.display)
     return _Importer(sources, load_mapping(mapping)).run()
 

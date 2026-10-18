@@ -116,7 +116,7 @@ def register(app: typer.Typer) -> None:
         try:
             scans, flips = _analyse(result, None, span, grid)
             outcomes = scenario_sweep(result.graph.state, base=result)
-            record = episode_record(result, episode=ep, parent=parent, source=path, flips=flips,
+            record = episode_record(result, episode=ep, parent=parent, source=path.resolve(), flips=flips,
                                     scenarios=outcomes, scans=scans)
             paths = write_package(record, out)
         except (KeyError, ValueError) as exc:

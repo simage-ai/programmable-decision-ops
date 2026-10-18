@@ -187,7 +187,7 @@ range-anchor-best-450	preference	dev	one_hop	false	false	6	6	125	56	11	6	6	1	0.8
 range-anchor-best-450	preference	dev	no_readiness	false	false	3	3	125	56	11	8	8	0	0.857143	0.977337	0.000000	0.727273	alt:B	ready	true	false	false	NA
 range-model-replaced-skips-c	model_version	heldout	full	true	true	0	0	124	55	10	55	55	45	0.000000	0.000000	0.818182	5.500000	alt:B	ready	false	false	false	NA
 range-model-replaced-skips-c	model_version	heldout	impact	true	true	0	0	124	55	10	26	26	16	0.527273	0.114625	0.615385	2.600000	alt:B	ready	false	false	false	NA
-range-model-replaced-skips-c	model_version	heldout	cutoff	true	true	0	0	124	55	10	26	15	5	0.727273	0.158103	0.333333	2.600000	alt:B	ready	false	false	false	NA
+range-model-replaced-skips-c	model_version	heldout	cutoff	true	true	0	0	124	55	10	26	17	7	0.690909	0.150198	0.411765	2.600000	alt:B	ready	false	false	false	NA
 range-model-replaced-skips-c	model_version	heldout	delta_only	false	false	6	6	124	55	10	6	6	2	0.890909	0.193676	0.333333	0.600000	alt:B	ready	true	false	false	NA
 range-model-replaced-skips-c	model_version	heldout	one_hop	false	false	3	3	124	55	10	13	13	6	0.763636	0.166008	0.461538	1.300000	alt:B	ready	false	false	false	NA
 range-model-replaced-skips-c	model_version	heldout	no_readiness	false	false	1	1	124	55	10	19	19	10	0.654545	0.142292	0.526316	1.900000	alt:B	ready	true	false	false	NA

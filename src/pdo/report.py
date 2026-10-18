@@ -62,7 +62,9 @@ def render_run(result: RunResult, title: str | None = None) -> str:
               f" ({s['actionable_reason']})",
               f"as_of {s['as_of']}   state digest {s['state_digest']}", ""]
     measures = [c.measure for c in sorted(state.criteria, key=lambda c: c.id)]
-    measures += [r.measure for r in items(state.requirements) if r.measure not in measures]
+    for r in items(state.requirements):
+        if r.measure not in measures:
+            measures.append(r.measure)
     units = {mm.id: mm.unit for mm in state.measures}
     header = ["alternative", *[f"{mid.split(':', 1)[-1]} [{units.get(mid, '')}]" for mid in measures], "U", "feasible"]
     lines += ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]

@@ -31,11 +31,26 @@ from pydantic import ValidationError
 
 from pdo import model as m
 from pdo.graph import compile_graph, covered_digest, impact_set, state_digest
-from pdo.load import LIST_SLOTS, SINGLE_OBJECTS, LoadError, check_state, index, items, iter_objects, load_dir, read_yaml
+from pdo.load import (
+    LIST_SLOTS,
+    SINGLE_OBJECTS,
+    STAMPED_SLOTS,
+    LoadError,
+    authored_stamps,
+    check_state,
+    index,
+    items,
+    iter_objects,
+    load_dir,
+    read_yaml,
+)
 from pdo.run import MODES, RunResult, equivalent, run
 
-STAMPED_SLOTS = ("covered_digest", "state_digest", "recorded_in_episode")
 HUMAN_ACTIONS = (m.HumanReview, m.HumanApproval)
+# Assigning one of these records a new human judgement, so the action is stamped against the new state.
+# Any other assignment (prose, covers) leaves the stamp alone: a stale review or approval stays stale.
+JUDGEMENT_SLOTS = {"HumanReview": {"review_status"},
+                   "HumanApproval": {"approved_alternative", "approver_role", "valid_until"}}
 RECORD_KINDS = ("approval", "review")
 
 
@@ -77,16 +92,27 @@ class EpisodeEvaluation:
 
 
 def stamp_human_actions(state: m.DecisionState, episode: str, only: set[str] | None = None) -> m.DecisionState:
-    """Stamp reviews and approvals that lack a digest (or whose ids are in `only`) with this episode."""
+    """Stamp reviews and approvals that lack a digest (or whose ids are in `only`) with this episode.
+
+    An approval without valid_until expires approval_validity_days after the episode's as_of, when the
+    policy sets it, so the policy applies however the approval was recorded.
+    """
+    policy = state.readiness_policy
+    days = policy.approval_validity_days if policy is not None else None
     for review in items(state.reviews):
         if review.covered_digest is None or (only is not None and review.id in only):
             review.covered_digest = covered_digest(state, review)
             review.recorded_in_episode = episode
     for approval in items(state.approvals):
         if approval.state_digest is None or (only is not None and approval.id in only):
+            if approval.valid_until is None and days and state.as_of is not None:
+                approval.valid_until = state.as_of + timedelta(days=days)
             approval.state_digest = state_digest(state)
             approval.recorded_in_episode = episode
     return state
+
+
+
 
 
 def apply_change(state: m.DecisionState, change: m.ChangeSet) -> m.DecisionState:
@@ -101,8 +127,11 @@ def apply_change(state: m.DecisionState, change: m.ChangeSet) -> m.DecisionState
     for oid in items(change.remove):
         if not _remove(out, oid):
             issues.append(f"remove {oid}: no such object{_close(oid, index(out))}")
+    if change.add is not None:
+        issues.extend(f"add {issue}" for issue in authored_stamps(change.add))
     added = _add(out, change.add, issues) if change.add is not None else []
-    assigned = _assign(out, items(change.assign), issues)
+    assignments = _assign(out, items(change.assign), issues)
+    assigned = [target for target, _ in assignments]
     if change.as_of is not None:
         out.as_of = change.as_of
     if issues:
@@ -120,7 +149,9 @@ def apply_change(state: m.DecisionState, change: m.ChangeSet) -> m.DecisionState
     if errors:
         raise ChangeError(change.id, errors)
     objects = index(out)
-    human = {oid for oid in [*added, *assigned] if isinstance(objects.get(oid), HUMAN_ACTIONS)}
+    human = {oid for oid in added if isinstance(objects.get(oid), HUMAN_ACTIONS)}
+    human |= {target for target, slot in assignments
+              if slot in JUDGEMENT_SLOTS.get(type(objects.get(target)).__name__, ())}
     return stamp_human_actions(out, change.id, only=human)
 
 
@@ -167,10 +198,11 @@ def _add(state: m.DecisionState, add: m.DecisionState, issues: list[str]) -> lis
     return added
 
 
-def _assign(state: m.DecisionState, assignments: list[m.SlotAssignment], issues: list[str]) -> list[str]:
-    """Set one slot of one existing object per assignment (type-checked); returns the targets assigned."""
+def _assign(state: m.DecisionState, assignments: list[m.SlotAssignment],
+            issues: list[str]) -> list[tuple[str, str]]:
+    """Set one slot of one existing object per assignment (type-checked); returns (target, slot) pairs."""
     objects = index(state)
-    assigned: list[str] = []
+    assigned: list[tuple[str, str]] = []
     for a in assignments:
         where = f"assign {a.target}.{a.slot}"
         obj = objects.get(a.target)
@@ -192,7 +224,7 @@ def _assign(state: m.DecisionState, assignments: list[m.SlotAssignment], issues:
         except ValidationError as exc:
             issues.append(f"{where}: {exc.errors()[0]['msg']} (got {a.new_value!r})")
             continue
-        assigned.append(a.target)
+        assigned.append((a.target, a.slot))
     return assigned
 
 
@@ -218,12 +250,19 @@ def evaluate_child(parent: EpisodeEvaluation, change: m.ChangeSet, state: m.Deci
 
 
 def verify_evaluation(evaluation: EpisodeEvaluation) -> EpisodeEvaluation:
-    """Set `verified` by recomputing the episode fully and comparing every node's value digest."""
+    """Set `verified` by recomputing the episode fully and comparing every node's value digest.
+
+    On a mismatch the full run replaces the selective one (and `mismatched` names the nodes), so a
+    reuse error is reported and never reaches a result or a child episode.
+    """
     if evaluation.parent is None or evaluation.run.mode == "full" or evaluation.verified is not None:
         return evaluation
-    check = equivalent(evaluation.run, run(evaluation.run.graph))
+    full = run(evaluation.run.graph)
+    check = equivalent(evaluation.run, full)
     evaluation.verified = bool(check)
     evaluation.mismatched = check.mismatched + check.missing
+    if not check:
+        evaluation.run = full
     return evaluation
 
 
@@ -259,6 +298,9 @@ class Program:
         except ValidationError as exc:
             raise LoadError("\n".join(f"program.yaml: {line}" for line in _validation_lines(exc))) from exc
         loaded = load_dir(path / (meta.baseline_dir or "baseline"), base_dir=path)
+        problems = [str(i) for i in check_state(loaded.state, loaded.origins) if i.severity == "error"]
+        if problems:
+            raise LoadError("baseline is invalid:\n" + "\n".join(f"  - {p}" for p in problems))
         changes: dict[str, m.ChangeSet] = {}
         files: dict[str, Path] = {}
         changes_dir = path / (meta.changes_dir or "changes")
@@ -268,6 +310,8 @@ class Program:
             except ValidationError as exc:
                 where = file.relative_to(path)
                 raise LoadError("\n".join(f"{where}: {line}" for line in _validation_lines(exc))) from exc
+            if change.add is not None and authored_stamps(change.add):
+                raise LoadError(f"{file.relative_to(path)}: " + "; ".join(authored_stamps(change.add)))
             if change.id in changes or change.id == meta.baseline_episode:
                 raise LoadError(f"{file}: episode {change.id} is defined twice")
             changes[change.id] = change

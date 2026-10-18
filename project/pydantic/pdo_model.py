@@ -296,6 +296,7 @@ class ActionKind(str, Enum):
     revise_alternatives = "revise_alternatives"
     approve = "approve"
     fix_evaluator = "fix_evaluator"
+    run_uncertainty_analysis = "run_uncertainty_analysis"
 
 
 class FlipMethod(str, Enum):

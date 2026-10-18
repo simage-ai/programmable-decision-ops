@@ -361,6 +361,7 @@ enums:
       revise_alternatives: {}
       approve: {}
       fix_evaluator: {}
+      run_uncertainty_analysis: {}
   FlipMethod:
     permissible_values:
       affine_exact: {}

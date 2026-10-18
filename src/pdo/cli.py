@@ -72,8 +72,6 @@ def validate(path: Path = PathArg, as_json: bool = JsonOpt) -> None:
             program = Program.load(path)
             for ep in program.episodes():
                 compile_graph(program.materialize(ep), program.base_dir)
-        except NotImplementedError:
-            pass
         except (LoadError, CompileError, ValueError) as exc:
             compile_error = f"episodes: {exc}"
     errors = [str(i) for i in issues if i.severity == "error"] + [str(g) for g in gaps]

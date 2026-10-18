@@ -29,7 +29,7 @@ from pdo import model as m
 from pdo.builtins import VERSIONS
 from pdo.canonical import digest, hashable_dump, normalize
 from pdo.load import LIST_SLOTS, executable_gaps, items, iter_objects
-from pdo.registry import EvaluatorError, resolve
+from pdo.registry import EvaluatorError, resolve, signature_problem
 
 VF_SLOTS = ("measure", "anchor_worst", "anchor_best", "points", "clip")
 
@@ -94,6 +94,11 @@ def _node(nid: str, kind: str, fn: str, inputs, local=None, **kw) -> Node:
     local = normalize(local if local is not None else {})
     sig = digest(kind, nid, fn, VERSIONS.get(fn, 1), local)
     return Node(nid, kind, fn, tuple(inputs), local, sig, **kw)
+
+
+def source_node(nid: str, value: dict, subject: str | None = None) -> Node:
+    """A source node holding `value` (an object's hashable content), e.g. to substitute a sampled value."""
+    return _node(nid, "source", "source", (), value, subject=subject)
 
 
 def source_entries(state: m.DecisionState) -> list[tuple[str, str, str, dict]]:
@@ -170,10 +175,18 @@ def compile_graph(state: m.DecisionState, base_dir: Path | str = ".") -> Graph:
         obs_by_pair[(o.alternative, o.measure)].append(o.id)
 
     spec_by_pair: dict[tuple[str, str], tuple[m.EvaluationSpecification, str]] = {}
+    objects = {obj.id: obj for _, obj in iter_objects(state)}
     for s in items(state.evaluation_specifications):
+        for b in items(s.inputs):
+            if b.ref is not None and not isinstance(objects.get(b.ref), m.Assumption):
+                raise CompileError(f"{s.id}: input {b.arg} refers to {b.ref}, which is not an Assumption")
         for alt in sorted(items(s.applies_to)) or alts:
             for out in items(s.outputs):
-                spec_by_pair[(alt, out.measure)] = (s, out.arg)
+                pair = (alt, out.measure)
+                if pair in spec_by_pair or pair in obs_by_pair:
+                    other = spec_by_pair[pair][0].id if pair in spec_by_pair else "observations"
+                    raise CompileError(f"{alt}/{out.measure} is produced by both {s.id} and {other}")
+                spec_by_pair[pair] = (s, out.arg)
 
     needed: set[tuple[str, str]] = set(obs_by_pair) | set(spec_by_pair)
     for r in items(state.requirements):
@@ -209,6 +222,10 @@ def compile_graph(state: m.DecisionState, base_dir: Path | str = ".") -> Graph:
         if s.spec_kind == "python":
             try:
                 func, code_digest = resolve(s.implementation, base_dir)
+                declared = {b.arg for b in items(s.inputs)} | {p.arg for p in items(s.parameters)}
+                error = signature_problem(func, declared)
+                if error:
+                    func = None
             except EvaluatorError as exc:
                 error = str(exc)
         for alt in sorted(items(s.applies_to)) or alts:

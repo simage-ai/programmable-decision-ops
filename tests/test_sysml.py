@@ -177,7 +177,7 @@ def test_vehicle_gaps_are_the_out_of_scope_port_and_the_unwired_range_model():
     assert kinds(wired) == {"port", "port def"}
 
 
-def test_vehicle_without_a_mapping_uses_sysml_names_and_flags_the_unitless_cost():
+def test_vehicle_without_a_mapping_uses_sysml_names_and_the_models_own_units():
     result = import_sysml(MODEL, base=ROOT)
     assert [a["id"] for a in result.state["alternatives"]] == ["alt:configA", "alt:configB", "alt:configC"]
     assert not any(a.get("is_incumbent") for a in result.state["alternatives"])  # only a person says so

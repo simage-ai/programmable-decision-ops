@@ -24,7 +24,7 @@ from pdo import model as m
 from pdo.actions import pending_actions
 from pdo.builtins import VERSIONS
 from pdo.canonical import digest
-from pdo.graph import DECISION_KINDS, resolve_selectors
+from pdo.graph import DECISION_KINDS, covered_digest, resolve_selectors
 from pdo.load import index, items
 from pdo.run import RunResult
 
@@ -57,7 +57,7 @@ def _runs(result: RunResult) -> list[m.EvaluationRun]:
         out.append(m.EvaluationRun(node=nid, node_kind=node.kind, implementation=implementation(result, nid),
                                    signature=res.sig, run_key=res.key, value_digest=res.vdig,
                                    execution_status=res.exec_status, input_nodes=list(node.inputs),
-                                   duration_ms=round(res.duration_ms, 3), error=res.error))
+                                   error=res.error))
     return out
 
 
@@ -166,8 +166,10 @@ def _claims(result: RunResult) -> tuple[list[m.Proposition], list[m.Claim]]:
                 "computed", nid, [by_check[c] for c in graph.nodes[nid].inputs])
     for rv in items(state.reviews):
         covered = resolve_selectors(state, items(rv.covers))
+        stale = rv.covered_digest is not None and rv.covered_digest != covered_digest(state, rv)
+        status = "unknown" if stale and rv.review_status != "fail" else REVIEW_STATUS[rv.review_status]
         out.add(f"{rv.id} passes review of {', '.join(items(rv.covers))}", [rv.id, *covered],
-                REVIEW_STATUS[rv.review_status], "human", rv.id)
+                status, "human", rv.id)
     for o in sorted(items(state.observations), key=lambda o: o.id):
         applicability = o.applicability or "accepted"
         status = {"accepted": "pass", "rejected": "fail", "provisional": "unknown"}[applicability]

@@ -12,7 +12,7 @@ PDO_BENCH_OUTCOME_NO_MATERIAL_CHANGE	3	cases	Benchmark cases in outcome class no
 PDO_BENCH_OUTCOME_READINESS_ONLY	11	cases	Benchmark cases in outcome class readiness_only	suite vehicle i4eH-Yh1Q4NrvpTYWYqzRSM5s8ecWRJj; pdo 0.1.0	make proposal-values
 PDO_BENCH_OUTCOME_RECOMPUTE_SAME_WINNER	13	cases	Benchmark cases in outcome class recompute_same_winner	suite vehicle i4eH-Yh1Q4NrvpTYWYqzRSM5s8ecWRJj; pdo 0.1.0	make proposal-values
 PDO_CUTOFF_EQUIV_PCT	100.0	%	Cases where impact-set re-evaluation with early cutoff equals full recomputation (45 of 45)	suite vehicle i4eH-Yh1Q4NrvpTYWYqzRSM5s8ecWRJj; pdo 0.1.0	make proposal-values
-PDO_CUTOFF_SAVINGS_PCT	79.1	%	Computed-node evaluations avoided with early cutoff, pooled over cases (1989 of 2514)	suite vehicle i4eH-Yh1Q4NrvpTYWYqzRSM5s8ecWRJj; pdo 0.1.0	make proposal-values
+PDO_CUTOFF_SAVINGS_PCT	79.0	%	Computed-node evaluations avoided with early cutoff, pooled over cases (1987 of 2514)	suite vehicle i4eH-Yh1Q4NrvpTYWYqzRSM5s8ecWRJj; pdo 0.1.0	make proposal-values
 PDO_EDGE02_EQUIV_PCT	91.8	%	Trials equal to full recomputation when each dependency edge is dropped from impact analysis with probability 0.02 (826 of 900; 20 seeds per case)	suite vehicle i4eH-Yh1Q4NrvpTYWYqzRSM5s8ecWRJj; pdo 0.1.0	make proposal-values
 PDO_EDGE05_EQUIV_PCT	81.6	%	Trials equal to full recomputation when each dependency edge is dropped from impact analysis with probability 0.05 (734 of 900; 20 seeds per case)	suite vehicle i4eH-Yh1Q4NrvpTYWYqzRSM5s8ecWRJj; pdo 0.1.0	make proposal-values
 PDO_EDGE10_DECISION_PCT	82.3	%	Trials at edge-drop probability 0.10 whose recommendation, readiness and actionable still equal full recomputation (741 of 900)	suite vehicle i4eH-Yh1Q4NrvpTYWYqzRSM5s8ecWRJj; pdo 0.1.0	make proposal-values

@@ -13,7 +13,8 @@
                 "resolve_tie",
                 "revise_alternatives",
                 "approve",
-                "fix_evaluator"
+                "fix_evaluator",
+                "run_uncertainty_analysis"
             ],
             "title": "ActionKind",
             "type": "string"

@@ -76,7 +76,10 @@ def test_point_run_recommends_the_new_array():
     data = json.loads(out.output)
     assert data["recommended"] == ["alt:new-array"]
     assert data["feasible"] == ["alt:insert", "alt:new-array", "alt:refresh"]
-    assert data["readiness"] == "ready" and data["actionable"] is False
+    # The declared rule is expected_mavt: the point ranking cannot authorize anything until
+    # `pdo uncertainty` decides, so readiness waits on that analysis.
+    assert data["readiness"] == "pending" and data["actionable"] is False
+    assert "run_uncertainty_analysis" in {a["kind"] for a in data["pending_actions"]}
     by_alt = {a["alternative"]: a for a in data["alternatives"]}
     # Spec: detection range = reference range x rcs ** 0.25, at the point rcs 1.0.
     assert by_alt["alt:new-array"]["measures"]["meas:detection-range"] == pytest.approx(31.0)

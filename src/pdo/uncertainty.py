@@ -31,9 +31,9 @@ Without chance_alpha the constraint is strict (alpha = 0: feasible in every draw
 
 Scenarios. A scenario's assignments are applied to the point state. Assigning an object's value
 conditions on it (the object is fixed in that scenario) unless the scenario also assigns its
-uncertainty. The same streams are used, so scenarios differ only in what they assign. The
-recommendation is robust in a scenario when every recommended alternative is still recommended there,
-and robust over the set when that holds in every scenario: a claim about the tested scenarios only.
+uncertainty. The same streams are used, so scenarios differ only in what they assign. As in
+pdo.flip.scenario_sweep, the recommendation is robust when it is a single alternative that is still the
+only one recommended in every scenario: a claim about the tested scenarios only.
 """
 
 from __future__ import annotations
@@ -52,7 +52,7 @@ from pydantic import ValidationError
 from pdo import model as m
 from pdo.builtins import DEFAULT_TOLERANCE
 from pdo.canonical import digest
-from pdo.graph import Graph, _node, compile_graph, state_digest
+from pdo.graph import Graph, compile_graph, source_node, state_digest
 from pdo.load import index, items
 from pdo.run import RunResult, run
 
@@ -221,7 +221,7 @@ class DecisionModel:
         """The graph of one draw. Its `state` is still the point state: read the draw from node values."""
         nodes = dict(self.graph.nodes)
         for oid, x in values.items():
-            nodes[oid] = _node(oid, "source", "source", (), {**nodes[oid].local, "value": x}, subject=oid)
+            nodes[oid] = source_node(oid, {**nodes[oid].local, "value": x}, subject=oid)
         g = self.graph
         return Graph(nodes, g.order, g.state, g.base_dir, g.callables)
 
@@ -470,7 +470,8 @@ def analyze(state: m.DecisionState, base_dir: Path | str, samples: int | None = 
         if key not in cache:
             cache[key] = analyze_state(s_state, base_dir, rule, draws, fixed)
         analysis = cache[key]
-        robust = bool(baseline.recommended) and set(baseline.recommended) <= set(analysis.recommended)
+        # The same definition as pdo.flip.scenario_sweep: a unique baseline choice, still uniquely chosen.
+        robust = len(baseline.recommended) == 1 and analysis.recommended == baseline.recommended
         results.append(ScenarioResult(sc.id, sc.name, analysis, sorted(fixed), robust))
     warnings = point_warnings(baseline.uncertain)
     if rule["rule_kind"] != "expected_mavt":

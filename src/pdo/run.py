@@ -2,7 +2,7 @@
 
 Each result carries three digests:
   sig   = H(local_sig, parent sigs)        what was computed, from what: provenance and replay
-  key   = H(local_sig, parent value digests)  equal keys give equal values (deterministic nodes)
+  key   = H(local_sig, parent ids and value digests)  equal keys give equal values (deterministic nodes)
   vdig  = H(value)
 
 Modes:
@@ -131,7 +131,9 @@ def run(graph: Graph, mode: str = "full", prev: RunResult | None = None, impact:
         node = graph.nodes[nid]
         parents = [results[p] for p in node.inputs]
         sig = digest(node.local_sig, [p.sig for p in parents])
-        key = digest(node.local_sig, [p.vdig for p in parents])
+        # Ids are part of the key: several builtins read which inputs they got (observe's sources, the
+        # state digest, failed-condition lists), so an id-only change must not reuse a stale value.
+        key = digest(node.local_sig, [(p.node, p.vdig) for p in parents])
         old = prev.results.get(nid) if prev is not None else None
         if mode != "full" and nid not in impact:
             if old is None:

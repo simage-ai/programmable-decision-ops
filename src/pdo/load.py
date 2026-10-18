@@ -118,6 +118,26 @@ def validate_state(data: dict, where: str = "state") -> m.DecisionState:
         raise LoadError("\n".join(lines)) from exc
 
 
+STAMPED_SLOTS = ("covered_digest", "state_digest", "recorded_in_episode")
+
+
+def authored_stamps(state: m.DecisionState) -> list[str]:
+    """Kernel stamps written by an author. Never allowed: a digest an author can write can be forged."""
+    found = []
+    for obj in [*items(state.reviews), *items(state.approvals)]:
+        for slot in STAMPED_SLOTS:
+            if getattr(obj, slot, None) is not None:
+                found.append(f"{obj.id}.{slot}: stamped by the kernel; authors never write digests")
+    return found
+
+
+def _reject_stamps(state: m.DecisionState, where: str) -> m.DecisionState:
+    found = authored_stamps(state)
+    if found:
+        raise LoadError("\n".join(f"{where}: {f}" for f in found))
+    return state
+
+
 def state_files(directory: Path) -> list[Path]:
     return sorted(p for p in directory.glob("*.yaml") if p.name != "program.yaml")
 
@@ -134,7 +154,7 @@ def load_state(path: str | Path) -> Loaded:
     if not path.exists():
         raise LoadError(f"{path}: no such file or directory")
     merged, origins = merge_parts([(path.name, read_yaml(path))])
-    return Loaded(validate_state(merged, path.name), path.parent, origins)
+    return Loaded(_reject_stamps(validate_state(merged, path.name), path.name), path.parent, origins)
 
 
 def load_dir(directory: Path, base_dir: Path) -> Loaded:
@@ -143,7 +163,7 @@ def load_dir(directory: Path, base_dir: Path) -> Loaded:
         raise LoadError(f"{directory}: no *.yaml files")
     parts = [(str(p.relative_to(base_dir)), read_yaml(p)) for p in files]
     merged, origins = merge_parts(parts)
-    return Loaded(validate_state(merged, str(directory)), base_dir, origins)
+    return Loaded(_reject_stamps(validate_state(merged, str(directory)), str(directory)), base_dir, origins)
 
 
 def _where(origins: dict[str, str], oid: str, detail: str = "") -> str:
@@ -244,12 +264,22 @@ def check_state(state: m.DecisionState, origins: dict[str, str] | None = None) -
                 err(c.id, "review", "a review_status condition needs review: <HumanReview id>")
             else:
                 ref(c.id, "review", c.review, m.HumanReview)
-    collections = set(LIST_SLOTS)
+    # Scenarios are analysis inputs, not part of the decision: a dangling one is a warning (and is
+    # reported by the scenario sweep), so removing an object does not force editing every scenario.
+    for sc in items(state.scenarios):
+        for a in items(sc.assignments):
+            target = idx.get(a.target)
+            if target is None:
+                err(sc.id, "assignments", f"assigns {a.target}, which does not exist", "warning")
+            elif a.slot not in type(target).model_fields:
+                err(sc.id, "assignments", f"a {type(target).__name__} has no slot {a.slot!r}")
+    collections = set(LIST_SLOTS) - {"reviews", "approvals"}  # a review cannot cover reviews or approvals
     for rv in items(state.reviews):
         for target in items(rv.covers):
             if target.startswith("all:"):
                 if target[4:] not in collections:
-                    err(rv.id, "covers", f"unknown selector {target}; use all:<collection>")
+                    err(rv.id, "covers", f"unknown selector {target}; use all:<collection> "
+                        "(reviews and approvals cannot be covered)")
             elif target not in idx:
                 err(rv.id, "covers", f"covers {target}, which does not exist")
             elif target == rv.id:

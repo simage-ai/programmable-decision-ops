@@ -13,9 +13,9 @@ from typing import Any
 
 VERSIONS = {
     "source": 1, "observe": 1, "pick": 1, "missing": 1, "python": 1, "linear_combination": 1, "threshold": 1,
-    "value": 1, "utility": 1, "feasible": 1, "decide": 1, "aggregate": 1, "state_digest": 1, "actionable": 1,
-    "recommendation_exists": 1, "unique_recommendation": 1, "coverage": 1, "evidence_current": 1,
-    "evidence_traceable": 1, "assumptions_validated": 1, "risks_treated": 1, "review_status": 1,
+    "value": 1, "utility": 1, "feasible": 1, "decide": 2, "aggregate": 1, "state_digest": 1, "actionable": 1,
+    "recommendation_exists": 2, "unique_recommendation": 1, "coverage": 1, "evidence_current": 1,
+    "evidence_traceable": 1, "assumptions_validated": 1, "risks_treated": 1, "review_status": 2,
     "omitted_options": 1, "distinct_measures": 1,
 }
 DEFAULT_TOLERANCE = 1.0e-9
@@ -178,7 +178,8 @@ def decide(node, inputs):
     else:
         best, recommended = None, []
     return {"recommended": recommended, "feasible": feasible_, "infeasible": infeasible, "unresolved": unresolved,
-            "best_utility": best, "utilities": U, "tolerance": tol}
+            "best_utility": best, "utilities": U, "tolerance": tol,
+            "rule_kind": rule.get("rule_kind", "additive_mavt"), "rule": node.inputs[0]}
 
 
 # --- readiness predicates -----------------------------------------------------------------------
@@ -189,6 +190,12 @@ def _decision(inputs):
 
 def recommendation_exists(node, inputs):
     d = _decision(inputs)
+    if d.get("rule_kind") == "expected_mavt":
+        # The declared rule ranks by expected utility under chance constraints, which `pdo uncertainty`
+        # computes; the point-value ranking here is only provisional, so it must not authorize anything.
+        return {"status": "unknown", "reason": "the declared rule is expected_mavt; the point-value ranking is "
+                "provisional until `pdo uncertainty` decides",
+                "actions": [_action("run_uncertainty_analysis", d["rule"], "decide under the declared rule")]}
     if d["recommended"]:
         return {"status": "pass"}
     if d["unresolved"]:
@@ -294,16 +301,15 @@ def review_status(node, inputs):
         return {"status": "unknown", "reason": "the referenced review does not exist"}
     review = inputs[review_id]
     action = [_action("complete_review", review_id, "complete or redo this review")]
+    if review["review_status"] == "fail":
+        return {"status": "fail", "reason": "the review failed", "actions": action}
     stamped = review.get("covered_digest")
     if stamped is not None:
         current = digest_of_sources({nid: inputs[nid] for nid in node.local["covered"]})
         if current != stamped:
             return {"status": "unknown", "reason": "stale: covered objects changed since the review", "actions": action}
-    status = review["review_status"]
-    if status == "pass":
+    if review["review_status"] == "pass":
         return {"status": "pass"}
-    if status == "fail":
-        return {"status": "fail", "reason": "the review failed", "actions": action}
     return {"status": "unknown", "reason": "review pending", "actions": action}
 
 

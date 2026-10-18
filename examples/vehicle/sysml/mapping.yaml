@@ -3,7 +3,7 @@
 # only what the model does not say. Every entry is a person's statement, not an inference.
 #
 # Without this file the importer still works: ids come from SysML names (alt:configA, meas:tankCapacity,
-# req:minRange, ...), and the unit of unitCost is reported as a gap.
+# req:minRange, ...), and unitCost keeps the model's own unit "1" (it is typed Real), not MUSD.
 
 alternatives:
   from: vehicleConfiguration          # the variation whose variants are the alternatives

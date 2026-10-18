@@ -16,7 +16,7 @@ pdo = "pdo.cli:app"
 
 [project.optional-dependencies]
 mcp = [
-    "mcp>=1.2",
+    "mcp>=2.3",
 ]
 figures = [
     "matplotlib>=3.8",

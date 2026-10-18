@@ -933,6 +933,28 @@ def sensitivity(path: str | Path, episode: str | None = None, param: str | None 
     return _ok(**result)
 
 
+@tool(LOAD_HINT)
+def dashboard(path: str | Path, out: str | Path, flips: bool = True, sensitivity: bool = True,
+              samples: int | None = None) -> dict:
+    """Write the read-only dashboard (index.html and dashboard.json) of a state or a program: every episode's
+    dependency graph with what its refresh recomputed, the decision table, readiness, pending actions, the
+    utility history, flips, a tornado, and uncertainty and value of information where inputs declare
+    distributions. Replaces only a previous dashboard's own files."""
+    from pdo.dashboard import build, write
+
+    p = _path(path)
+    target = Path(out).expanduser()
+    data = build(p, flips=flips, sensitivity=sensitivity, samples=samples)
+    try:
+        paths = write(data, target)
+    except FileExistsError as exc:
+        raise ToolError(str(exc), "Choose a new directory, or one that holds only a previous dashboard.") from None
+    last = data["episodes"][-1]
+    return _ok(path=str(p), page=paths["page"], data=paths["data"], episodes=len(data["episodes"]),
+               nodes=len(data["layout"]["nodes"]), newest={"episode": last["id"], "recommended": last["recommended"],
+                                                          "readiness": last["readiness"]})
+
+
 # --- examples -------------------------------------------------------------------------------------
 
 def examples_dir() -> Path | None:

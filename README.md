@@ -68,6 +68,11 @@ Readiness: READY   Actionable: no (alt:B has no approval)
   is computed, semantic (agent interpretation) or human.
 - **Pending actions by role.** With one person they are a to-do list. In a collaborative harness each
   role is a person to notify.
+- **A read-only dashboard.** `pdo dashboard` writes one self-contained HTML page (and the JSON behind it)
+  for people to look at: the dependency graph of every episode, with each node's status and whether that
+  episode's refresh recomputed or reused it; the decision table, readiness and pending actions; utility
+  and refresh work across the program; and flips, a tornado, uncertainty and value of information. The
+  page draws kernel results and computes nothing. See [docs/dashboard.md](docs/dashboard.md).
 
 ## Examples
 
@@ -96,6 +101,7 @@ Every command takes `--json` (`{"ok": true, ...}`, or `{"ok": false, "error": ..
 | `pdo flip PATH` / `pdo scenarios PATH` | Flip points and weight trade-offs; scenario robustness |
 | `pdo uncertainty PATH` | E[U], Pr(feasible), the chance-constrained decision, scenario robustness |
 | `pdo sensitivity PATH [-p ID.slot] [--figures DIR]` | Response curve and distribution of one input; or tornado, Sobol indices and value of information for all |
+| `pdo dashboard PATH [-o DIR] [--no-flips] [--no-sensitivity]` | Write the read-only dashboard: a self-contained `index.html` (offline it falls back to system fonts) and `dashboard.json` |
 | `pdo package PATH -o DIR [--sensitivity]` / `pdo replay RECORD.json` | Write a Decision Package (optionally with sensitivity and value of information); replay it node by node |
 | `pdo sysml import FILES --map M --out DIR` / `pdo sysml gaps FILES` | Import SysML v2 into a draft state; list what did not map |
 | `pdo bench run\|check bench/vehicle` | The representation benchmark |
@@ -105,7 +111,8 @@ Every command takes `--json` (`{"ok": true, ...}`, or `{"ok": false, "error": ..
 ## For agents
 
 - **MCP.** `pdo mcp` serves the same operations as tools (`pdo_run`, `pdo_explain`, `pdo_flip`,
-  `pdo_impact`, `pdo_apply_change`, `pdo_record_human_action`, `pdo_import_sysml`, `pdo_package`, ...).
+  `pdo_impact`, `pdo_apply_change`, `pdo_record_human_action`, `pdo_import_sysml`, `pdo_package`,
+  `pdo_dashboard`, ...).
   Each returns `{ok, ...}`, or `{ok: false, error, hint}`. Write tools preview by default and write a
   change set only when asked. To register it, for example with Claude Code:
   `claude mcp add pdo -- uv run --directory /path/to/programmable-decision-ops pdo mcp`. In any harness
@@ -157,8 +164,9 @@ Figures are in `results/figures/` (sensitivity figures from `make sensitivity-fi
 ```
 schema/            LinkML schema (core, problem, evidence, evaluation, governance, state, program, record)
 src/pdo/           kernel: load, graph, builtins, run, episodes, actions, flip, uncertainty, package,
-                   sysml, tools, mcp_server, cli*, bench/
+                   sensitivity, dashboard (+ dashboard.html), sysml, tools, mcp_server, cli*, bench/
 docs/semantics.md  the specification the kernel and the benchmark labels are both written against
+docs/dashboard.md  what the dashboard shows and the shape of dashboard.json
 examples/          vehicle (trade study and program), fires_sensor (uncertainty)
 skills/            agent skills
 bench/             benchmark suites (independent labels)
@@ -174,6 +182,7 @@ make test            # pytest (slow and live tests: -m slow, -m live)
 make lint            # linkml-lint, identity markers, ruff
 make gen-project     # regenerate models and the identity table after editing schema/
 make bench           # run the benchmark
+make dashboards      # dashboards of both examples, in site/
 ```
 
 Python 3.11 or later. Generated files are committed. CI regenerates them and fails on a diff, and it
@@ -181,9 +190,8 @@ also runs `pdo bench check`.
 
 ## Roadmap
 
-- **Dashboard (read-only).** A rendering of a decision program: the dependency graph colored by status,
-  with each episode's impact set; the episode timeline; and panels for readiness, pending actions,
-  flips, sensitivity and uncertainty. Generated from kernel output, never recomputed.
+- **Dashboard follow-ups.** Response curves and per-section document locators (once document provenance
+  lands) in the node details, and an onboarding progress view.
 - **Document provenance.** A skill and tools that index Word and PDF reports into sections with content
   digests, attach a locator (document, section, page, quote) to every extracted value, and flag only the
   observations whose section changed when a report is revised.

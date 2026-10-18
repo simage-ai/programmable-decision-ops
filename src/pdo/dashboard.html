@@ -1,0 +1,754 @@
+<title>Decision Program Console</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: an engineering console. An episode strip runs across the top; summary tiles; the decision
+   table beside the dependency graph; readiness and actions; then the program's history and analyses. */
+:root {
+  --paper: #f5f6f7; --panel: #ffffff; --ink: #151a20; --ink-2: #4a5561; --muted: #828c97; --rule: #dce1e6;
+  --accent: #2f5274; --accent-soft: #e3ebf3;
+  --good: #0ca30c; --warn: #fab219; --bad: #d03b3b;
+  --good-soft: #e3f4e3; --warn-soft: #fdf1d6; --bad-soft: #f8e1e1;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s-other: #828c97;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111418; --panel: #191d22; --ink: #e8ecf0; --ink-2: #b1bac4; --muted: #7d8894; --rule: #2a3037;
+    --accent: #8fb3d9; --accent-soft: #1f2a36;
+    --good-soft: #15291a; --warn-soft: #2e2715; --bad-soft: #301a1b;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111418; --panel: #191d22; --ink: #e8ecf0; --ink-2: #b1bac4; --muted: #7d8894; --rule: #2a3037;
+  --accent: #8fb3d9; --accent-soft: #1f2a36;
+  --good-soft: #15291a; --warn-soft: #2e2715; --bad-soft: #301a1b;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--paper); color: var(--ink); font: 14px/1.45 var(--f-body);
+       padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+       padding-block: 20px 40px; }
+.wrap { max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: 0.005em; }
+h1 { font-size: 1.75rem; line-height: 1.15; }
+h2 { font-size: 1.05rem; }
+.eyebrow { font: 500 0.72rem var(--f-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.question { color: var(--ink-2); max-width: 70ch; margin: 6px 0 0; }
+.meta { font: 0.78rem var(--f-mono); color: var(--muted); margin-top: 6px; overflow-wrap: anywhere; }
+.mono { font-family: var(--f-mono); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* episode strip */
+.strip { display: flex; flex-direction: column; gap: 8px; }
+.lane { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; align-items: stretch; }
+.lane-label { font: 500 0.7rem var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.ep { flex: 0 0 auto; min-width: 104px; text-align: left; border: 1px solid var(--rule); background: var(--panel);
+      color: var(--ink); border-radius: 6px; padding: 6px 8px 7px; cursor: pointer; font: inherit; display: flex;
+      flex-direction: column; gap: 2px; position: relative; }
+.ep:hover { border-color: var(--accent); }
+.ep:focus-visible, button:focus-visible, .node:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ep[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
+.ep .id { font: 600 0.82rem var(--f-mono); display: flex; align-items: center; gap: 6px; }
+.ep .when { font: 0.72rem var(--f-mono); color: var(--muted); }
+.ep .what { font-size: 0.74rem; color: var(--ink-2); }
+.ep .stripe { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; border-radius: 0 0 6px 6px; }
+
+/* status pill (glyph + word, never color alone) */
+.pill { display: inline-flex; align-items: center; gap: 5px; font: 500 0.74rem var(--f-mono); padding: 2px 8px 2px 6px;
+        border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+.pill .g { font-weight: 600; }
+.pill.pass { background: var(--good-soft); border-color: color-mix(in srgb, var(--good) 45%, transparent); }
+.pill.pass .g { color: var(--good); }
+.pill.unknown { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 55%, transparent); }
+.pill.unknown .g { color: color-mix(in srgb, var(--warn) 70%, var(--ink)); }
+.pill.fail { background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+.pill.fail .g { color: var(--bad); }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+
+/* tiles */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; min-width: 0;
+        display: flex; flex-direction: column; gap: 6px; }
+.tile .big { font: 600 1.35rem var(--f-display); line-height: 1.1; overflow-wrap: anywhere; }
+.tile .sub { font-size: 0.8rem; color: var(--ink-2); overflow-wrap: anywhere; }
+.tile .pill { align-self: flex-start; }
+
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 14px; min-width: 0;
+         display: flex; flex-direction: column; gap: 10px; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.note { font-size: 0.8rem; color: var(--ink-2); max-width: 75ch; }
+.grid-main { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 16px; align-items: start; }
+.stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 980px) { .grid-main, .grid-2 { grid-template-columns: minmax(0, 1fr); } }
+
+/* tables */
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+th { text-align: left; font: 500 0.7rem var(--f-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+     border-bottom: 1px solid var(--rule); padding: 6px 8px; white-space: nowrap; }
+td { border-bottom: 1px solid var(--rule); padding: 6px 8px; vertical-align: top; }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+td.name { min-width: 150px; }
+tr.rec td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.alt { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.small { font-size: 0.75rem; color: var(--ink-2); }
+
+/* graph */
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.toggle { font: 500 0.76rem var(--f-mono); border: 1px solid var(--rule); background: var(--panel); color: var(--ink-2);
+          padding: 4px 10px; border-radius: 999px; cursor: pointer; }
+.toggle[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
+.graph-box { overflow: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); max-height: min(780px, 80vh); }
+svg text { fill: var(--ink); }
+.node rect { stroke: var(--rule); stroke-width: 1; fill: var(--panel); }
+.node.s-pass rect { fill: var(--good-soft); stroke: color-mix(in srgb, var(--good) 50%, var(--rule)); }
+.node.s-fail rect { fill: var(--bad-soft); stroke: color-mix(in srgb, var(--bad) 55%, var(--rule)); }
+.node.s-unknown rect { fill: var(--warn-soft); stroke: color-mix(in srgb, var(--warn) 60%, var(--rule)); }
+.node.s-input rect { fill: var(--paper); stroke-dasharray: 2 2; }
+.node.e-executed rect { stroke: var(--accent); stroke-width: 1.6; }
+.node.e-cutoff_reused rect { stroke: var(--accent); stroke-dasharray: 4 3; stroke-width: 1.2; }
+.node.e-failed rect { stroke: var(--bad); stroke-width: 1.6; }
+.node .lbl { font: 500 10.5px var(--f-body); }
+.node .val { font: 10px var(--f-mono); fill: var(--ink-2); }
+.node { cursor: pointer; }
+.node.faded { opacity: 0.32; }
+.node.hot rect { stroke: var(--accent); stroke-width: 2; }
+.edge { fill: none; stroke: var(--rule); stroke-width: 1; }
+.edge.hot { stroke: var(--accent); stroke-width: 1.6; }
+.edge.faded { opacity: 0.25; }
+.colhead { font: 500 10px var(--f-mono); fill: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.75rem; color: var(--ink-2); align-items: center; }
+.legend .sw { width: 14px; height: 10px; border-radius: 3px; display: inline-block; border: 1px solid var(--rule); vertical-align: -1px; margin-right: 4px; }
+.detail { border-top: 1px solid var(--rule); padding-top: 10px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px; }
+.detail dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 12px; margin: 0; }
+.detail dt { color: var(--muted); font: 0.72rem var(--f-mono); }
+.detail dd { margin: 0; overflow-wrap: anywhere; }
+
+/* lists */
+.list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.list li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: baseline; }
+.list .why { grid-column: 2; font-size: 0.78rem; color: var(--ink-2); }
+.role { font: 600 0.78rem var(--f-mono); margin-top: 6px; }
+
+/* charts */
+.chart { width: 100%; height: auto; display: block; }
+.chart .grid line { stroke: var(--rule); stroke-width: 1; }
+.chart .axis text, .chart .lab { font: 10.5px var(--f-mono); fill: var(--muted); }
+.chart .dlab { font: 500 11px var(--f-body); fill: var(--ink-2); }
+.tip { position: fixed; pointer-events: none; background: var(--panel); color: var(--ink); border: 1px solid var(--rule);
+       border-radius: 6px; padding: 8px 10px; font-size: 0.78rem; box-shadow: 0 4px 16px rgba(0,0,0,.12); max-width: 320px;
+       z-index: 10; }
+.tip .t { font: 600 0.8rem var(--f-mono); margin-bottom: 4px; }
+.tip .row { display: flex; align-items: center; gap: 6px; }
+.tip .key { width: 12px; height: 2px; display: inline-block; }
+.empty { color: var(--muted); font-size: 0.82rem; }
+footer { font: 0.74rem var(--f-mono); color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .node rect, .edge { transition: opacity .15s, stroke .15s; } }
+</style>
+
+<div class="wrap" id="app">
+  <header>
+    <div class="eyebrow">Decision program</div>
+    <h1 id="title">Decision program</h1>
+    <p class="question" id="question"></p>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <nav class="strip" aria-label="Episodes" id="strip"></nav>
+
+  <section class="tiles" id="tiles" aria-label="Summary"></section>
+
+  <section class="panel" aria-labelledby="h-graph">
+    <div class="panel-head">
+      <h2 id="h-graph">Dependency graph</h2>
+      <div class="toolbar">
+        <button class="toggle" id="t-inputs" aria-pressed="false" type="button">Show inputs</button>
+        <button class="toggle" id="t-impact" aria-pressed="false" type="button">Highlight what this episode recomputed</button>
+      </div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="graph-box" id="graph-box"><svg id="graph" role="img" aria-label="Dependency graph of the decision"></svg></div>
+    <div class="detail" id="detail"><span class="empty">Select a node to see its value, its inputs and how this episode computed it.</span></div>
+  </section>
+
+  <div class="grid-main">
+    <section class="panel" aria-labelledby="h-table">
+      <div class="panel-head"><h2 id="h-table">Decision table</h2><span class="small" id="table-note"></span></div>
+      <div class="scroll"><table id="table"></table></div>
+      <p class="note">Margins are in the g ≤ 0 convention: a check passes when g is at or below 0, so a negative g is room
+        to spare and a positive g is the shortfall.</p>
+    </section>
+    <div class="stack">
+      <section class="panel" aria-labelledby="h-ready">
+        <div class="panel-head"><h2 id="h-ready">Readiness conditions</h2><span id="ready-pill"></span></div>
+        <ul class="list" id="conditions"></ul>
+      </section>
+      <section class="panel" aria-labelledby="h-actions">
+        <div class="panel-head"><h2 id="h-actions">Pending actions by role</h2></div>
+        <div id="actions"></div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel" aria-labelledby="h-history" id="history-panel">
+    <div class="panel-head"><h2 id="h-history">Utility across the program</h2><span class="small" id="history-note">main line of episodes; band: readiness</span></div>
+    <div class="legend" id="history-legend"></div>
+    <svg class="chart" id="history" role="img" aria-label="Utility of each alternative by episode"></svg>
+  </section>
+
+  <section class="panel" aria-labelledby="h-work" id="work-panel">
+    <div class="panel-head"><h2 id="h-work">Refresh work by episode</h2><span class="small" id="work-note"></span></div>
+    <svg class="chart" id="work" role="img" aria-label="Computed nodes executed and reused per episode"></svg>
+  </section>
+
+  <div class="grid-2">
+    <section class="panel" aria-labelledby="h-flips">
+      <div class="panel-head"><h2 id="h-flips">What flips the decision</h2></div>
+      <div class="scroll"><table id="flips"></table></div>
+    </section>
+    <section class="panel" aria-labelledby="h-tornado">
+      <div class="panel-head"><h2 id="h-tornado">Tornado of the decision margin</h2></div>
+      <svg class="chart" id="tornado" role="img" aria-label="Decision margin at the low and high end of each input"></svg>
+      <p class="note" id="tornado-note"></p>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="h-unc" id="unc-panel" hidden>
+    <div class="panel-head"><h2 id="h-unc">Decision under uncertainty</h2><span class="small" id="unc-note"></span></div>
+    <div class="scroll"><table id="unc"></table></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-voi" id="voi-panel" hidden>
+    <div class="panel-head"><h2 id="h-voi">Sensitivity and value of information</h2><span class="small" id="voi-note"></span></div>
+    <div class="grid-2">
+      <div><h3 class="eyebrow">Sobol total index of the margin</h3><svg class="chart" id="sobol" role="img" aria-label="Sobol total indices"></svg></div>
+      <div><h3 class="eyebrow">Value of resolving each input (EVPPI)</h3><svg class="chart" id="voi" role="img" aria-label="Expected value of partial perfect information"></svg></div>
+    </div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const DATA = /*__PDO_DATA__*/null;
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs, text) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) if (v !== undefined && v !== null) n.setAttribute(k, v);
+    if (text !== undefined && text !== null) n.textContent = text;
+    return n;
+  };
+  const sv = (tag, attrs, text) => {
+    const n = document.createElementNS(SVGNS, tag);
+    for (const [k, v] of Object.entries(attrs || {})) if (v !== undefined && v !== null) n.setAttribute(k, v);
+    if (text !== undefined && text !== null) n.textContent = text;
+    return n;
+  };
+  const clear = (n) => { while (n.firstChild) n.removeChild(n.firstChild); return n; };
+  const short = (id) => (id || "").split(":").slice(1).join(":") || id || "";
+  const fmt = (x, d = 4) => (x === null || x === undefined) ? "unknown" : (typeof x === "number" ? Number(x.toPrecision(d)).toString() : String(x));
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  if (!DATA) { $("title").textContent = "No data"; return; }
+
+  const alts = DATA.alternatives;
+  const altColor = (a) => { const i = alts.indexOf(a); return i >= 0 && i < 3 ? `var(--s${i + 1})` : "var(--s-other)"; };
+  const altDash = (a) => ["", "6 4", "2 3"][alts.indexOf(a)] || "1 3";
+  const altName = (a) => (DATA.alternative_names[a] || a);
+  const episodes = DATA.episodes;
+  const byId = Object.fromEntries(episodes.map((e) => [e.id, e]));
+  const STATUS = { pass: ["✓", "pass"], fail: ["✕", "fail"], unknown: ["?", "unknown"] };
+  const READY = { ready: "pass", pending: "unknown", blocked: "fail" };
+  const pill = (status, word) => {
+    const [g, w] = STATUS[status] || ["·", status];
+    const p = el("span", { class: `pill ${status}` });
+    p.append(el("span", { class: "g", "aria-hidden": "true" }, g), document.createTextNode(word || w));
+    return p;
+  };
+  // Under expected_mavt the declared rule decides on expected utility; the point-value choice is context.
+  const expectedRule = DATA.meta.rule_kind === "expected_mavt";
+  const choice = (e) => (expectedRule && e.uncertainty ? (e.uncertainty.recommended || []) : e.recommended);
+  const statusColor = (s) => ({ pass: "var(--good)", fail: "var(--bad)", unknown: "var(--warn)" })[s] || "var(--muted)";
+
+  /* tooltip */
+  const tip = $("tip");
+  function showTip(evt, title, rows) {
+    clear(tip);
+    tip.append(el("div", { class: "t" }, title));
+    for (const r of rows) {
+      const row = el("div", { class: "row" });
+      if (r.color) row.append(el("span", { class: "key", style: `background:${r.color}` }));
+      const strong = el("strong", {}, r.value);
+      row.append(strong, document.createTextNode(r.label ? " " + r.label : ""));
+      tip.append(row);
+    }
+    tip.hidden = false;
+    const x = Math.min(evt.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+    const y = Math.min(evt.clientY + 14, window.innerHeight - tip.offsetHeight - 8);
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  const hideTip = () => { tip.hidden = true; };
+
+  /* header */
+  $("title").textContent = DATA.meta.title;
+  document.title = DATA.meta.title + " · decision console";
+  $("question").textContent = DATA.meta.question || "";
+  $("meta").textContent = `${DATA.meta.path} · rule ${DATA.meta.rule_kind || "additive_mavt"} · pdo ${DATA.meta.kernel_version} · ${episodes.length} episode${episodes.length === 1 ? "" : "s"}`;
+  $("footer").textContent = `Rendered from kernel output by pdo ${DATA.meta.kernel_version}. The page draws recorded results; it computes nothing.`;
+
+  /* state */
+  const mainLine = DATA.meta.main_line || [episodes[0].id];
+  const fromHash = () => { const h = (location.hash || "").slice(1); return episodes.find((e) => short(e.id) === h || e.id === h); };
+  let current = (fromHash() || byId[mainLine[mainLine.length - 1]] || episodes[0]).id;
+  let showInputs = false, showImpact = false, selectedNode = null;
+
+  /* episode strip */
+  function renderStrip() {
+    const strip = clear($("strip"));
+    let selectedChip = null;
+    const main = mainLine.map((id) => byId[id]).filter(Boolean);
+    const others = episodes.filter((e) => !mainLine.includes(e.id));
+    const lane = (label, eps) => {
+      if (!eps.length) return;
+      strip.append(el("div", { class: "lane-label" }, label));
+      const row = el("div", { class: "lane", role: "group", "aria-label": label });
+      for (const e of eps) {
+        const b = el("button", { class: "ep", type: "button", "aria-pressed": String(e.id === current), title: e.description || "" });
+        const id = el("span", { class: "id" });
+        id.append(el("span", { class: "dot", style: `background:${statusColor(READY[e.readiness])}`, "aria-hidden": "true" }), document.createTextNode(short(e.id)));
+        if (e.actionable) id.append(el("span", { class: "small", title: "actionable" }, "· approved"));
+        b.append(id, el("span", { class: "when" }, `${e.as_of} · ${e.trigger}`),
+                 el("span", { class: "what" }, (choice(e).map(short).join(", ") || "none") + " · " + e.readiness));
+        b.append(el("span", { class: "stripe", style: `background:${choice(e).length === 1 ? altColor(choice(e)[0]) : "var(--rule)"}` }));
+        b.addEventListener("click", () => select(e.id));
+        row.append(b);
+        if (e.id === current) selectedChip = b;
+      }
+      strip.append(row);
+    };
+    lane(mainLine.length > 1 ? "Main line" : "Episode", main);
+    lane("Branches", others);
+    if (selectedChip) { const lane = selectedChip.parentElement; lane.scrollLeft = selectedChip.offsetLeft - lane.offsetLeft - (lane.clientWidth - selectedChip.offsetWidth) / 2; }
+  }
+
+  /* summary tiles */
+  function renderTiles(e) {
+    const tiles = clear($("tiles"));
+    const tile = (label, big, sub, extra) => {
+      const t = el("div", { class: "tile" });
+      t.append(el("div", { class: "eyebrow" }, label));
+      if (big instanceof Node) t.append(big); else t.append(el("div", { class: "big" }, big));
+      if (extra) t.append(extra);
+      if (sub) t.append(el("div", { class: "sub" }, sub));
+      tiles.append(t);
+    };
+    const underUncertainty = expectedRule && e.uncertainty;
+    const rec = choice(e);
+    const recBig = el("div", { class: "big" });
+    if (rec.length) { recBig.append(el("span", { class: "dot", style: `background:${altColor(rec[0])};margin-right:8px` }), document.createTextNode(rec.map((a) => short(a)).join(" = "))); }
+    else recBig.textContent = "No recommendation";
+    let recSub;
+    if (underUncertainty) {
+      const row = (e.uncertainty.alternatives || []).find((r) => r.alternative === rec[0]);
+      recSub = `${rec.length === 1 ? altName(rec[0]) + " · " : ""}E[U] = ${fmt(row && row.expected_utility)} · at point values: ${e.recommended.map(short).join(", ") || "none"}`;
+    } else {
+      const row = e.table.find((r) => r.alternative === rec[0]);
+      recSub = rec.length === 1 ? `${altName(rec[0])} · U = ${fmt(row && row.utility)}` : (rec.length > 1 ? "tie: a person must choose" : "no feasible alternative is known");
+    }
+    tile(underUncertainty ? "Recommended (expected utility)" : "Recommended", recBig, recSub);
+    tile("Readiness", pill(READY[e.readiness], e.readiness), `${e.conditions.filter((c) => c.status === "pass").length} of ${e.conditions.length} conditions pass`);
+    tile("Authorization", pill(e.actionable ? "pass" : (e.readiness === "ready" ? "unknown" : "fail"), e.actionable ? "actionable" : "not actionable"), e.actionable_reason || "");
+    const verified = e.verified === null || e.verified === undefined ? "full run" : (e.verified ? "selective = full" : "mismatch, full run used");
+    tile("Refresh", `${e.cost.executed} of ${e.cost.computed}`, `computed nodes re-evaluated · ${verified}`);
+    tile("State digest", el("div", { class: "big mono", style: "font-size:1rem" }, e.state_digest.slice(0, 16)), `episode ${short(e.id)} · as of ${e.as_of}` + (e.parent ? ` · parent ${short(e.parent)}` : ""));
+  }
+
+  /* decision table */
+  function renderTable(e) {
+    const t = clear($("table"));
+    const measures = DATA.measures.filter((m) => e.table.some((r) => r.measures[m.id] !== undefined));
+    const head = el("tr");
+    head.append(el("th", {}, "Alternative"), el("th", { class: "r" }, "U"), el("th", {}, "Feasibility"));
+    for (const m of measures) head.append(el("th", { class: "r", title: m.name }, `${short(m.id)} [${m.unit}]`));
+    const thead = el("thead"); thead.append(head); t.append(thead);
+    const tb = el("tbody");
+    for (const r of e.table) {
+      const tr = el("tr", { class: (expectedRule ? [] : e.recommended).includes(r.alternative) ? "rec" : "" });
+      const name = el("td", { class: "name" }); const a = el("span", { class: "alt" });
+      a.append(el("span", { class: "dot", style: `background:${altColor(r.alternative)}` }), document.createTextNode(short(r.alternative)));
+      name.append(a, el("div", { class: "small" }, altName(r.alternative)));
+      tr.append(name);
+      tr.append(el("td", { class: "r" }, r.utility !== null ? fmt(r.utility) : `[${fmt(r.utility_bounds[0], 3)}, ${fmt(r.utility_bounds[1], 3)}]`));
+      const f = el("td");
+      f.append(pill(r.feasibility, r.feasibility === "pass" ? "feasible" : (r.feasibility === "fail" ? "infeasible" : "unresolved")));
+      for (const req of r.failed) f.append(el("div", { class: "small" }, `${short(req)}: g = ${fmt(r.g[req], 3)}`));
+      for (const req of r.unknown) f.append(el("div", { class: "small" }, `${short(req)}: unknown`));
+      tr.append(f);
+      for (const m of measures) tr.append(el("td", { class: "r" }, fmt(r.measures[m.id])));
+      tb.append(tr);
+    }
+    t.append(tb);
+    $("table-note").textContent = e.unresolved.length ? `unresolved: ${e.unresolved.map(short).join(", ")}` : "";
+  }
+
+  /* dependency graph */
+  const L = DATA.layout, G = L.geometry;
+  function renderLegend() {
+    const lg = clear($("legend"));
+    const sw = (cls, label, style) => { const s = el("span"); s.append(el("span", { class: "sw", style }), document.createTextNode(label)); lg.append(s); };
+    sw("", "pass", "background:var(--good-soft);border-color:var(--good)");
+    sw("", "unknown", "background:var(--warn-soft);border-color:var(--warn)");
+    sw("", "fail", "background:var(--bad-soft);border-color:var(--bad)");
+    sw("", "value", "background:var(--panel)");
+    sw("", "re-evaluated this episode", "background:var(--panel);border:1.6px solid var(--accent)");
+    sw("", "reused (inputs unchanged)", "background:var(--panel);border:1.2px dashed var(--accent)");
+  }
+  function renderGraph(e) {
+    const svg = clear($("graph"));
+    const visible = Object.entries(L.nodes).filter(([id, n]) => e.nodes[id] && (showInputs || n.col > 0));
+    const cols = [...new Set(visible.map(([, n]) => n.col))].sort((a, b) => a - b);
+    const colX = Object.fromEntries(cols.map((c, i) => [c, 8 + i * G.col_w]));
+    const rowsUsed = {};
+    for (const [, n] of visible) rowsUsed[n.col] = Math.max(rowsUsed[n.col] || 0, n.row + 1);
+    const pos = {};
+    for (const [id, n] of visible) pos[id] = { x: colX[n.col], y: 30 + n.row * G.row_h };
+    const width = 16 + (cols.length - 1) * G.col_w + G.node_w;
+    const height = 40 + Math.max(...Object.values(rowsUsed), 1) * G.row_h;
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("width", width); svg.setAttribute("height", height);
+    for (const c of cols) fitText(svg.appendChild(sv("text", { class: "colhead", x: colX[c], y: 16 }, L.columns[c])), G.col_w - 8);
+    const impact = new Set(e.impact || []);
+    const edgeEls = [];
+    const gEdges = sv("g"); svg.append(gEdges);
+    for (const [a, b] of L.edges) {
+      if (!pos[a] || !pos[b]) continue;
+      const x1 = pos[a].x + G.node_w, y1 = pos[a].y + G.node_h / 2, x2 = pos[b].x, y2 = pos[b].y + G.node_h / 2;
+      const mx = (x1 + x2) / 2;
+      const p = sv("path", { class: "edge", d: `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}` });
+      p.dataset.a = a; p.dataset.b = b;
+      if (showImpact && !(impact.has(a) && impact.has(b))) p.classList.add("faded");
+      gEdges.append(p); edgeEls.push(p);
+    }
+    const nodeEls = {};
+    for (const [id, n] of visible) {
+      const st = e.nodes[id];
+      const g = sv("g", { class: `node s-${st.s} e-${st.e}`, transform: `translate(${pos[id].x},${pos[id].y})`, tabindex: "0", role: "button", "aria-label": `${n.label}: ${st.v}` });
+      if (showImpact && !impact.has(id)) g.classList.add("faded");
+      if (selectedNode === id) g.classList.add("hot");
+      g.append(sv("rect", { width: G.node_w, height: G.node_h, rx: 4 }));
+      if (n.alternative && alts.includes(n.alternative)) g.append(sv("rect", { width: 3, height: G.node_h - 8, x: 3, y: 4, rx: 1.5, style: `fill:${altColor(n.alternative)};stroke:none` }));
+      const glyph = STATUS[st.s] ? STATUS[st.s][0] + " " : "";
+      g.append(sv("text", { class: "lbl", x: 10, y: 13 }, glyph + n.label));
+      g.append(sv("text", { class: "val", x: 10, y: 25 }, st.v));
+      const hover = (on) => {
+        for (const p of edgeEls) if (p.dataset.a === id || p.dataset.b === id) p.classList.toggle("hot", on);
+      };
+      g.addEventListener("pointerenter", (evt) => { hover(true); showTip(evt, n.label, nodeTipRows(id, st)); });
+      g.addEventListener("pointermove", (evt) => showTip(evt, n.label, nodeTipRows(id, st)));
+      g.addEventListener("pointerleave", () => { hover(false); hideTip(); });
+      g.addEventListener("focus", () => hover(true));
+      g.addEventListener("blur", () => hover(false));
+      g.addEventListener("click", () => { selectedNode = id; renderGraph(e); renderDetail(e, id); });
+      g.addEventListener("keydown", (k) => { if (k.key === "Enter" || k.key === " ") { k.preventDefault(); selectedNode = id; renderGraph(e); renderDetail(e, id); } });
+      svg.append(g); nodeEls[id] = g;
+      for (const t of g.querySelectorAll("text")) fitText(t, G.node_w - 16);
+    }
+  }
+  // Trim an SVG label to a pixel width (measured, so it holds for whichever font face loaded).
+  function fitText(t, maxW) {
+    const full = t.textContent;
+    if (!full || t.getComputedTextLength() <= maxW) return;
+    let lo = 0, hi = full.length;
+    while (lo < hi) { const mid = (lo + hi + 1) >> 1; t.textContent = full.slice(0, mid) + "…"; if (t.getComputedTextLength() <= maxW) lo = mid; else hi = mid - 1; }
+    t.textContent = full.slice(0, lo) + "…";
+  }
+  const EXEC = { executed: "re-evaluated in this episode", reused: "reused: outside the impact set", cutoff_reused: "reused: its inputs did not change", failed: "evaluator failed" };
+  function nodeTipRows(id, st) {
+    const rows = [{ value: st.v, label: "" }, { value: EXEC[st.e] || st.e, label: "" }];
+    if (st.d) rows.push({ value: st.d, label: "" });
+    return rows;
+  }
+  const clip = (s, n) => (s && s.length > n ? s.slice(0, n - 1) + "…" : s || "");
+  function renderDetail(e, id) {
+    const d = clear($("detail"));
+    const n = L.nodes[id], st = e.nodes[id];
+    d.append(el("h3", { class: "mono", style: "font-size:0.9rem" }, id));
+    const dl = el("dl");
+    const add = (k, v) => { dl.append(el("dt", {}, k), el("dd", {}, v)); };
+    add("value", st.v);
+    if (STATUS[st.s]) add("status", st.s);
+    if (st.d) add("why", st.d);
+    add("this episode", EXEC[st.e] || st.e);
+    if (n.subject) add("from", `${n.subject}${DATA.objects[n.subject] && DATA.objects[n.subject] !== n.subject ? " · " + DATA.objects[n.subject] : ""}`);
+    const inputs = L.edges.filter(([, b]) => b === id).map(([a]) => a).filter((a) => e.nodes[a]);
+    add("inputs", inputs.length ? inputs.map((a) => `${L.nodes[a] ? L.nodes[a].label : a} = ${e.nodes[a].v}`).join("; ") : "none (a source object)");
+    const outs = L.edges.filter(([a]) => a === id).map(([, b]) => b).filter((b) => e.nodes[b]);
+    if (outs.length) add("feeds", outs.map((b) => L.nodes[b] ? L.nodes[b].label : b).join(", "));
+    d.append(dl);
+  }
+
+  /* readiness and actions */
+  function renderReadiness(e) {
+    const ul = clear($("conditions"));
+    for (const c of e.conditions) {
+      const li = el("li");
+      li.append(pill(c.status), el("span", { class: "mono", style: "font-size:0.8rem" }, short(c.condition) + (c.required ? "" : " (not required)")));
+      if (c.reason) li.append(el("span", { class: "why" }, c.reason));
+      ul.append(li);
+    }
+    clear($("ready-pill")).append(pill(READY[e.readiness], e.readiness));
+    const box = clear($("actions"));
+    if (!e.pending.length) { box.append(el("p", { class: "empty" }, "Nothing is waiting on a person in this episode.")); return; }
+    const byRole = {};
+    for (const a of e.pending) (byRole[a.role || "unassigned"] = byRole[a.role || "unassigned"] || []).push(a);
+    for (const [role, acts] of Object.entries(byRole)) {
+      box.append(el("div", { class: "role" }, (DATA.roles[role] || role)));
+      const ul = el("ul", { class: "list" });
+      for (const a of acts) {
+        const li = el("li");
+        li.append(el("span", { class: "pill unknown" }, a.kind.replace(/_/g, " ")), el("span", { class: "mono", style: "font-size:0.8rem" }, a.target));
+        li.append(el("span", { class: "why" }, a.reason));
+        ul.append(li);
+      }
+      box.append(ul);
+    }
+  }
+
+  /* charts: shared helpers */
+  function axisY(svg, x0, x1, y, ticks, fmtT) {
+    const g = sv("g", { class: "grid" });
+    for (const t of ticks) { g.append(sv("line", { x1: x0, x2: x1, y1: y(t), y2: y(t) })); }
+    svg.append(g);
+    const a = sv("g", { class: "axis" });
+    for (const t of ticks) a.append(sv("text", { x: x0 - 6, y: y(t) + 3.5, "text-anchor": "end" }, fmtT(t)));
+    svg.append(a);
+  }
+  function niceTicks(lo, hi, n = 4) {
+    const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+    const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => span / s <= n) || mag * 10;
+    const out = []; for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-12; t += step) out.push(+t.toFixed(10));
+    return out;
+  }
+
+  /* history of utility across the main line */
+  function renderHistory() {
+    const svg = clear($("history"));
+    const eps = mainLine.map((id) => byId[id]).filter(Boolean);
+    if (eps.length < 2) { $("history-panel").hidden = true; return; }
+    if (expectedRule) $("history-note").textContent = "utility at point values (the rule decides on expected utility); band: readiness";
+    const W = 960, H = 280, ml = 52, mr = 90, mt = 12, mb = 64;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const us = eps.flatMap((e) => e.table.map((r) => r.utility).filter((u) => u !== null));
+    let lo = Math.min(...us), hi = Math.max(...us); const pad = (hi - lo) * 0.12 || 0.05; lo -= pad; hi += pad;
+    const x = (i) => ml + i * (W - ml - mr) / (eps.length - 1);
+    const y = (u) => mt + (hi - u) / (hi - lo) * (H - mt - mb);
+    const ticks = niceTicks(lo, hi);
+    axisY(svg, ml, W - mr, y, ticks, (t) => t.toFixed(2));
+    const lab = sv("g", { class: "axis" });
+    eps.forEach((e, i) => lab.append(sv("text", { x: x(i), y: H - mb + 16, "text-anchor": "middle" }, short(e.id))));
+    svg.append(lab);
+    const band = sv("g");
+    eps.forEach((e, i) => {
+      const w = Math.min(56, (W - ml - mr) / (eps.length - 1) * 0.8);
+      band.append(sv("rect", { x: x(i) - w / 2, y: H - mb + 24, width: w, height: 8, rx: 2, style: `fill:${statusColor(READY[e.readiness])}` }));
+      band.append(sv("text", { class: "lab", x: x(i), y: H - mb + 46, "text-anchor": "middle" }, e.actionable ? "approved" : ""));
+    });
+    svg.append(band);
+    const leg = clear($("history-legend"));
+    for (const a of alts) {
+      const pts = eps.map((e, i) => { const r = e.table.find((t) => t.alternative === a); return r && r.utility !== null ? [x(i), y(r.utility)] : null; });
+      let d = "", pen = false;
+      for (const p of pts) { if (!p) { pen = false; continue; } d += (pen ? "L" : "M") + p[0] + "," + p[1]; pen = true; }
+      svg.append(sv("path", { d, style: `fill:none;stroke:${altColor(a)};stroke-width:2`, "stroke-dasharray": altDash(a) || null }));
+      pts.forEach((p, i) => { if (p) svg.append(sv("circle", { cx: p[0], cy: p[1], r: 4, style: `fill:${altColor(a)};stroke:var(--panel);stroke-width:2` })); });
+      const last = [...pts].reverse().find(Boolean);
+      if (last) svg.append(sv("text", { class: "dlab", x: last[0] + 8, y: last[1] + 4 }, short(a)));
+      const s = el("span"); s.append(el("span", { class: "sw", style: `background:${altColor(a)};height:3px;border:none` }), document.createTextNode(altName(a))); leg.append(s);
+    }
+    const cur = sv("line", { x1: 0, x2: 0, y1: mt, y2: H - mb, style: "stroke:var(--accent);stroke-width:1.5", "stroke-dasharray": "3 3" });
+    svg.append(cur);
+    const idx = eps.findIndex((e) => e.id === current);
+    if (idx >= 0) { cur.setAttribute("x1", x(idx)); cur.setAttribute("x2", x(idx)); } else cur.setAttribute("visibility", "hidden");
+    const hit = sv("rect", { x: ml, y: mt, width: W - ml - mr, height: H - mt - mb + 40, style: "fill:transparent" });
+    hit.addEventListener("pointermove", (evt) => {
+      const r = svg.getBoundingClientRect(); const px = (evt.clientX - r.left) * W / r.width;
+      const i = Math.max(0, Math.min(eps.length - 1, Math.round((px - ml) / ((W - ml - mr) / (eps.length - 1)))));
+      const e = eps[i];
+      showTip(evt, `${short(e.id)} · ${e.as_of}`, [
+        ...alts.map((a) => { const t = e.table.find((q) => q.alternative === a); return { color: altColor(a), value: t && t.utility !== null ? fmt(t.utility) : "unknown", label: short(a) + (e.recommended.includes(a) ? " (recommended)" : "") }; }),
+        { value: e.readiness, label: e.actionable ? "· approved" : "" }, { value: e.description || "", label: "" }]);
+    });
+    hit.addEventListener("pointerleave", hideTip);
+    hit.addEventListener("click", (evt) => {
+      const r = svg.getBoundingClientRect(); const px = (evt.clientX - r.left) * W / r.width;
+      const i = Math.max(0, Math.min(eps.length - 1, Math.round((px - ml) / ((W - ml - mr) / (eps.length - 1)))));
+      select(eps[i].id);
+    });
+    svg.append(hit);
+  }
+
+  /* refresh work */
+  function renderWork() {
+    const svg = clear($("work"));
+    const eps = mainLine.map((id) => byId[id]).concat(episodes.filter((e) => !mainLine.includes(e.id))).filter((e) => e && e.parent);
+    if (!eps.length) { $("work-panel").hidden = true; return; }
+    const W = 960, H = 200, ml = 52, mr = 16, mt = 10, mb = 34;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const maxC = Math.max(...eps.map((e) => e.cost.computed));
+    const bw = (W - ml - mr) / eps.length;
+    const y = (v) => mt + (1 - v / maxC) * (H - mt - mb);
+    axisY(svg, ml, W - mr, y, niceTicks(0, maxC, 4), (t) => String(t));
+    const ex = eps.reduce((s, e) => s + e.cost.executed, 0), tot = eps.reduce((s, e) => s + e.cost.computed, 0);
+    $("work-note").textContent = `${ex} of ${tot} computed-node evaluations (${(100 * ex / tot).toFixed(0)}%); every episode verified against a full run`;
+    eps.forEach((e, i) => {
+      const w = Math.max(2, Math.min(56, bw - 4)), x0 = ml + i * bw + (bw - w) / 2;
+      const reused = e.cost.computed - e.cost.executed;
+      svg.append(sv("rect", { x: x0, y: y(e.cost.computed), width: w, height: Math.max(0, y(e.cost.executed) - y(e.cost.computed) - 2), rx: 2, style: "fill:var(--rule)" }));
+      svg.append(sv("rect", { x: x0, y: y(e.cost.executed), width: w, height: Math.max(1, H - mb - y(e.cost.executed)), rx: 2, style: `fill:${e.id === current ? "var(--accent)" : "var(--s1)"}` }));
+      svg.append(sv("text", { class: "lab", x: x0 + w / 2, y: H - mb + 14, "text-anchor": "middle" }, short(e.id)));
+      const hit = sv("rect", { x: ml + i * bw, y: mt, width: bw, height: H - mt - mb, style: "fill:transparent;cursor:pointer" });
+      hit.addEventListener("pointermove", (evt) => showTip(evt, short(e.id), [
+        { color: "var(--s1)", value: String(e.cost.executed), label: "re-evaluated" }, { color: "var(--rule)", value: String(reused), label: "reused" },
+        { value: e.verified ? "selective = full" : "not verified", label: "" }]));
+      hit.addEventListener("pointerleave", hideTip);
+      hit.addEventListener("click", () => select(e.id));
+      svg.append(hit);
+    });
+  }
+
+  /* flips */
+  function renderFlips(e) {
+    const t = clear($("flips"));
+    const flips = e.flips || [];
+    if (!flips.length) { t.append(el("caption", { class: "empty" }, e.flips ? "No input flips the decision within its scanned range." : "Not analysed.")); return; }
+    const head = el("tr"); ["Input", "Flips", "At (now)", "To", "Kind"].forEach((h, i) => head.append(el("th", { class: i === 2 ? "r" : "" }, h)));
+    const thead = el("thead"); thead.append(head); t.append(thead);
+    const tb = el("tbody");
+    for (const f of flips.slice(0, 14)) {
+      const tr = el("tr");
+      tr.append(el("td", { class: "mono" }, f.parameter + (f.counterpart ? ` ← ${short(f.counterpart)}` : "")));
+      tr.append(el("td", {}, f.direction || ""));
+      tr.append(el("td", { class: "r" }, `${fmt(f.flip_number, 5)} (${fmt(f.baseline_number, 4)})`));
+      tr.append(el("td", {}, (f.new_recommendation || []).map(short).join(", ") || "none"));
+      tr.append(el("td", { class: "small" }, `${f.boundary_kind}, ${f.method}${f.verified === false ? " (unverified)" : ""}`));
+      tb.append(tr);
+    }
+    t.append(tb);
+  }
+
+  /* tornado */
+  function renderTornado(e) {
+    const svg = clear($("tornado"));
+    const t = e.sensitivity && e.sensitivity.tornado;
+    const note = $("tornado-note");
+    if (!t || t.margin === null || !t.rows.length) { note.textContent = t ? "No unique recommendation and competitor to measure a margin against." : "Not analysed."; return; }
+    const rows = t.rows.filter((r) => r.swing !== null).slice(0, 10);
+    const W = 640, rh = 26, ml = 230, mr = 20, mt = 8, H = mt + rows.length * rh + 34;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const vals = rows.flatMap((r) => [r.margin_low, r.margin_high]).concat([t.margin, 0]);
+    let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.06 || 0.01; lo -= pad; hi += pad;
+    const x = (v) => ml + (v - lo) / (hi - lo) * (W - ml - mr);
+    const ticks = niceTicks(lo, hi, 5);
+    const g = sv("g", { class: "grid" }); ticks.forEach((tk) => g.append(sv("line", { x1: x(tk), x2: x(tk), y1: mt, y2: H - 26 }))); svg.append(g);
+    const ax = sv("g", { class: "axis" }); ticks.forEach((tk) => ax.append(sv("text", { x: x(tk), y: H - 12, "text-anchor": "middle" }, tk.toFixed(2)))); svg.append(ax);
+    rows.forEach((r, i) => {
+      const yy = mt + i * rh;
+      svg.append(sv("text", { class: "lab", x: ml - 8, y: yy + rh / 2 + 3, "text-anchor": "end" }, clip(r.parameter, 34)));
+      const bar = (v, off, color) => { const a = x(t.margin), b = x(v); svg.append(sv("rect", { x: Math.min(a, b), y: yy + off, width: Math.max(1, Math.abs(b - a)), height: 9, rx: 2, style: `fill:${color}` })); };
+      bar(r.margin_low, 3, "var(--s1)"); bar(r.margin_high, 13, "var(--s2)");
+      const hit = sv("rect", { x: 0, y: yy, width: W, height: rh, style: "fill:transparent" });
+      hit.addEventListener("pointermove", (evt) => showTip(evt, r.parameter, [
+        { color: "var(--s1)", value: fmt(r.margin_low), label: `at ${fmt(r.low)}` }, { color: "var(--s2)", value: fmt(r.margin_high), label: `at ${fmt(r.high)}` },
+        { value: r.flips_within ? "the recommendation changes within this range" : "the recommendation holds", label: "" }, { value: r.range_source, label: "" }]));
+      hit.addEventListener("pointerleave", hideTip);
+      svg.append(hit);
+    });
+    svg.append(sv("line", { x1: x(t.margin), x2: x(t.margin), y1: mt, y2: H - 26, style: "stroke:var(--ink-2);stroke-width:1" }));
+    svg.append(sv("line", { x1: x(0), x2: x(0), y1: mt, y2: H - 26, style: "stroke:var(--ink);stroke-width:1", "stroke-dasharray": "4 3" }));
+    note.textContent = `Margin of ${e.recommended.map(short).join(", ")}: ${fmt(t.margin)} (blue: input at the low end of its range; orange: high end). Below the dashed line at 0 another alternative could win; unresolved competitors count at their upper bound.`;
+  }
+
+  /* uncertainty, global indices, value of information */
+  function renderUncertainty(e) {
+    const u = e.uncertainty, panel = $("unc-panel");
+    if (!u) { panel.hidden = true; return; }
+    panel.hidden = false;
+    const t = clear($("unc"));
+    const head = el("tr"); ["Alternative", "E[U]", "Pr(feasible)", "Chance", "Point U", "Pr(wins draw)"].forEach((h, i) => head.append(el("th", { class: i ? "r" : "" }, h)));
+    const thead = el("thead"); thead.append(head); t.append(thead);
+    const tb = el("tbody");
+    for (const a of u.alternatives || []) {
+      const tr = el("tr", { class: (u.recommended || []).includes(a.alternative) ? "rec" : "" });
+      const name = el("td"); const s = el("span", { class: "alt" }); s.append(el("span", { class: "dot", style: `background:${altColor(a.alternative)}` }), document.createTextNode(short(a.alternative))); name.append(s);
+      tr.append(name, el("td", { class: "r" }, fmt(a.expected_utility)), el("td", { class: "r" }, fmt(a.p_feasible, 3)));
+      const c = el("td", { class: "r" }); c.append(pill(a.chance === "pass" ? "pass" : (a.chance === "fail" ? "fail" : "unknown"), a.chance)); tr.append(c);
+      tr.append(el("td", { class: "r" }, fmt(a.point_utility)), el("td", { class: "r" }, fmt(a.p_wins_draw, 3)));
+      tb.append(tr);
+    }
+    t.append(tb);
+    $("unc-note").textContent = `${(u.rule || {}).samples || ""} draws, seed ${(u.rule || {}).seed} · chance constraint at α = ${(u.rule || {}).chance_alpha} · expected-value choice ${(u.recommended || []).map(short).join(", ") || "none"} · point-value choice ${(u.point_recommended || []).map(short).join(", ") || "none"}`;
+  }
+  function hbars(svg, rows, valueOf, intervalOf, color, label, maxV) {
+    clear(svg);
+    const W = 520, rh = 22, ml = 210, mr = 60, mt = 6, H = mt + rows.length * rh + 26;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const hi = maxV || Math.max(1e-9, ...rows.map((r) => Math.max(valueOf(r) || 0, intervalOf(r) ? intervalOf(r)[1] : 0)));
+    const x = (v) => ml + Math.max(0, v) / hi * (W - ml - mr);
+    const ticks = niceTicks(0, hi, 4);
+    const g = sv("g", { class: "grid" }); ticks.forEach((tk) => g.append(sv("line", { x1: x(tk), x2: x(tk), y1: mt, y2: H - 20 }))); svg.append(g);
+    const ax = sv("g", { class: "axis" }); ticks.forEach((tk) => ax.append(sv("text", { x: x(tk), y: H - 6, "text-anchor": "middle" }, String(+tk.toPrecision(3))))); svg.append(ax);
+    rows.forEach((r, i) => {
+      const yy = mt + i * rh, v = valueOf(r) || 0, iv = intervalOf(r);
+      svg.append(sv("text", { class: "lab", x: ml - 8, y: yy + rh / 2 + 3, "text-anchor": "end" }, clip(r.parameter, 30)));
+      svg.append(sv("rect", { x: ml, y: yy + 5, width: Math.max(1, x(v) - ml), height: rh - 10, rx: 2, style: `fill:${color(r)}` }));
+      if (iv) svg.append(sv("line", { x1: x(iv[0]), x2: x(iv[1]), y1: yy + rh / 2, y2: yy + rh / 2, style: "stroke:var(--ink-2);stroke-width:1.2" }));
+      svg.append(sv("text", { class: "lab", x: Math.max(x(v), iv ? x(iv[1]) : 0) + 5, y: yy + rh / 2 + 3 }, label(r)));
+    });
+  }
+  function renderVoi() {
+    const base = byId[DATA.meta.baseline];
+    const s = base && base.sensitivity;
+    const panel = $("voi-panel");
+    if (!s || (!s.global && !s.value_of_information)) { panel.hidden = true; return; }
+    panel.hidden = false;
+    if (s.global) {
+      const key = s.global.main_target;
+      const rows = s.global.indices.slice(0, 10);
+      hbars($("sobol"), rows, (r) => r[key].total, (r) => r[key].total_interval, () => "var(--s1)", (r) => fmt(r[key].total, 2), 1);
+    }
+    const v = s.value_of_information;
+    if (v) {
+      hbars($("voi"), v.parameters.slice(0, 10), (r) => r.evppi, (r) => r.interval, (r) => r.above_noise ? "var(--s1)" : "var(--s-other)", (r) => fmt(r.evppi, 2));
+      $("voi-note").textContent = `baseline ${short(DATA.meta.baseline)} · EVPI ${fmt(v.evpi, 3)} for the expected-value choice ${v.expected_value_choice.map(short).join(", ")} · blue: interval excludes 0` +
+        (v.collect_next.length ? ` · collect next: ${v.collect_next.map((c) => c.evidence || c.parameter).join(", ")}` : "");
+    }
+  }
+
+  function select(id) {
+    current = id; selectedNode = null;
+    try { history.replaceState(null, "", "#" + short(id)); } catch (err) { /* sandboxed */ }
+    render();
+  }
+  function render() {
+    const e = byId[current];
+    renderStrip(); renderTiles(e); renderTable(e); renderGraph(e); renderReadiness(e); renderHistory(); renderWork();
+    renderFlips(e); renderTornado(e); renderUncertainty(e);
+    clear($("detail")).append(el("span", { class: "empty" }, "Select a node to see its value, its inputs and how this episode computed it."));
+  }
+  $("t-inputs").addEventListener("click", () => { showInputs = !showInputs; $("t-inputs").setAttribute("aria-pressed", String(showInputs)); renderGraph(byId[current]); });
+  $("t-impact").addEventListener("click", () => { showImpact = !showImpact; $("t-impact").setAttribute("aria-pressed", String(showImpact)); renderGraph(byId[current]); });
+  window.addEventListener("hashchange", () => { const e = fromHash(); if (e && e.id !== current) select(e.id); });
+  renderLegend(); renderVoi(); render();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => renderGraph(byId[current]));
+})();
+</script>

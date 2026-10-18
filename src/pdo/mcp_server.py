@@ -256,6 +256,21 @@ def pdo_package(
     return _call(tools.package, path, episode, out)
 
 
+def pdo_dashboard(
+    path: StatePath,
+    out: Annotated[str, Field(description="Directory for index.html and dashboard.json (new, or holding only a "
+                                          "previous dashboard).")],
+    flips: Annotated[bool, Field(description="Flip points for every episode.")] = True,
+    sensitivity: Annotated[bool, Field(description="Tornado per episode; Sobol indices and value of information "
+                                                   "for the baseline.")] = True,
+) -> dict[str, Any]:
+    """Write a read-only HTML dashboard of a state or program for people to look at: the dependency graph per
+    episode (status of every node, and what each refresh recomputed versus reused), the decision table,
+    readiness, pending actions by role, utility across episodes, flips, tornado, uncertainty and value of
+    information. The page draws kernel results and computes nothing."""
+    return _call(tools.dashboard, path, out, flips, sensitivity)
+
+
 def pdo_import_sysml(
     paths: Annotated[list[str] | str, Field(description="SysML v2 textual files (.sysml), or directories of them.")],
     mapping: Annotated[dict[str, Any] | str | None, Field(
@@ -281,7 +296,7 @@ def pdo_copy_example(
 READ_ONLY = (pdo_describe_schema, pdo_validate, pdo_run, pdo_explain, pdo_flip, pdo_scenarios, pdo_readiness,
              pdo_pending_actions, pdo_program_status, pdo_refresh, pdo_impact, pdo_uncertainty, pdo_sensitivity,
              pdo_list_examples)
-WRITES = (pdo_apply_change, pdo_record_human_action, pdo_package, pdo_import_sysml, pdo_copy_example)
+WRITES = (pdo_apply_change, pdo_record_human_action, pdo_package, pdo_dashboard, pdo_import_sysml, pdo_copy_example)
 
 
 def build_server():
@@ -292,7 +307,7 @@ def build_server():
     server = MCPServer(name="pdo", title="Programmable decision ops", version=__version__,
                        instructions=INSTRUCTIONS)
     reads = ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
-    # Writes only add new files (never overwrite), so they are not destructive.
+    # Writes only add new files (a dashboard replaces only its own earlier ones), so they are not destructive.
     writes = ToolAnnotations(read_only_hint=False, destructive_hint=False, idempotent_hint=False,
                              open_world_hint=False)
     for fn in READ_ONLY:

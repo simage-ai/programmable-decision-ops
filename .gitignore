@@ -224,3 +224,6 @@ __marimo__/
 
 # Machine-dependent benchmark timings
 results/bench/*/timing.tsv
+
+# Generated dashboards (make dashboards)
+site/

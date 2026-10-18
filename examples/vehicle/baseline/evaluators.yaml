@@ -1,0 +1,15 @@
+evaluation_specifications:
+  - id: spec:range-model
+    name: Range model
+    description: Usable fuel times fuel economy, derated for terrain.
+    spec_kind: python
+    implementation: evaluators.py:range_model
+    implementation_version: "1.0"
+    inputs:
+      - {arg: tank_gal, measure: meas:tank-capacity, unit: gal}
+      - {arg: mpg, measure: meas:fuel-economy, unit: mi/gal}
+      - {arg: terrain_factor, ref: asm:terrain-factor, unit: "1"}
+    outputs:
+      - {arg: range_mi, measure: meas:range, unit: mi}
+    cost_units: 100
+    owner_role: role:systems-engineer

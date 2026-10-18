@@ -1,0 +1,3148 @@
+{
+    "$defs": {
+        "ActionKind": {
+            "description": "",
+            "enum": [
+                "provide_value",
+                "review_applicability",
+                "validate_assumption",
+                "complete_review",
+                "treat_risk",
+                "refresh_evidence",
+                "state_source",
+                "resolve_tie",
+                "revise_alternatives",
+                "approve",
+                "fix_evaluator"
+            ],
+            "title": "ActionKind",
+            "type": "string"
+        },
+        "Alternative": {
+            "additionalProperties": false,
+            "description": "A candidate the decision chooses among (a configuration, a source, a design).",
+            "properties": {
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "is_incumbent": {
+                    "description": "The design or source already in place; used by the omitted-options bias check.",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "mapping_rule": {
+                    "description": "The mapping rule that produced this object, and any lossy interpretation.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_element": {
+                    "description": "Identifier of the source element (e.g. a SysML qualified name).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_model": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_model_version": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "title": "Alternative",
+            "type": "object"
+        },
+        "AlternativeOutcome": {
+            "additionalProperties": false,
+            "description": "How one alternative fared.",
+            "properties": {
+                "alternative": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "checks": {
+                    "items": {
+                        "$ref": "#/$defs/CheckOutcome"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "criterion_values": {
+                    "items": {
+                        "$ref": "#/$defs/CriterionValue"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "feasibility": {
+                    "$ref": "#/$defs/AssessmentStatus"
+                },
+                "utility": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "utility_lower": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "utility_upper": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                }
+            },
+            "title": "AlternativeOutcome",
+            "type": "object"
+        },
+        "Any": {
+            "additionalProperties": true,
+            "description": "Any value; used only for change-set assignments.",
+            "title": "Any",
+            "type": [
+                "null",
+                "boolean",
+                "object",
+                "number",
+                "string"
+            ]
+        },
+        "Applicability": {
+            "description": "Whether an observation's evidence applies to the alternative it is attached to.",
+            "enum": [
+                "accepted",
+                "provisional",
+                "rejected"
+            ],
+            "title": "Applicability",
+            "type": "string"
+        },
+        "AssessmentStatus": {
+            "description": "Outcome of a test. Unknown means the inputs needed to decide were missing or not accepted.",
+            "enum": [
+                "pass",
+                "fail",
+                "unknown"
+            ],
+            "title": "AssessmentStatus",
+            "type": "string"
+        },
+        "Assumption": {
+            "additionalProperties": false,
+            "description": "A parameter taken as given. Critical assumptions must be validated before authorization.",
+            "properties": {
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "critical": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "owner_role": {
+                    "description": "The role that must act when this object needs a human (review, acceptance, data).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "plausible_high": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "plausible_low": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "uncertainty": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/UncertaintySpec"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "unit": {
+                    "description": "Unit string, matched exactly (no conversion). \"1\" means dimensionless.",
+                    "type": "string"
+                },
+                "validation_status": {
+                    "$ref": "#/$defs/ValidationStatus",
+                    "description": "Default validated."
+                },
+                "value": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "value",
+                "unit",
+                "id"
+            ],
+            "title": "Assumption",
+            "type": "object"
+        },
+        "BiasCategory": {
+            "description": "",
+            "enum": [
+                "decision_framing",
+                "model_output"
+            ],
+            "title": "BiasCategory",
+            "type": "string"
+        },
+        "BiasCheck": {
+            "additionalProperties": false,
+            "description": "A readiness condition that tests for a bias: in decision framing (an omitted alternative, a criterion counted twice) or in model output (a score resting on an unstated source).",
+            "properties": {
+                "bias_category": {
+                    "$ref": "#/$defs/BiasCategory"
+                },
+                "bias_kind": {
+                    "$ref": "#/$defs/BiasKind"
+                },
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "owner_role": {
+                    "description": "The role that must act when this object needs a human (review, acceptance, data).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "parameters": {
+                    "items": {
+                        "$ref": "#/$defs/Parameter"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "predicate": {
+                    "$ref": "#/$defs/ReadinessPredicate"
+                },
+                "required": {
+                    "description": "Default true. Conditions that are not required are reported but do not gate readiness.",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "review": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "predicate",
+                "id"
+            ],
+            "title": "BiasCheck",
+            "type": "object"
+        },
+        "BiasKind": {
+            "description": "",
+            "enum": [
+                "omitted_options",
+                "double_counting",
+                "single_source",
+                "anchoring",
+                "framing"
+            ],
+            "title": "BiasKind",
+            "type": "string"
+        },
+        "BoundaryKind": {
+            "description": "",
+            "enum": [
+                "preference",
+                "feasibility",
+                "empty_set",
+                "unresolved"
+            ],
+            "title": "BoundaryKind",
+            "type": "string"
+        },
+        "ChangeSet": {
+            "additionalProperties": false,
+            "description": "One episode's change from its parent: assignments to existing objects (assign), new objects (add, a partial decision state), and removals by id. A change set is kept only if the resulting state validates. Human actions (reviews, approvals) are recorded by adding or assigning them here.",
+            "properties": {
+                "add": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/DecisionState"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "as_of": {
+                    "description": "The state's clock; evidence expiry and approval validity are judged against it.",
+                    "format": "date",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "assign": {
+                    "items": {
+                        "$ref": "#/$defs/SlotAssignment"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "author_role": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "change_description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "parent": {
+                    "type": "string"
+                },
+                "remove": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "trigger": {
+                    "$ref": "#/$defs/TriggerKind"
+                }
+            },
+            "required": [
+                "id",
+                "parent"
+            ],
+            "title": "ChangeSet",
+            "type": "object"
+        },
+        "CheckOutcome": {
+            "additionalProperties": false,
+            "description": "One requirement check, in the common g <= 0 convention.",
+            "properties": {
+                "g": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "requirement": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "$ref": "#/$defs/AssessmentStatus"
+                }
+            },
+            "title": "CheckOutcome",
+            "type": "object"
+        },
+        "Claim": {
+            "additionalProperties": false,
+            "description": "An assessment of a proposition, with the reasoning basis that produced it: computed (an evaluator or check), semantic (an agent's interpretation), or human (a recorded judgement).",
+            "properties": {
+                "basis": {
+                    "$ref": "#/$defs/ClaimBasis"
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "produced_by": {
+                    "description": "The node (and so the evaluation run) or recorded action that produced the claim.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "proposition": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "$ref": "#/$defs/AssessmentStatus"
+                },
+                "supported_by": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "title": "Claim",
+            "type": "object"
+        },
+        "ClaimBasis": {
+            "description": "",
+            "enum": [
+                "computed",
+                "semantic",
+                "human"
+            ],
+            "title": "ClaimBasis",
+            "type": "string"
+        },
+        "Comparator": {
+            "description": "",
+            "enum": [
+                "ge",
+                "gt",
+                "le",
+                "lt"
+            ],
+            "title": "Comparator",
+            "type": "string"
+        },
+        "ConditionResult": {
+            "additionalProperties": false,
+            "description": "",
+            "properties": {
+                "condition": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "reason": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "required": {
+                    "description": "Default true. Conditions that are not required are reported but do not gate readiness.",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "$ref": "#/$defs/AssessmentStatus"
+                }
+            },
+            "title": "ConditionResult",
+            "type": "object"
+        },
+        "Criterion": {
+            "additionalProperties": false,
+            "description": "A preference criterion: a value function v mapping a measure onto [0, 1] with fixed anchors, and a weight. Linear by default, v = (y - anchor_worst) / (anchor_best - anchor_worst), so a cost criterion has anchor_worst above anchor_best. Fixed anchors keep scores from moving when an alternative is added. Weights express trade-offs over these scales and must sum to 1.",
+            "properties": {
+                "anchor_best": {
+                    "type": "number"
+                },
+                "anchor_worst": {
+                    "type": "number"
+                },
+                "clip": {
+                    "description": "Clip values to [0, 1] outside the anchors (default true).",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "measure": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "objective": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "points": {
+                    "description": "Optional piecewise-linear value function; overrides the linear form between the anchors.",
+                    "items": {
+                        "$ref": "#/$defs/PiecewisePoint"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "weight": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                }
+            },
+            "required": [
+                "measure",
+                "anchor_worst",
+                "anchor_best",
+                "weight",
+                "id"
+            ],
+            "title": "Criterion",
+            "type": "object"
+        },
+        "CriterionValue": {
+            "additionalProperties": false,
+            "description": "",
+            "properties": {
+                "criterion": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "measured": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "value_score": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                }
+            },
+            "title": "CriterionValue",
+            "type": "object"
+        },
+        "DecisionEpisodeRecord": {
+            "additionalProperties": false,
+            "description": "One evaluated decision episode.",
+            "properties": {
+                "actionable": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "actionable_reason": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "as_of": {
+                    "description": "The state's clock; evidence expiry and approval validity are judged against it.",
+                    "format": "date",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "claims": {
+                    "items": {
+                        "$ref": "#/$defs/Claim"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "episode": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "feasible": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "flips": {
+                    "items": {
+                        "$ref": "#/$defs/FlipPoint"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "impact": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/ImpactSummary"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "infeasible": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "kernel_version": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "matching_approval": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "outcomes": {
+                    "items": {
+                        "$ref": "#/$defs/AlternativeOutcome"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "parent": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "pending_actions": {
+                    "items": {
+                        "$ref": "#/$defs/PendingAction"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "propositions": {
+                    "items": {
+                        "$ref": "#/$defs/Proposition"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "readiness": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/ReadinessAssessment"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "recommended": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "runs": {
+                    "items": {
+                        "$ref": "#/$defs/EvaluationRun"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "scenario_outcomes": {
+                    "items": {
+                        "$ref": "#/$defs/ScenarioOutcome"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "state_digest": {
+                    "description": "Digest of the decision state the approval covered (stamped by the kernel).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "unresolved": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                }
+            },
+            "title": "DecisionEpisodeRecord",
+            "type": "object"
+        },
+        "DecisionProgram": {
+            "additionalProperties": false,
+            "description": "A decision maintained over time, from a baseline state through successive change sets.",
+            "properties": {
+                "baseline_dir": {
+                    "description": "Directory of the baseline state's files, relative to program.yaml (default baseline/).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "baseline_episode": {
+                    "type": "string"
+                },
+                "changes_dir": {
+                    "description": "Directory of change-set files, relative to program.yaml (default changes/).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "decision_owner_role": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "question": {
+                    "description": "The decision question in plain words.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "baseline_episode",
+                "id"
+            ],
+            "title": "DecisionProgram",
+            "type": "object"
+        },
+        "DecisionRule": {
+            "additionalProperties": false,
+            "description": "How feasible alternatives are ranked. additive_mavt maximizes U(a) = sum_k w_k v_k(y_k(a)) and returns the set of alternatives within tie_tolerance of the maximum.",
+            "properties": {
+                "chance_alpha": {
+                    "description": "Joint chance constraint tolerance; feasible iff Pr(all mandatory checks pass) >= 1 - alpha.",
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "rule_kind": {
+                    "$ref": "#/$defs/DecisionRuleKind"
+                },
+                "samples": {
+                    "description": "Monte Carlo samples for expected_mavt.",
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "seed": {
+                    "description": "Random seed for expected_mavt; recorded so runs replay exactly.",
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "tie_tolerance": {
+                    "description": "Alternatives within this utility of the maximum are tied (default 1.0e-9).",
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "rule_kind",
+                "id"
+            ],
+            "title": "DecisionRule",
+            "type": "object"
+        },
+        "DecisionRuleKind": {
+            "description": "",
+            "enum": [
+                "additive_mavt",
+                "expected_mavt"
+            ],
+            "title": "DecisionRuleKind",
+            "type": "string"
+        },
+        "DecisionState": {
+            "additionalProperties": false,
+            "description": "One decision state (or a part of one, while it is split across files).",
+            "properties": {
+                "alternatives": {
+                    "items": {
+                        "$ref": "#/$defs/Alternative"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "approvals": {
+                    "items": {
+                        "$ref": "#/$defs/HumanApproval"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "as_of": {
+                    "description": "The state's clock; evidence expiry and approval validity are judged against it.",
+                    "format": "date",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "assumptions": {
+                    "items": {
+                        "$ref": "#/$defs/Assumption"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "bias_checks": {
+                    "items": {
+                        "$ref": "#/$defs/BiasCheck"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "criteria": {
+                    "items": {
+                        "$ref": "#/$defs/Criterion"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "decision_rule": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/DecisionRule"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "evaluation_specifications": {
+                    "items": {
+                        "$ref": "#/$defs/EvaluationSpecification"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "evidence_items": {
+                    "items": {
+                        "$ref": "#/$defs/Evidence"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "measures": {
+                    "items": {
+                        "$ref": "#/$defs/Measure"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "objectives": {
+                    "items": {
+                        "$ref": "#/$defs/Objective"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "observations": {
+                    "items": {
+                        "$ref": "#/$defs/Observation"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "question": {
+                    "description": "The decision question in plain words.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "readiness_conditions": {
+                    "items": {
+                        "$ref": "#/$defs/ReadinessCondition"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "readiness_policy": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/ReadinessPolicy"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "requirements": {
+                    "items": {
+                        "$ref": "#/$defs/Requirement"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "reviews": {
+                    "items": {
+                        "$ref": "#/$defs/HumanReview"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "risks": {
+                    "items": {
+                        "$ref": "#/$defs/Risk"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "roles": {
+                    "items": {
+                        "$ref": "#/$defs/Role"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "scenarios": {
+                    "items": {
+                        "$ref": "#/$defs/Scenario"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                }
+            },
+            "title": "DecisionState",
+            "type": "object"
+        },
+        "DistributionFamily": {
+            "description": "",
+            "enum": [
+                "point",
+                "uniform",
+                "triangular",
+                "normal",
+                "lognormal"
+            ],
+            "title": "DistributionFamily",
+            "type": "string"
+        },
+        "EvaluationRun": {
+            "additionalProperties": false,
+            "description": "One node evaluation; the signature identifies its exact inputs and implementation.",
+            "properties": {
+                "duration_ms": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "error": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "execution_status": {
+                    "$ref": "#/$defs/ExecutionStatus"
+                },
+                "implementation": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "input_nodes": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "node": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "node_kind": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "run_key": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "signature": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "value_digest": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "title": "EvaluationRun",
+            "type": "object"
+        },
+        "EvaluationSpecification": {
+            "additionalProperties": false,
+            "description": "A computation producing one or more measures for each alternative it applies to. A python spec's implementation is \"path/to/module.py:function\" (relative to the decision's directory) or \"package.module:function\"; the function receives the bound inputs and parameters as keyword arguments (by arg) and returns a number, or a dict keyed by output arg. A linear_combination spec returns intercept + sum(coefficient_<arg> * input), with intercept and coefficients given as parameters.",
+            "properties": {
+                "applies_to": {
+                    "description": "Alternatives this applies to; empty means all.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "cacheable": {
+                    "description": "Default true.",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "cost_units": {
+                    "description": "Relative cost of one run (default 1), used to weight recomputation savings.",
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "deterministic": {
+                    "description": "Default true. A non-deterministic evaluator is never reused from a previous run.",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "environment": {
+                    "description": "Declared runtime requirements (e.g. \"numpy>=2\"); part of the signature.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "implementation": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "implementation_version": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "inputs": {
+                    "items": {
+                        "$ref": "#/$defs/InputBinding"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "outputs": {
+                    "items": {
+                        "$ref": "#/$defs/OutputDeclaration"
+                    },
+                    "type": "array"
+                },
+                "owner_role": {
+                    "description": "The role that must act when this object needs a human (review, acceptance, data).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "parameters": {
+                    "items": {
+                        "$ref": "#/$defs/Parameter"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "spec_kind": {
+                    "$ref": "#/$defs/SpecKind"
+                }
+            },
+            "required": [
+                "spec_kind",
+                "outputs",
+                "id"
+            ],
+            "title": "EvaluationSpecification",
+            "type": "object"
+        },
+        "Evidence": {
+            "additionalProperties": false,
+            "description": "A source document or data product. An empty source_ref means the source is unstated.",
+            "properties": {
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "content_sha256": {
+                    "description": "Digest of the source content, so a changed file is a changed input.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "document_version": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "evidence_kind": {
+                    "description": "Kind of source (cost estimate, test report, specification, simulation output).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "issued_on": {
+                    "format": "date",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "mapping_rule": {
+                    "description": "The mapping rule that produced this object, and any lossy interpretation.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "owner_role": {
+                    "description": "The role that must act when this object needs a human (review, acceptance, data).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_element": {
+                    "description": "Identifier of the source element (e.g. a SysML qualified name).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_model": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_model_version": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_ref": {
+                    "description": "Citation or locator of the source; empty means unstated (fails evidence traceability).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "valid_until": {
+                    "description": "After this date the evidence is stale and readiness becomes pending until it is refreshed.",
+                    "format": "date",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "title": "Evidence",
+            "type": "object"
+        },
+        "ExecutableDecisionState": {
+            "additionalProperties": false,
+            "description": "A decision state complete enough to run.",
+            "properties": {
+                "alternatives": {
+                    "items": {
+                        "$ref": "#/$defs/Alternative"
+                    },
+                    "type": "array"
+                },
+                "approvals": {
+                    "items": {
+                        "$ref": "#/$defs/HumanApproval"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "as_of": {
+                    "description": "The state's clock; evidence expiry and approval validity are judged against it.",
+                    "format": "date",
+                    "type": "string"
+                },
+                "assumptions": {
+                    "items": {
+                        "$ref": "#/$defs/Assumption"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "bias_checks": {
+                    "items": {
+                        "$ref": "#/$defs/BiasCheck"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "criteria": {
+                    "items": {
+                        "$ref": "#/$defs/Criterion"
+                    },
+                    "type": "array"
+                },
+                "decision_rule": {
+                    "$ref": "#/$defs/DecisionRule"
+                },
+                "evaluation_specifications": {
+                    "items": {
+                        "$ref": "#/$defs/EvaluationSpecification"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "evidence_items": {
+                    "items": {
+                        "$ref": "#/$defs/Evidence"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "measures": {
+                    "items": {
+                        "$ref": "#/$defs/Measure"
+                    },
+                    "type": "array"
+                },
+                "objectives": {
+                    "items": {
+                        "$ref": "#/$defs/Objective"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "observations": {
+                    "items": {
+                        "$ref": "#/$defs/Observation"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "question": {
+                    "description": "The decision question in plain words.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "readiness_conditions": {
+                    "items": {
+                        "$ref": "#/$defs/ReadinessCondition"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "readiness_policy": {
+                    "$ref": "#/$defs/ReadinessPolicy"
+                },
+                "requirements": {
+                    "items": {
+                        "$ref": "#/$defs/Requirement"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "reviews": {
+                    "items": {
+                        "$ref": "#/$defs/HumanReview"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "risks": {
+                    "items": {
+                        "$ref": "#/$defs/Risk"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "roles": {
+                    "items": {
+                        "$ref": "#/$defs/Role"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "scenarios": {
+                    "items": {
+                        "$ref": "#/$defs/Scenario"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "as_of",
+                "alternatives",
+                "measures",
+                "criteria",
+                "decision_rule",
+                "readiness_policy"
+            ],
+            "title": "ExecutableDecisionState",
+            "type": "object"
+        },
+        "ExecutionStatus": {
+            "description": "",
+            "enum": [
+                "executed",
+                "reused",
+                "cutoff_reused",
+                "failed"
+            ],
+            "title": "ExecutionStatus",
+            "type": "string"
+        },
+        "FlipMethod": {
+            "description": "",
+            "enum": [
+                "affine_exact",
+                "bisection",
+                "closed_form"
+            ],
+            "title": "FlipMethod",
+            "type": "string"
+        },
+        "FlipPoint": {
+            "additionalProperties": false,
+            "description": "A value of one input at which the recommendation changes, all other inputs held fixed.",
+            "properties": {
+                "baseline_number": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "boundary_kind": {
+                    "$ref": "#/$defs/BoundaryKind"
+                },
+                "flip_number": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "method": {
+                    "$ref": "#/$defs/FlipMethod"
+                },
+                "new_recommendation": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "parameter": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "slot": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "target": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "title": "FlipPoint",
+            "type": "object"
+        },
+        "HumanApproval": {
+            "additionalProperties": false,
+            "description": "A recorded authorization of one alternative. The kernel stamps the state digest it covered; the decision is actionable only while the recommendation, readiness and that digest still match.",
+            "properties": {
+                "approved_alternative": {
+                    "type": "string"
+                },
+                "approver": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "approver_role": {
+                    "type": "string"
+                },
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "rationale": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "recorded_in_episode": {
+                    "description": "Episode in which the action was recorded (stamped by the kernel).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "state_digest": {
+                    "description": "Digest of the decision state the approval covered (stamped by the kernel).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "valid_until": {
+                    "description": "After this date the evidence is stale and readiness becomes pending until it is refreshed.",
+                    "format": "date",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "approved_alternative",
+                "approver_role",
+                "id"
+            ],
+            "title": "HumanApproval",
+            "type": "object"
+        },
+        "HumanReview": {
+            "additionalProperties": false,
+            "description": "A recorded review of a set of objects. The kernel stamps the digest of what it covered when the review is recorded; if any covered object changes later, the review is stale and counts as pending.",
+            "properties": {
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "covered_digest": {
+                    "description": "Digest of the covered objects when the review was recorded (stamped by the kernel).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "covers": {
+                    "description": "Ids of reviewed objects, or selectors \"all:<collection>\" (e.g. all:criteria, all:alternatives).",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "owner_role": {
+                    "description": "The role that must act when this object needs a human (review, acceptance, data).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "rationale": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "recorded_in_episode": {
+                    "description": "Episode in which the action was recorded (stamped by the kernel).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "review_kind": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "review_status": {
+                    "$ref": "#/$defs/ReviewStatus"
+                },
+                "reviewer": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "review_status",
+                "id"
+            ],
+            "title": "HumanReview",
+            "type": "object"
+        },
+        "ImpactSummary": {
+            "additionalProperties": false,
+            "description": "What a change touched, and what was rerun versus reused.",
+            "properties": {
+                "changed_nodes": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "executed_count": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "impact_size": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "reused_count": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "total_nodes": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                }
+            },
+            "title": "ImpactSummary",
+            "type": "object"
+        },
+        "InputBinding": {
+            "additionalProperties": false,
+            "description": "One input of a spec: either a measure (the same alternative's value of it) or a reference to a specific object such as an Assumption. The unit must match the bound source's unit exactly.",
+            "properties": {
+                "arg": {
+                    "description": "Argument name: the keyword an evaluator receives for this input, output or parameter. Unlike a display name it is part of the computation, so it is hashable.",
+                    "type": "string"
+                },
+                "measure": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "ref": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "unit": {
+                    "description": "Unit string, matched exactly (no conversion). \"1\" means dimensionless.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "arg",
+                "unit"
+            ],
+            "title": "InputBinding",
+            "type": "object"
+        },
+        "Measure": {
+            "additionalProperties": false,
+            "description": "A quantity alternatives are measured on; every value of it carries this unit.",
+            "properties": {
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "unit": {
+                    "description": "Unit string, matched exactly (no conversion). \"1\" means dimensionless.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unit",
+                "id"
+            ],
+            "title": "Measure",
+            "type": "object"
+        },
+        "NamedThing": {
+            "additionalProperties": false,
+            "description": "Anything with a stable logical identifier that aligns it across decision episodes.",
+            "properties": {
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "title": "NamedThing",
+            "type": "object"
+        },
+        "Objective": {
+            "additionalProperties": false,
+            "description": "A goal the decision serves (performance, affordability, dependability).",
+            "properties": {
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "title": "Objective",
+            "type": "object"
+        },
+        "Observation": {
+            "additionalProperties": false,
+            "description": "One value of a measure for an alternative, taken from evidence. A missing value, or an applicability other than accepted, makes the value unknown rather than assumed.",
+            "properties": {
+                "alternative": {
+                    "type": "string"
+                },
+                "applicability": {
+                    "$ref": "#/$defs/Applicability",
+                    "description": "Default accepted."
+                },
+                "applicability_rationale": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "evidence": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "measure": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "owner_role": {
+                    "description": "The role that must act when this object needs a human (review, acceptance, data).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "uncertainty": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/UncertaintySpec"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "unit": {
+                    "description": "Unit string, matched exactly (no conversion). \"1\" means dimensionless.",
+                    "type": "string"
+                },
+                "value": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "alternative",
+                "measure",
+                "unit",
+                "evidence",
+                "id"
+            ],
+            "title": "Observation",
+            "type": "object"
+        },
+        "OutputDeclaration": {
+            "additionalProperties": false,
+            "description": "A measure the spec produces; the unit must match the measure's unit.",
+            "properties": {
+                "arg": {
+                    "description": "Argument name: the keyword an evaluator receives for this input, output or parameter. Unlike a display name it is part of the computation, so it is hashable.",
+                    "type": "string"
+                },
+                "measure": {
+                    "type": "string"
+                },
+                "unit": {
+                    "description": "Unit string, matched exactly (no conversion). \"1\" means dimensionless.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "arg",
+                "measure",
+                "unit"
+            ],
+            "title": "OutputDeclaration",
+            "type": "object"
+        },
+        "Parameter": {
+            "additionalProperties": false,
+            "description": "A named numeric parameter of an evaluator or readiness predicate.",
+            "properties": {
+                "arg": {
+                    "description": "Argument name: the keyword an evaluator receives for this input, output or parameter. Unlike a display name it is part of the computation, so it is hashable.",
+                    "type": "string"
+                },
+                "number": {
+                    "type": "number"
+                },
+                "unit": {
+                    "description": "Unit string, matched exactly (no conversion). \"1\" means dimensionless.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "arg",
+                "number"
+            ],
+            "title": "Parameter",
+            "type": "object"
+        },
+        "PendingAction": {
+            "additionalProperties": false,
+            "description": "Something a person must do before the decision is actionable, routed to the owning role. The id is a content digest, so the same open action keeps its id across runs and can be deduplicated.",
+            "properties": {
+                "action_kind": {
+                    "$ref": "#/$defs/ActionKind"
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "reason": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "role": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "target": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "title": "PendingAction",
+            "type": "object"
+        },
+        "PiecewisePoint": {
+            "additionalProperties": false,
+            "description": "One point (x, v) of a piecewise-linear value function; points are sorted by x.",
+            "properties": {
+                "v": {
+                    "type": "number"
+                },
+                "x": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "x",
+                "v"
+            ],
+            "title": "PiecewisePoint",
+            "type": "object"
+        },
+        "Proposition": {
+            "additionalProperties": false,
+            "description": "Content that can be true or false, e.g. \"alt:B satisfies req:min-range\".",
+            "properties": {
+                "about": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "statement": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "title": "Proposition",
+            "type": "object"
+        },
+        "ReadinessAssessment": {
+            "additionalProperties": false,
+            "description": "",
+            "properties": {
+                "conditions": {
+                    "items": {
+                        "$ref": "#/$defs/ConditionResult"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "readiness_state": {
+                    "$ref": "#/$defs/ReadinessState"
+                }
+            },
+            "title": "ReadinessAssessment",
+            "type": "object"
+        },
+        "ReadinessCondition": {
+            "additionalProperties": false,
+            "description": "A condition required before authorization, evaluated by a built-in predicate against the current decision state. review_status conditions consume a recorded HumanReview.",
+            "properties": {
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "owner_role": {
+                    "description": "The role that must act when this object needs a human (review, acceptance, data).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "parameters": {
+                    "items": {
+                        "$ref": "#/$defs/Parameter"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "predicate": {
+                    "$ref": "#/$defs/ReadinessPredicate"
+                },
+                "required": {
+                    "description": "Default true. Conditions that are not required are reported but do not gate readiness.",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "review": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "predicate",
+                "id"
+            ],
+            "title": "ReadinessCondition",
+            "type": "object"
+        },
+        "ReadinessPolicy": {
+            "additionalProperties": false,
+            "description": "Who may approve and accept risk, and the risk score at which treatment is required.",
+            "properties": {
+                "approval_roles": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "approval_validity_days": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "risk_acceptance_roles": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "risk_score_threshold": {
+                    "description": "Risks with likelihood x consequence at or above this need treatment (default 12).",
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "title": "ReadinessPolicy",
+            "type": "object"
+        },
+        "ReadinessPredicate": {
+            "description": "",
+            "enum": [
+                "recommendation_exists",
+                "unique_recommendation",
+                "coverage",
+                "evidence_current",
+                "evidence_traceable",
+                "assumptions_validated",
+                "risks_treated",
+                "review_status",
+                "omitted_options",
+                "distinct_measures"
+            ],
+            "title": "ReadinessPredicate",
+            "type": "string"
+        },
+        "ReadinessState": {
+            "description": "",
+            "enum": [
+                "ready",
+                "pending",
+                "blocked"
+            ],
+            "title": "ReadinessState",
+            "type": "string"
+        },
+        "Requirement": {
+            "additionalProperties": false,
+            "description": "A constraint on a measure. A mandatory requirement must be known to pass for an alternative to be feasible; an unknown result leaves the alternative unresolved, never infeasible by default.",
+            "properties": {
+                "applies_to": {
+                    "description": "Alternatives this applies to; empty means all.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "check_tolerance": {
+                    "description": "A check passes when g <= check_tolerance (default 1.0e-9), so float noise cannot fail a boundary case.",
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "comparator": {
+                    "$ref": "#/$defs/Comparator"
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "mandatory": {
+                    "description": "Mandatory requirements gate feasibility (default true).",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "mapping_rule": {
+                    "description": "The mapping rule that produced this object, and any lossy interpretation.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "measure": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "owner_role": {
+                    "description": "The role that must act when this object needs a human (review, acceptance, data).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_element": {
+                    "description": "Identifier of the source element (e.g. a SysML qualified name).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_model": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_model_version": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "threshold_value": {
+                    "type": "number"
+                },
+                "unit": {
+                    "description": "Unit string, matched exactly (no conversion). \"1\" means dimensionless.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "measure",
+                "comparator",
+                "threshold_value",
+                "unit",
+                "id"
+            ],
+            "title": "Requirement",
+            "type": "object"
+        },
+        "ReviewStatus": {
+            "description": "",
+            "enum": [
+                "pending",
+                "pass",
+                "fail"
+            ],
+            "title": "ReviewStatus",
+            "type": "string"
+        },
+        "Risk": {
+            "additionalProperties": false,
+            "description": "A risk to the decision. Risks scoring at or above the policy threshold (likelihood x consequence) must be mitigated, or accepted by a role the policy allows.",
+            "properties": {
+                "accepted_by_role": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "affects": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "consequence": {
+                    "maximum": 5,
+                    "minimum": 1,
+                    "type": "integer"
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "likelihood": {
+                    "maximum": 5,
+                    "minimum": 1,
+                    "type": "integer"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "owner_role": {
+                    "description": "The role that must act when this object needs a human (review, acceptance, data).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "treatment_status": {
+                    "$ref": "#/$defs/TreatmentStatus"
+                }
+            },
+            "required": [
+                "likelihood",
+                "consequence",
+                "id"
+            ],
+            "title": "Risk",
+            "type": "object"
+        },
+        "Role": {
+            "additionalProperties": false,
+            "description": "A responsibility in the decision program (decision owner, cost analyst, test engineer, milestone decision authority). Objects that need a human carry an owner_role, so the kernel can list pending actions by role; with one user every role is assigned to that user.",
+            "properties": {
+                "assignees": {
+                    "description": "People who hold the role.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "title": "Role",
+            "type": "object"
+        },
+        "Scenario": {
+            "additionalProperties": false,
+            "description": "A named set of assignments to test the recommendation against (robustness over a scenario set).",
+            "properties": {
+                "assignments": {
+                    "items": {
+                        "$ref": "#/$defs/SlotAssignment"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "comments": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
+                    "type": "string"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "title": "Scenario",
+            "type": "object"
+        },
+        "ScenarioOutcome": {
+            "additionalProperties": false,
+            "description": "",
+            "properties": {
+                "feasible": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "recommended": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "robust": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "scenario": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "title": "ScenarioOutcome",
+            "type": "object"
+        },
+        "SlotAssignment": {
+            "additionalProperties": false,
+            "description": "Set one slot of one object, identified by id, to a new value.",
+            "properties": {
+                "new_value": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/Any"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "slot": {
+                    "type": "string"
+                },
+                "target": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "target",
+                "slot"
+            ],
+            "title": "SlotAssignment",
+            "type": "object"
+        },
+        "SourceRef": {
+            "additionalProperties": false,
+            "description": "Where an object came from in an engineering model, kept when it is projected into the decision.",
+            "properties": {
+                "mapping_rule": {
+                    "description": "The mapping rule that produced this object, and any lossy interpretation.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_element": {
+                    "description": "Identifier of the source element (e.g. a SysML qualified name).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_model": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_model_version": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "title": "SourceRef",
+            "type": "object"
+        },
+        "SpecKind": {
+            "description": "",
+            "enum": [
+                "python",
+                "linear_combination"
+            ],
+            "title": "SpecKind",
+            "type": "string"
+        },
+        "TreatmentStatus": {
+            "description": "",
+            "enum": [
+                "untreated",
+                "mitigated",
+                "accepted",
+                "unacceptable"
+            ],
+            "title": "TreatmentStatus",
+            "type": "string"
+        },
+        "TriggerKind": {
+            "description": "What prompted a new decision episode.",
+            "enum": [
+                "evidence",
+                "requirement",
+                "assumption",
+                "cost",
+                "model_version",
+                "provenance",
+                "review",
+                "preference",
+                "alternative",
+                "time",
+                "approval",
+                "no_change"
+            ],
+            "title": "TriggerKind",
+            "type": "string"
+        },
+        "UncertaintySpec": {
+            "additionalProperties": false,
+            "description": "A distribution for an uncertain value, used by expected_mavt and chance constraints.",
+            "properties": {
+                "family": {
+                    "$ref": "#/$defs/DistributionFamily"
+                },
+                "high": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "low": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "mean": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "mode": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "sd": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "family"
+            ],
+            "title": "UncertaintySpec",
+            "type": "object"
+        },
+        "ValidationStatus": {
+            "description": "",
+            "enum": [
+                "validated",
+                "unvalidated",
+                "invalid"
+            ],
+            "title": "ValidationStatus",
+            "type": "string"
+        }
+    },
+    "$id": "https://w3id.org/pdo/schema",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "additionalProperties": true,
+    "description": "One decision state (or a part of one, while it is split across files).",
+    "metamodel_version": "1.12.0",
+    "properties": {
+        "alternatives": {
+            "items": {
+                "$ref": "#/$defs/Alternative"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "approvals": {
+            "items": {
+                "$ref": "#/$defs/HumanApproval"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "as_of": {
+            "description": "The state's clock; evidence expiry and approval validity are judged against it.",
+            "format": "date",
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "assumptions": {
+            "items": {
+                "$ref": "#/$defs/Assumption"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "bias_checks": {
+            "items": {
+                "$ref": "#/$defs/BiasCheck"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "criteria": {
+            "items": {
+                "$ref": "#/$defs/Criterion"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "decision_rule": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/DecisionRule"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "evaluation_specifications": {
+            "items": {
+                "$ref": "#/$defs/EvaluationSpecification"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "evidence_items": {
+            "items": {
+                "$ref": "#/$defs/Evidence"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "measures": {
+            "items": {
+                "$ref": "#/$defs/Measure"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "objectives": {
+            "items": {
+                "$ref": "#/$defs/Objective"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "observations": {
+            "items": {
+                "$ref": "#/$defs/Observation"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "question": {
+            "description": "The decision question in plain words.",
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "readiness_conditions": {
+            "items": {
+                "$ref": "#/$defs/ReadinessCondition"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "readiness_policy": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/ReadinessPolicy"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "requirements": {
+            "items": {
+                "$ref": "#/$defs/Requirement"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "reviews": {
+            "items": {
+                "$ref": "#/$defs/HumanReview"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "risks": {
+            "items": {
+                "$ref": "#/$defs/Risk"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "roles": {
+            "items": {
+                "$ref": "#/$defs/Role"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "scenarios": {
+            "items": {
+                "$ref": "#/$defs/Scenario"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        }
+    },
+    "title": "pdo",
+    "type": "object",
+    "version": "0.1.0"
+}
+

@@ -1,0 +1,75 @@
+as_of: 2027-01-15
+question: Which vehicle configuration should the program carry into development?
+
+measures:
+  - {id: meas:range, name: Operating range, unit: mi}
+  - {id: meas:unit-cost, name: Unit acquisition cost, unit: MUSD}
+  - {id: meas:reliability, name: Mission reliability, unit: "1"}
+  - {id: meas:tank-capacity, name: Usable fuel capacity, unit: gal}
+  - {id: meas:fuel-economy, name: Fuel economy, unit: mi/gal}
+
+objectives:
+  - {id: obj:performance, name: Operational performance}
+  - {id: obj:affordability, name: Affordability}
+  - {id: obj:dependability, name: Dependability}
+
+# Mandatory requirements decide feasibility; a high score cannot compensate for violating one.
+requirements:
+  - id: req:min-range
+    name: Minimum operating range
+    measure: meas:range
+    comparator: ge
+    threshold_value: 300
+    unit: mi
+    owner_role: role:systems-engineer
+  - id: req:min-reliability
+    name: Minimum mission reliability
+    measure: meas:reliability
+    comparator: ge
+    threshold_value: 0.95
+    unit: "1"
+    owner_role: role:test-engineer
+  - id: req:max-cost
+    name: Maximum unit cost
+    measure: meas:unit-cost
+    comparator: le
+    threshold_value: 1.40
+    unit: MUSD
+    owner_role: role:cost-analyst
+
+# Fixed anchors: v = (y - anchor_worst) / (anchor_best - anchor_worst). The brief's value functions are
+# v_r = (r - 300)/100, v_c = (1.40 - c)/0.60 and v_q = (q - 0.94)/0.05.
+criteria:
+  - {id: crit:range, name: Range, objective: obj:performance, measure: meas:range,
+     anchor_worst: 300, anchor_best: 400, weight: 0.4}
+  - {id: crit:cost, name: Cost, objective: obj:affordability, measure: meas:unit-cost,
+     anchor_worst: 1.40, anchor_best: 0.80, weight: 0.4}
+  - {id: crit:reliability, name: Reliability, objective: obj:dependability, measure: meas:reliability,
+     anchor_worst: 0.94, anchor_best: 0.99, weight: 0.2}
+
+decision_rule:
+  id: rule:main
+  name: Weighted additive value over feasible alternatives
+  rule_kind: additive_mavt
+  tie_tolerance: 1.0e-9
+
+# Conditions to test the recommendation against (robustness over a scenario set).
+scenarios:
+  - id: sc:nominal
+    name: Nominal
+  - id: sc:hot-desert
+    name: Hot desert operations (terrain derate 0.92)
+    assignments:
+      - {target: asm:terrain-factor, slot: value, new_value: 0.92}
+  - id: sc:cost-growth
+    name: Ten percent cost growth on every quote
+    assignments:
+      - {target: obs:A.cost, slot: value, new_value: 1.10}
+      - {target: obs:B.cost, slot: value, new_value: 1.32}
+      - {target: obs:C.cost, slot: value, new_value: 1.045}
+  - id: sc:optimistic-reliability
+    name: Reliability one point higher across the board
+    assignments:
+      - {target: obs:A.reliability, slot: value, new_value: 0.98}
+      - {target: obs:B.reliability, slot: value, new_value: 0.99}
+      - {target: obs:C.reliability, slot: value, new_value: 0.95}

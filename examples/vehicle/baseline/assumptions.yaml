@@ -1,0 +1,11 @@
+assumptions:
+  - id: asm:terrain-factor
+    name: Terrain derate on range
+    description: Multiplier on nominal range for the expected operating terrain; 1.0 is the test route.
+    value: 1.0
+    unit: "1"
+    critical: true
+    validation_status: validated
+    plausible_low: 0.80
+    plausible_high: 1.05
+    owner_role: role:systems-engineer

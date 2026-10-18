@@ -1,0 +1,131 @@
+id: https://w3id.org/pdo/schema/evidence
+name: pdo_evidence
+title: Evidence, observations and assumptions
+description: >-
+  What the decision rests on. Evidence is a source document or data product; an Observation is one
+  value extracted from it for one alternative and measure, with an applicability judgement that is
+  recorded separately from the value (an agent can propose an association; a person accepts it).
+  Assumptions are parameters taken as given, with a validation status and a plausible range for
+  sensitivity analysis.
+default_prefix: pdo
+default_range: string
+imports:
+  - linkml:types
+  - core
+  - problem
+prefixes:
+  linkml: https://w3id.org/linkml/
+  pdo: https://w3id.org/pdo/schema/
+
+classes:
+  Evidence:
+    is_a: NamedThing
+    mixins: [SourceRef]
+    description: A source document or data product. An empty source_ref means the source is unstated.
+    slots: [evidence_kind, source_ref, document_version, issued_on, valid_until, content_sha256, owner_role]
+
+  Observation:
+    is_a: NamedThing
+    description: >-
+      One value of a measure for an alternative, taken from evidence. A missing value, or an
+      applicability other than accepted, makes the value unknown rather than assumed.
+    slots: [alternative, measure, value, unit, evidence, applicability, applicability_rationale, uncertainty,
+      owner_role]
+    slot_usage:
+      alternative: {required: true}
+      measure: {required: true}
+      unit: {required: true}
+      evidence: {required: true}
+
+  Assumption:
+    is_a: NamedThing
+    description: A parameter taken as given. Critical assumptions must be validated before authorization.
+    slots: [value, unit, critical, validation_status, plausible_low, plausible_high, uncertainty, owner_role]
+    slot_usage:
+      value: {required: true}
+      unit: {required: true}
+
+  UncertaintySpec:
+    description: A distribution for an uncertain value, used by expected_mavt and chance constraints.
+    slots: [family, low, mode, high, mean, sd]
+    slot_usage:
+      family: {required: true}
+
+slots:
+  evidence_kind:
+    mixins: [unhashable]
+    description: Kind of source (cost estimate, test report, specification, simulation output).
+  source_ref:
+    mixins: [hashable]
+    description: Citation or locator of the source; empty means unstated (fails evidence traceability).
+  document_version:
+    mixins: [hashable]
+  issued_on:
+    mixins: [unhashable]
+    range: date
+  valid_until:
+    mixins: [hashable]
+    range: date
+    description: After this date the evidence is stale and readiness becomes pending until it is refreshed.
+  content_sha256:
+    mixins: [hashable]
+    description: Digest of the source content, so a changed file is a changed input.
+  alternative:
+    mixins: [hashable]
+    range: Alternative
+  value:
+    mixins: [hashable]
+    range: float
+  evidence:
+    mixins: [hashable]
+    range: Evidence
+  applicability:
+    mixins: [hashable]
+    range: Applicability
+    description: Default accepted.
+  applicability_rationale:
+    mixins: [unhashable]
+  uncertainty:
+    mixins: [hashable]
+    range: UncertaintySpec
+    inlined: true
+  critical:
+    mixins: [hashable]
+    range: boolean
+  validation_status:
+    mixins: [hashable]
+    range: ValidationStatus
+    description: Default validated.
+  plausible_low:
+    mixins: [hashable]
+    range: float
+  plausible_high:
+    mixins: [hashable]
+    range: float
+  family:
+    mixins: [hashable]
+    range: DistributionFamily
+  low:
+    mixins: [hashable]
+    range: float
+  mode:
+    mixins: [hashable]
+    range: float
+  high:
+    mixins: [hashable]
+    range: float
+  mean:
+    mixins: [hashable]
+    range: float
+  sd:
+    mixins: [hashable]
+    range: float
+
+enums:
+  DistributionFamily:
+    permissible_values:
+      point: {}
+      uniform: {}
+      triangular: {}
+      normal: {}
+      lognormal: {}

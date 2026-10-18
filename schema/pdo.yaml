@@ -1,0 +1,26 @@
+id: https://w3id.org/pdo/schema
+name: pdo
+title: Programmable decision schema
+version: 0.1.0
+license: MIT
+description: >-
+  Decisions as programs. A decision and its justification are an executable dependency graph over
+  typed objects: alternatives, requirements, criteria, evidence, assumptions, evaluations, readiness
+  conditions, reviews and approvals. When an input changes, the kernel finds what may be affected,
+  re-evaluates it, and records whether the recommendation or its readiness for authorization changed.
+  The schema defines the objects and their relationships; evaluators supply the computation.
+default_prefix: pdo
+default_range: string
+imports:
+  - linkml:types
+  - core
+  - problem
+  - evidence
+  - evaluation
+  - governance
+  - state
+  - program
+  - record
+prefixes:
+  linkml: https://w3id.org/linkml/
+  pdo: https://w3id.org/pdo/schema/

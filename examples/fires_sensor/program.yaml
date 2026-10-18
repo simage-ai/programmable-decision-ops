@@ -1,0 +1,20 @@
+# A decision under uncertainty: which counterfire radar upgrade to carry forward. Episode ep:f00 (the
+# baseline/ files) is the trade study. Every number is SYNTHETIC, invented to exercise expected-value and
+# chance-constrained decision rules; none describes, estimates or implies the performance, cost or
+# schedule of any real radar, program or threat.
+#
+# The point is the contrast. On point values (`pdo run examples/fires_sensor`) the new array scores best
+# and clears every requirement. Over the stated distributions (`pdo uncertainty examples/fires_sensor`) it
+# meets the integration-schedule requirement in only about half of the draws, so the 90 % joint chance
+# constraint removes it and the modular insert is the expected-value choice in every threat environment.
+# Episode ep:f01 (changes/) narrows the new array's schedule estimate; it then clears the constraint and
+# both rules agree. Common random numbers keep the other options' results identical across the episodes.
+id: prog:fires-sensor
+name: Counterfire radar upgrade (synthetic)
+question: >-
+  Which counterfire radar upgrade should the program carry forward, given uncertain test, cost and
+  schedule estimates and an uncertain threat?
+decision_owner_role: role:program-manager
+baseline_episode: ep:f00
+baseline_dir: baseline
+changes_dir: changes

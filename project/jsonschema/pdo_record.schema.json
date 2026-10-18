@@ -437,7 +437,16 @@
             "additionalProperties": false,
             "description": "One requirement check, in the common g <= 0 convention.",
             "properties": {
+                "comparator": {
+                    "$ref": "#/$defs/Comparator"
+                },
                 "g": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "measured": {
                     "type": [
                         "number",
                         "null"
@@ -451,6 +460,19 @@
                 },
                 "status": {
                     "$ref": "#/$defs/AssessmentStatus"
+                },
+                "threshold_value": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "unit": {
+                    "description": "Unit string, matched exactly (no conversion). \"1\" means dimensionless.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
                 }
             },
             "title": "CheckOutcome",
@@ -648,6 +670,14 @@
                         "number",
                         "null"
                     ]
+                },
+                "weight": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": [
+                        "number",
+                        "null"
+                    ]
                 }
             },
             "title": "CriterionValue",
@@ -750,6 +780,15 @@
                         "null"
                     ]
                 },
+                "parameter_scans": {
+                    "items": {
+                        "$ref": "#/$defs/ParameterScan"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
                 "parent": {
                     "type": [
                         "string",
@@ -774,6 +813,13 @@
                         "null"
                     ]
                 },
+                "question": {
+                    "description": "The decision question in plain words.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
                 "readiness": {
                     "anyOf": [
                         {
@@ -793,6 +839,13 @@
                         "null"
                     ]
                 },
+                "robust": {
+                    "description": "On a scenario outcome, the baseline recommendation is feasible and uniquely best in that scenario; on a record, in every scenario of the declared set.",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
                 "runs": {
                     "items": {
                         "$ref": "#/$defs/EvaluationRun"
@@ -808,6 +861,13 @@
                     },
                     "type": [
                         "array",
+                        "null"
+                    ]
+                },
+                "source_path": {
+                    "description": "Where the evaluated state or program was read from (as given), so the record can be replayed.",
+                    "type": [
+                        "string",
                         "null"
                     ]
                 },
@@ -1658,6 +1718,15 @@
             "title": "ExecutionStatus",
             "type": "string"
         },
+        "FlipDirection": {
+            "description": "Whether the flip point lies above or below the baseline value.",
+            "enum": [
+                "above",
+                "below"
+            ],
+            "title": "FlipDirection",
+            "type": "string"
+        },
         "FlipMethod": {
             "description": "",
             "enum": [
@@ -1680,6 +1749,23 @@
                 },
                 "boundary_kind": {
                     "$ref": "#/$defs/BoundaryKind"
+                },
+                "counterpart": {
+                    "description": "For a weight flip, the criterion whose weight absorbs the shift (the other weights held fixed).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "crossing": {
+                    "description": "The quantity whose zero is the boundary, e.g. \"U/alt:B - U/alt:A\" (a utility margin) or \"g/req:max-cost/alt:B\" (a requirement check).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "direction": {
+                    "$ref": "#/$defs/FlipDirection"
                 },
                 "flip_number": {
                     "type": [
@@ -1705,6 +1791,16 @@
                         "null"
                     ]
                 },
+                "previous_recommendation": {
+                    "description": "The recommendation on the baseline side of the flip point.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
                 "slot": {
                     "type": [
                         "string",
@@ -1714,6 +1810,13 @@
                 "target": {
                     "type": [
                         "string",
+                        "null"
+                    ]
+                },
+                "verified": {
+                    "description": "Re-running just below and just above the flip point gives the two recommendations reported.",
+                    "type": [
+                        "boolean",
                         "null"
                     ]
                 }
@@ -2210,6 +2313,62 @@
             "title": "Parameter",
             "type": "object"
         },
+        "ParameterScan": {
+            "additionalProperties": false,
+            "description": "One numeric input scanned for flip points over [scan_low, scan_high], all other inputs held fixed. A scan with no flip supports a claim about that range only.",
+            "properties": {
+                "baseline_number": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "flip_count": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "grid_points": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "parameter": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "scan_high": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "scan_low": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "slot": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "target": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "title": "ParameterScan",
+            "type": "object"
+        },
         "PendingAction": {
             "additionalProperties": false,
             "description": "Something a person must do before the decision is actionable, routed to the owning role. The id is a content digest, so the same open action keeps its id across runs and can be deduplicated.",
@@ -2220,6 +2379,13 @@
                 "id": {
                     "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
                     "type": "string"
+                },
+                "produced_by": {
+                    "description": "The node (and so the evaluation run) or recorded action that produced the claim.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
                 },
                 "reason": {
                     "type": [
@@ -2774,6 +2940,24 @@
                         "null"
                     ]
                 },
+                "infeasible": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "outcomes": {
+                    "items": {
+                        "$ref": "#/$defs/AlternativeOutcome"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
                 "recommended": {
                     "items": {
                         "type": "string"
@@ -2784,6 +2968,7 @@
                     ]
                 },
                 "robust": {
+                    "description": "On a scenario outcome, the baseline recommendation is feasible and uniquely best in that scenario; on a record, in every scenario of the declared set.",
                     "type": [
                         "boolean",
                         "null"
@@ -2792,6 +2977,15 @@
                 "scenario": {
                     "type": [
                         "string",
+                        "null"
+                    ]
+                },
+                "unresolved": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
                         "null"
                     ]
                 }
@@ -3054,6 +3248,15 @@
                 "null"
             ]
         },
+        "parameter_scans": {
+            "items": {
+                "$ref": "#/$defs/ParameterScan"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
         "parent": {
             "type": [
                 "string",
@@ -3078,6 +3281,13 @@
                 "null"
             ]
         },
+        "question": {
+            "description": "The decision question in plain words.",
+            "type": [
+                "string",
+                "null"
+            ]
+        },
         "readiness": {
             "anyOf": [
                 {
@@ -3097,6 +3307,13 @@
                 "null"
             ]
         },
+        "robust": {
+            "description": "On a scenario outcome, the baseline recommendation is feasible and uniquely best in that scenario; on a record, in every scenario of the declared set.",
+            "type": [
+                "boolean",
+                "null"
+            ]
+        },
         "runs": {
             "items": {
                 "$ref": "#/$defs/EvaluationRun"
@@ -3112,6 +3329,13 @@
             },
             "type": [
                 "array",
+                "null"
+            ]
+        },
+        "source_path": {
+            "description": "Where the evaluated state or program was read from (as given), so the record can be replayed.",
+            "type": [
+                "string",
                 "null"
             ]
         },

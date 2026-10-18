@@ -1,0 +1,10 @@
+# Three synthetic upgrade options for a notional counterfire radar. The names describe kinds of
+# upgrade, not real products.
+alternatives:
+  - id: alt:refresh
+    name: Option 1, processor and software refresh of the fielded radar
+    is_incumbent: true
+  - id: alt:new-array
+    name: Option 2, new solid-state antenna array
+  - id: alt:insert
+    name: Option 3, modular array insert into the fielded radar

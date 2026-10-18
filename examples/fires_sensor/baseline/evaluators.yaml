@@ -1,0 +1,18 @@
+evaluation_specifications:
+  - id: spec:detection-range
+    name: Threat-adjusted detection range
+    description: >-
+      Reference-projectile range scaled by the threat's relative radar cross section to the given power
+      (one quarter, from the radar range equation with everything else held fixed).
+    spec_kind: python
+    implementation: evaluators.py:detection_range
+    implementation_version: "1.0"
+    inputs:
+      - {arg: reference_range_km, measure: meas:reference-range, unit: km}
+      - {arg: rcs_factor, ref: asm:threat-rcs-factor, unit: "1"}
+    outputs:
+      - {arg: detection_range_km, measure: meas:detection-range, unit: km}
+    parameters:
+      - {arg: range_exponent, number: 0.25, unit: "1"}
+    cost_units: 10
+    owner_role: role:systems-engineer

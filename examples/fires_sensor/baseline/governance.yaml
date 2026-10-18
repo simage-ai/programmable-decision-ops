@@ -1,0 +1,72 @@
+# One person holds every role in the open-source setting; in a collaborative harness each role is a
+# different person, and pending actions are routed to them.
+roles:
+  - {id: role:program-manager, name: Program manager (decision owner), assignees: [you]}
+  - {id: role:mda, name: Milestone decision authority, assignees: [you]}
+  - {id: role:systems-engineer, name: Systems engineer, assignees: [you]}
+  - {id: role:cost-analyst, name: Cost analyst, assignees: [you]}
+  - {id: role:test-engineer, name: Test engineer, assignees: [you]}
+  - {id: role:threat-analyst, name: Threat analyst, assignees: [you]}
+  - {id: role:bias-reviewer, name: Independent bias reviewer, assignees: [you]}
+
+readiness_policy:
+  id: policy:main
+  name: Readiness and authorization policy
+  approval_roles: [role:mda]
+  risk_acceptance_roles: [role:mda]
+  risk_score_threshold: 12
+  approval_validity_days: 365
+
+readiness_conditions:
+  - {id: rc:recommendation-exists, name: A feasible alternative is recommended, predicate: recommendation_exists,
+     owner_role: role:program-manager}
+  - {id: rc:unique-recommendation, name: The recommendation is unique, predicate: unique_recommendation,
+     owner_role: role:program-manager}
+  - {id: rc:coverage, name: No unresolved alternative could beat the recommendation, predicate: coverage,
+     owner_role: role:systems-engineer}
+  - {id: rc:evidence-current, name: Evidence behind the recommendation is current, predicate: evidence_current,
+     owner_role: role:cost-analyst}
+  - {id: rc:evidence-traceable, name: Evidence behind the recommendation names its source,
+     predicate: evidence_traceable, owner_role: role:systems-engineer}
+  - {id: rc:assumptions-validated, name: Critical assumptions are validated, predicate: assumptions_validated,
+     owner_role: role:threat-analyst}
+  - {id: rc:risks-treated, name: Significant risks are treated, predicate: risks_treated,
+     owner_role: role:program-manager}
+
+bias_checks:
+  - {id: bc:omitted-options, name: More than the incumbent is considered, predicate: omitted_options,
+     bias_kind: omitted_options, bias_category: decision_framing, owner_role: role:program-manager}
+  - {id: bc:double-counting, name: No measure is scored twice, predicate: distinct_measures,
+     bias_kind: double_counting, bias_category: decision_framing, owner_role: role:program-manager}
+  - {id: bc:framing-review, name: Independent review of the decision framing, predicate: review_status,
+     review: rev:framing, bias_kind: framing, bias_category: decision_framing, owner_role: role:bias-reviewer}
+
+reviews:
+  - id: rev:framing
+    name: Framing review of alternatives, requirements and criteria
+    review_kind: bias review
+    covers: [all:alternatives, all:requirements, all:criteria]
+    review_status: pass
+    reviewer: you
+    rationale: >-
+      Options span a software refresh, a new array and a modular insert; range is scored once, against
+      the threat, not also against the reference projectile.
+    owner_role: role:bias-reviewer
+
+# The register records the new array's integration risk as mitigated, so the point analysis is ready to
+# approve. The schedule distribution says the requirement is still breached in about half of the draws.
+risks:
+  - id: risk:new-array-integration
+    name: New array integration and qualification
+    affects: [alt:new-array]
+    likelihood: 3
+    consequence: 4
+    treatment_status: mitigated
+    owner_role: role:program-manager
+  - id: risk:insert-supplier
+    name: Single supplier for the insert's transmit modules
+    affects: [alt:insert]
+    likelihood: 2
+    consequence: 3
+    treatment_status: untreated
+    owner_role: role:program-manager

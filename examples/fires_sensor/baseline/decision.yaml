@@ -1,0 +1,90 @@
+as_of: 2027-03-01
+question: Which counterfire radar upgrade should the program carry forward?
+
+measures:
+  - {id: meas:reference-range, name: Detection range against the reference projectile, unit: km}
+  - {id: meas:detection-range, name: Detection range against the expected threat, unit: km}
+  - {id: meas:p-track, name: Probability of track, unit: "1"}
+  - {id: meas:unit-cost, name: Unit upgrade cost, unit: MUSD}
+  - {id: meas:schedule, name: Integration schedule to first unit equipped, unit: months}
+
+objectives:
+  - {id: obj:performance, name: Counterfire performance}
+  - {id: obj:affordability, name: Affordability}
+  - {id: obj:timeliness, name: Timeliness}
+
+# Mandatory requirements. Under expected_mavt an alternative is feasible only if it meets all of them
+# jointly with probability at least 1 - chance_alpha.
+requirements:
+  - id: req:min-detection-range
+    name: Minimum detection range against the expected threat
+    measure: meas:detection-range
+    comparator: ge
+    threshold_value: 20
+    unit: km
+    owner_role: role:systems-engineer
+  - id: req:min-p-track
+    name: Minimum probability of track
+    measure: meas:p-track
+    comparator: ge
+    threshold_value: 0.85
+    unit: "1"
+    owner_role: role:test-engineer
+  - id: req:max-schedule
+    name: First unit equipped within three years
+    measure: meas:schedule
+    comparator: le
+    threshold_value: 36
+    unit: months
+    owner_role: role:program-manager
+  - id: req:max-unit-cost
+    name: Maximum unit upgrade cost
+    measure: meas:unit-cost
+    comparator: le
+    threshold_value: 12
+    unit: MUSD
+    owner_role: role:cost-analyst
+
+# Fixed anchors: v = (y - anchor_worst) / (anchor_best - anchor_worst), clipped to [0, 1]. Clipping makes
+# the value functions nonlinear at the anchors, so E[v(y)] is computed per draw, not as v(E[y]).
+criteria:
+  - {id: crit:range, name: Detection range, objective: obj:performance, measure: meas:detection-range,
+     anchor_worst: 18, anchor_best: 32, weight: 0.35}
+  - {id: crit:p-track, name: Probability of track, objective: obj:performance, measure: meas:p-track,
+     anchor_worst: 0.85, anchor_best: 0.98, weight: 0.25}
+  - {id: crit:cost, name: Unit cost, objective: obj:affordability, measure: meas:unit-cost,
+     anchor_worst: 12, anchor_best: 4, weight: 0.20}
+  - {id: crit:schedule, name: Integration schedule, objective: obj:timeliness, measure: meas:schedule,
+     anchor_worst: 40, anchor_best: 10, weight: 0.20}
+
+# expected_mavt: maximize E[U] over the alternatives that meet every mandatory requirement jointly with
+# probability >= 1 - chance_alpha. The deterministic kernel (pdo run) scores the point values; pdo
+# uncertainty samples the UncertaintySpecs with this seed and sample count.
+decision_rule:
+  id: rule:main
+  name: Expected additive value under a joint chance constraint
+  rule_kind: expected_mavt
+  samples: 1000
+  seed: 20270301
+  chance_alpha: 0.10
+  tie_tolerance: 1.0e-9
+
+# Threat environments. Each one conditions on a radar cross section for the threat (relative to the
+# reference projectile); sc:small-rocket also narrows the distribution instead of fixing it.
+scenarios:
+  - id: sc:nominal
+    name: Expected threat mix (the stated RCS distribution)
+  - id: sc:reference-threat
+    name: Reference projectile only (RCS factor 1.0)
+    assignments:
+      - {target: asm:threat-rcs-factor, slot: value, new_value: 1.0}
+  - id: sc:small-rocket
+    name: Small-caliber rocket threat (RCS factor about 0.6)
+    assignments:
+      - {target: asm:threat-rcs-factor, slot: value, new_value: 0.6}
+      - {target: asm:threat-rcs-factor, slot: uncertainty,
+         new_value: {family: triangular, low: 0.5, mode: 0.6, high: 0.7}}
+  - id: sc:large-caliber
+    name: Large-caliber artillery threat (RCS factor 1.4)
+    assignments:
+      - {target: asm:threat-rcs-factor, slot: value, new_value: 1.4}

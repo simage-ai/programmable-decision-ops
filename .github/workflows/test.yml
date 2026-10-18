@@ -1,0 +1,24 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --all-extras --locked
+      - run: make lint
+      - run: uv run pytest -q -m "not live"
+      # Generated code is committed; regenerate it and fail if it drifted from the schema.
+      - run: make gen-project && git diff --exit-code project/ src/pdo/model.py src/pdo/identity_slots.py
+      # The benchmark must keep full agreement with its independent labels.
+      - run: uv run pdo bench check bench/vehicle

@@ -24,9 +24,9 @@ prefixes:
 classes:
   DecisionEpisodeRecord:
     description: One evaluated decision episode.
-    slots: [episode, parent, as_of, state_digest, kernel_version, recommended, feasible, infeasible, unresolved,
-      outcomes, readiness, actionable, actionable_reason, matching_approval, flips, scenario_outcomes,
-      pending_actions, runs, propositions, claims, impact]
+    slots: [episode, parent, source_path, question, as_of, state_digest, kernel_version, recommended, feasible,
+      infeasible, unresolved, outcomes, readiness, actionable, actionable_reason, matching_approval, flips,
+      parameter_scans, scenario_outcomes, robust, pending_actions, runs, propositions, claims, impact]
 
   AlternativeOutcome:
     description: How one alternative fared.
@@ -34,10 +34,10 @@ classes:
 
   CheckOutcome:
     description: One requirement check, in the common g <= 0 convention.
-    slots: [requirement, status, g]
+    slots: [requirement, status, g, measured, comparator, threshold_value, unit]
 
   CriterionValue:
-    slots: [criterion, measured, value_score]
+    slots: [criterion, measured, value_score, weight]
 
   ReadinessAssessment:
     slots: [readiness_state, conditions]
@@ -49,14 +49,21 @@ classes:
     description: >-
       Something a person must do before the decision is actionable, routed to the owning role. The id
       is a content digest, so the same open action keeps its id across runs and can be deduplicated.
-    slots: [id, action_kind, target, role, reason]
+    slots: [id, action_kind, target, role, reason, produced_by]
 
   FlipPoint:
     description: A value of one input at which the recommendation changes, all other inputs held fixed.
-    slots: [parameter, target, slot, baseline_number, flip_number, method, boundary_kind, new_recommendation]
+    slots: [parameter, target, slot, baseline_number, flip_number, method, boundary_kind, new_recommendation,
+      previous_recommendation, direction, crossing, counterpart, verified]
+
+  ParameterScan:
+    description: >-
+      One numeric input scanned for flip points over [scan_low, scan_high], all other inputs held
+      fixed. A scan with no flip supports a claim about that range only.
+    slots: [parameter, target, slot, baseline_number, scan_low, scan_high, grid_points, flip_count]
 
   ScenarioOutcome:
-    slots: [scenario, recommended, feasible, robust]
+    slots: [scenario, recommended, feasible, robust, infeasible, unresolved, outcomes]
 
   EvaluationRun:
     description: One node evaluation; the signature identifies its exact inputs and implementation.
@@ -215,6 +222,50 @@ slots:
   robust:
     mixins: [hashable]
     range: boolean
+    description: >-
+      On a scenario outcome, the baseline recommendation is feasible and uniquely best in that
+      scenario; on a record, in every scenario of the declared set.
+  source_path:
+    mixins: [unhashable]
+    description: Where the evaluated state or program was read from (as given), so the record can be replayed.
+  parameter_scans:
+    mixins: [hashable]
+    range: ParameterScan
+    multivalued: true
+    inlined_as_list: true
+  scan_low:
+    mixins: [hashable]
+    range: float
+  scan_high:
+    mixins: [hashable]
+    range: float
+  grid_points:
+    mixins: [hashable]
+    range: integer
+  flip_count:
+    mixins: [hashable]
+    range: integer
+  previous_recommendation:
+    mixins: [hashable]
+    range: Alternative
+    multivalued: true
+    description: The recommendation on the baseline side of the flip point.
+  direction:
+    mixins: [hashable]
+    range: FlipDirection
+  crossing:
+    mixins: [hashable]
+    description: >-
+      The quantity whose zero is the boundary, e.g. "U/alt:B - U/alt:A" (a utility margin) or
+      "g/req:max-cost/alt:B" (a requirement check).
+  counterpart:
+    mixins: [hashable]
+    range: Criterion
+    description: For a weight flip, the criterion whose weight absorbs the shift (the other weights held fixed).
+  verified:
+    mixins: [hashable]
+    range: boolean
+    description: Re-running just below and just above the flip point gives the two recommendations reported.
   runs:
     mixins: [hashable]
     range: EvaluationRun
@@ -321,6 +372,11 @@ enums:
       feasibility: {description: An alternative becomes feasible or infeasible.}
       empty_set: {description: No alternative remains feasible.}
       unresolved: {description: The recommendation becomes unresolved.}
+  FlipDirection:
+    description: Whether the flip point lies above or below the baseline value.
+    permissible_values:
+      above: {}
+      below: {}
   ClaimBasis:
     permissible_values:
       computed: {}

@@ -323,6 +323,14 @@ class BoundaryKind(str, Enum):
     """
 
 
+class FlipDirection(str, Enum):
+    """
+    Whether the flip point lies above or below the baseline value.
+    """
+    above = "above"
+    below = "below"
+
+
 class ClaimBasis(str, Enum):
     computed = "computed"
     semantic = "semantic"
@@ -402,7 +410,8 @@ class Parameter(ConfiguredBaseModel):
                        'Observation',
                        'Assumption',
                        'InputBinding',
-                       'OutputDeclaration'],
+                       'OutputDeclaration',
+                       'CheckOutcome'],
          'mixins': ['hashable']} })
 
 
@@ -466,7 +475,8 @@ class Measure(NamedThing):
                        'Observation',
                        'Assumption',
                        'InputBinding',
-                       'OutputDeclaration'],
+                       'OutputDeclaration',
+                       'CheckOutcome'],
          'mixins': ['hashable']} })
     id: str = Field(default=..., description="""Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).""", json_schema_extra = { "linkml_meta": {'domain_of': ['NamedThing',
                        'ChangeSet',
@@ -504,7 +514,7 @@ class Criterion(NamedThing):
     anchor_best: float = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['Criterion'], 'mixins': ['hashable']} })
     points: Optional[list[PiecewisePoint]] = Field(default=None, description="""Optional piecewise-linear value function; overrides the linear form between the anchors.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Criterion'], 'mixins': ['hashable']} })
     clip: Optional[bool] = Field(default=None, description="""Clip values to [0, 1] outside the anchors (default true).""", json_schema_extra = { "linkml_meta": {'domain_of': ['Criterion'], 'mixins': ['hashable']} })
-    weight: float = Field(default=..., ge=0, le=1, json_schema_extra = { "linkml_meta": {'domain_of': ['Criterion'], 'mixins': ['hashable']} })
+    weight: float = Field(default=..., ge=0, le=1, json_schema_extra = { "linkml_meta": {'domain_of': ['Criterion', 'CriterionValue'], 'mixins': ['hashable']} })
     id: str = Field(default=..., description="""Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).""", json_schema_extra = { "linkml_meta": {'domain_of': ['NamedThing',
                        'ChangeSet',
                        'PendingAction',
@@ -550,15 +560,16 @@ class Requirement(SourceRef, NamedThing):
                        'InputBinding',
                        'OutputDeclaration'],
          'mixins': ['hashable']} })
-    comparator: Comparator = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['Requirement'], 'mixins': ['hashable']} })
-    threshold_value: float = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['Requirement'], 'mixins': ['hashable']} })
+    comparator: Comparator = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['Requirement', 'CheckOutcome'], 'mixins': ['hashable']} })
+    threshold_value: float = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['Requirement', 'CheckOutcome'], 'mixins': ['hashable']} })
     unit: str = Field(default=..., description="""Unit string, matched exactly (no conversion). \"1\" means dimensionless.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Parameter',
                        'Measure',
                        'Requirement',
                        'Observation',
                        'Assumption',
                        'InputBinding',
-                       'OutputDeclaration'],
+                       'OutputDeclaration',
+                       'CheckOutcome'],
          'mixins': ['hashable']} })
     mandatory: Optional[bool] = Field(default=None, description="""Mandatory requirements gate feasibility (default true).""", json_schema_extra = { "linkml_meta": {'domain_of': ['Requirement'], 'mixins': ['hashable']} })
     applies_to: Optional[list[str]] = Field(default=None, description="""Alternatives this applies to; empty means all.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Requirement', 'EvaluationSpecification'],
@@ -649,9 +660,10 @@ class SlotAssignment(ConfiguredBaseModel):
          'slot_usage': {'slot': {'name': 'slot', 'required': True},
                         'target': {'name': 'target', 'required': True}}})
 
-    target: str = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'PendingAction', 'FlipPoint'],
+    target: str = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'PendingAction', 'FlipPoint', 'ParameterScan'],
          'mixins': ['hashable']} })
-    slot: str = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'FlipPoint'], 'mixins': ['hashable']} })
+    slot: str = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'FlipPoint', 'ParameterScan'],
+         'mixins': ['hashable']} })
     new_value: Optional[Any] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment'], 'mixins': ['hashable']} })
 
 
@@ -719,7 +731,8 @@ class Observation(NamedThing):
                        'Observation',
                        'Assumption',
                        'InputBinding',
-                       'OutputDeclaration'],
+                       'OutputDeclaration',
+                       'CheckOutcome'],
          'mixins': ['hashable']} })
     evidence: str = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['Observation'], 'mixins': ['hashable']} })
     applicability: Optional[Applicability] = Field(default=None, description="""Default accepted.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Observation'], 'mixins': ['hashable']} })
@@ -764,7 +777,8 @@ class Assumption(NamedThing):
                        'Observation',
                        'Assumption',
                        'InputBinding',
-                       'OutputDeclaration'],
+                       'OutputDeclaration',
+                       'CheckOutcome'],
          'mixins': ['hashable']} })
     critical: Optional[bool] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Assumption'], 'mixins': ['hashable']} })
     validation_status: Optional[ValidationStatus] = Field(default=None, description="""Default validated.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Assumption'], 'mixins': ['hashable']} })
@@ -879,7 +893,8 @@ class InputBinding(ConfiguredBaseModel):
                        'Observation',
                        'Assumption',
                        'InputBinding',
-                       'OutputDeclaration'],
+                       'OutputDeclaration',
+                       'CheckOutcome'],
          'mixins': ['hashable']} })
 
 
@@ -906,7 +921,8 @@ class OutputDeclaration(ConfiguredBaseModel):
                        'Observation',
                        'Assumption',
                        'InputBinding',
-                       'OutputDeclaration'],
+                       'OutputDeclaration',
+                       'CheckOutcome'],
          'mixins': ['hashable']} })
 
 
@@ -1123,7 +1139,8 @@ class DecisionState(ConfiguredBaseModel):
 
     as_of: Optional[date] = Field(default=None, description="""The state's clock; evidence expiry and approval validity are judged against it.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState', 'ChangeSet', 'DecisionEpisodeRecord'],
          'mixins': ['hashable']} })
-    question: Optional[str] = Field(default=None, description="""The decision question in plain words.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState', 'DecisionProgram'], 'mixins': ['unhashable']} })
+    question: Optional[str] = Field(default=None, description="""The decision question in plain words.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState', 'DecisionProgram', 'DecisionEpisodeRecord'],
+         'mixins': ['unhashable']} })
     roles: Optional[list[Role]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState'], 'mixins': ['hashable']} })
     objectives: Optional[list[Objective]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState'], 'mixins': ['hashable']} })
     alternatives: Optional[list[Alternative]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState'], 'mixins': ['hashable']} })
@@ -1159,7 +1176,8 @@ class ExecutableDecisionState(DecisionState):
 
     as_of: date = Field(default=..., description="""The state's clock; evidence expiry and approval validity are judged against it.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState', 'ChangeSet', 'DecisionEpisodeRecord'],
          'mixins': ['hashable']} })
-    question: Optional[str] = Field(default=None, description="""The decision question in plain words.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState', 'DecisionProgram'], 'mixins': ['unhashable']} })
+    question: Optional[str] = Field(default=None, description="""The decision question in plain words.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState', 'DecisionProgram', 'DecisionEpisodeRecord'],
+         'mixins': ['unhashable']} })
     roles: Optional[list[Role]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState'], 'mixins': ['hashable']} })
     objectives: Optional[list[Objective]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState'], 'mixins': ['hashable']} })
     alternatives: list[Alternative] = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState'], 'mixins': ['hashable']} })
@@ -1188,7 +1206,8 @@ class DecisionProgram(NamedThing):
          'slot_usage': {'baseline_episode': {'name': 'baseline_episode',
                                              'required': True}}})
 
-    question: Optional[str] = Field(default=None, description="""The decision question in plain words.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState', 'DecisionProgram'], 'mixins': ['unhashable']} })
+    question: Optional[str] = Field(default=None, description="""The decision question in plain words.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState', 'DecisionProgram', 'DecisionEpisodeRecord'],
+         'mixins': ['unhashable']} })
     decision_owner_role: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionProgram'], 'mixins': ['unhashable']} })
     baseline_episode: str = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionProgram'], 'mixins': ['unhashable']} })
     baseline_dir: Optional[str] = Field(default=None, description="""Directory of the baseline state's files, relative to program.yaml (default baseline/).""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionProgram'], 'mixins': ['unhashable']} })
@@ -1240,6 +1259,9 @@ class DecisionEpisodeRecord(ConfiguredBaseModel):
 
     episode: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     parent: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['ChangeSet', 'DecisionEpisodeRecord'], 'mixins': ['hashable']} })
+    source_path: Optional[str] = Field(default=None, description="""Where the evaluated state or program was read from (as given), so the record can be replayed.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['unhashable']} })
+    question: Optional[str] = Field(default=None, description="""The decision question in plain words.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState', 'DecisionProgram', 'DecisionEpisodeRecord'],
+         'mixins': ['unhashable']} })
     as_of: Optional[date] = Field(default=None, description="""The state's clock; evidence expiry and approval validity are judged against it.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionState', 'ChangeSet', 'DecisionEpisodeRecord'],
          'mixins': ['hashable']} })
     state_digest: Optional[str] = Field(default=None, description="""Digest of the decision state the approval covered (stamped by the kernel).""", json_schema_extra = { "linkml_meta": {'domain_of': ['HumanApproval', 'DecisionEpisodeRecord'],
@@ -1249,15 +1271,21 @@ class DecisionEpisodeRecord(ConfiguredBaseModel):
          'mixins': ['hashable']} })
     feasible: Optional[list[str]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord', 'ScenarioOutcome'],
          'mixins': ['hashable']} })
-    infeasible: Optional[list[str]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
-    unresolved: Optional[list[str]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
-    outcomes: Optional[list[AlternativeOutcome]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
+    infeasible: Optional[list[str]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord', 'ScenarioOutcome'],
+         'mixins': ['hashable']} })
+    unresolved: Optional[list[str]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord', 'ScenarioOutcome'],
+         'mixins': ['hashable']} })
+    outcomes: Optional[list[AlternativeOutcome]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord', 'ScenarioOutcome'],
+         'mixins': ['hashable']} })
     readiness: Optional[ReadinessAssessment] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     actionable: Optional[bool] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     actionable_reason: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['unhashable']} })
     matching_approval: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     flips: Optional[list[FlipPoint]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
+    parameter_scans: Optional[list[ParameterScan]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     scenario_outcomes: Optional[list[ScenarioOutcome]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
+    robust: Optional[bool] = Field(default=None, description="""On a scenario outcome, the baseline recommendation is feasible and uniquely best in that scenario; on a record, in every scenario of the declared set.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord', 'ScenarioOutcome'],
+         'mixins': ['hashable']} })
     pending_actions: Optional[list[PendingAction]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     runs: Optional[list[EvaluationRun]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     propositions: Optional[list[Proposition]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
@@ -1290,14 +1318,27 @@ class CheckOutcome(ConfiguredBaseModel):
     status: Optional[AssessmentStatus] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['CheckOutcome', 'ConditionResult', 'Claim'],
          'mixins': ['hashable']} })
     g: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['CheckOutcome'], 'mixins': ['hashable']} })
+    measured: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['CheckOutcome', 'CriterionValue'], 'mixins': ['hashable']} })
+    comparator: Optional[Comparator] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Requirement', 'CheckOutcome'], 'mixins': ['hashable']} })
+    threshold_value: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Requirement', 'CheckOutcome'], 'mixins': ['hashable']} })
+    unit: Optional[str] = Field(default=None, description="""Unit string, matched exactly (no conversion). \"1\" means dimensionless.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Parameter',
+                       'Measure',
+                       'Requirement',
+                       'Observation',
+                       'Assumption',
+                       'InputBinding',
+                       'OutputDeclaration',
+                       'CheckOutcome'],
+         'mixins': ['hashable']} })
 
 
 class CriterionValue(ConfiguredBaseModel):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/pdo/schema/record'})
 
     criterion: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['CriterionValue'], 'mixins': ['hashable']} })
-    measured: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['CriterionValue'], 'mixins': ['hashable']} })
+    measured: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['CheckOutcome', 'CriterionValue'], 'mixins': ['hashable']} })
     value_score: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['CriterionValue'], 'mixins': ['hashable']} })
+    weight: Optional[float] = Field(default=None, ge=0, le=1, json_schema_extra = { "linkml_meta": {'domain_of': ['Criterion', 'CriterionValue'], 'mixins': ['hashable']} })
 
 
 class ReadinessAssessment(ConfiguredBaseModel):
@@ -1330,10 +1371,11 @@ class PendingAction(ConfiguredBaseModel):
                        'Claim'],
          'slot_uri': 'dcterms:identifier'} })
     action_kind: Optional[ActionKind] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['PendingAction'], 'mixins': ['hashable']} })
-    target: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'PendingAction', 'FlipPoint'],
+    target: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'PendingAction', 'FlipPoint', 'ParameterScan'],
          'mixins': ['hashable']} })
     role: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['PendingAction'], 'mixins': ['hashable']} })
     reason: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['ConditionResult', 'PendingAction'], 'mixins': ['unhashable']} })
+    produced_by: Optional[str] = Field(default=None, description="""The node (and so the evaluation run) or recorded action that produced the claim.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PendingAction', 'Claim'], 'mixins': ['hashable']} })
 
 
 class FlipPoint(ConfiguredBaseModel):
@@ -1342,15 +1384,39 @@ class FlipPoint(ConfiguredBaseModel):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/pdo/schema/record'})
 
-    parameter: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint'], 'mixins': ['hashable']} })
-    target: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'PendingAction', 'FlipPoint'],
+    parameter: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint', 'ParameterScan'], 'mixins': ['hashable']} })
+    target: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'PendingAction', 'FlipPoint', 'ParameterScan'],
          'mixins': ['hashable']} })
-    slot: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'FlipPoint'], 'mixins': ['hashable']} })
-    baseline_number: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint'], 'mixins': ['hashable']} })
+    slot: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'FlipPoint', 'ParameterScan'],
+         'mixins': ['hashable']} })
+    baseline_number: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint', 'ParameterScan'], 'mixins': ['hashable']} })
     flip_number: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint'], 'mixins': ['hashable']} })
     method: Optional[FlipMethod] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint'], 'mixins': ['hashable']} })
     boundary_kind: Optional[BoundaryKind] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint'], 'mixins': ['hashable']} })
     new_recommendation: Optional[list[str]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint'], 'mixins': ['hashable']} })
+    previous_recommendation: Optional[list[str]] = Field(default=None, description="""The recommendation on the baseline side of the flip point.""", json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint'], 'mixins': ['hashable']} })
+    direction: Optional[FlipDirection] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint'], 'mixins': ['hashable']} })
+    crossing: Optional[str] = Field(default=None, description="""The quantity whose zero is the boundary, e.g. \"U/alt:B - U/alt:A\" (a utility margin) or \"g/req:max-cost/alt:B\" (a requirement check).""", json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint'], 'mixins': ['hashable']} })
+    counterpart: Optional[str] = Field(default=None, description="""For a weight flip, the criterion whose weight absorbs the shift (the other weights held fixed).""", json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint'], 'mixins': ['hashable']} })
+    verified: Optional[bool] = Field(default=None, description="""Re-running just below and just above the flip point gives the two recommendations reported.""", json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint'], 'mixins': ['hashable']} })
+
+
+class ParameterScan(ConfiguredBaseModel):
+    """
+    One numeric input scanned for flip points over [scan_low, scan_high], all other inputs held fixed. A scan with no flip supports a claim about that range only.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/pdo/schema/record'})
+
+    parameter: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint', 'ParameterScan'], 'mixins': ['hashable']} })
+    target: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'PendingAction', 'FlipPoint', 'ParameterScan'],
+         'mixins': ['hashable']} })
+    slot: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'FlipPoint', 'ParameterScan'],
+         'mixins': ['hashable']} })
+    baseline_number: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint', 'ParameterScan'], 'mixins': ['hashable']} })
+    scan_low: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['ParameterScan'], 'mixins': ['hashable']} })
+    scan_high: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['ParameterScan'], 'mixins': ['hashable']} })
+    grid_points: Optional[int] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['ParameterScan'], 'mixins': ['hashable']} })
+    flip_count: Optional[int] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['ParameterScan'], 'mixins': ['hashable']} })
 
 
 class ScenarioOutcome(ConfiguredBaseModel):
@@ -1361,7 +1427,14 @@ class ScenarioOutcome(ConfiguredBaseModel):
          'mixins': ['hashable']} })
     feasible: Optional[list[str]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord', 'ScenarioOutcome'],
          'mixins': ['hashable']} })
-    robust: Optional[bool] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['ScenarioOutcome'], 'mixins': ['hashable']} })
+    robust: Optional[bool] = Field(default=None, description="""On a scenario outcome, the baseline recommendation is feasible and uniquely best in that scenario; on a record, in every scenario of the declared set.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord', 'ScenarioOutcome'],
+         'mixins': ['hashable']} })
+    infeasible: Optional[list[str]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord', 'ScenarioOutcome'],
+         'mixins': ['hashable']} })
+    unresolved: Optional[list[str]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord', 'ScenarioOutcome'],
+         'mixins': ['hashable']} })
+    outcomes: Optional[list[AlternativeOutcome]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord', 'ScenarioOutcome'],
+         'mixins': ['hashable']} })
 
 
 class EvaluationRun(ConfiguredBaseModel):
@@ -1430,7 +1503,7 @@ class Claim(ConfiguredBaseModel):
     status: Optional[AssessmentStatus] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['CheckOutcome', 'ConditionResult', 'Claim'],
          'mixins': ['hashable']} })
     basis: Optional[ClaimBasis] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Claim'], 'mixins': ['hashable']} })
-    produced_by: Optional[str] = Field(default=None, description="""The node (and so the evaluation run) or recorded action that produced the claim.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Claim'], 'mixins': ['hashable']} })
+    produced_by: Optional[str] = Field(default=None, description="""The node (and so the evaluation run) or recorded action that produced the claim.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PendingAction', 'Claim'], 'mixins': ['hashable']} })
     supported_by: Optional[list[str]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Claim'], 'mixins': ['hashable']} })
 
 
@@ -1474,6 +1547,7 @@ ReadinessAssessment.model_rebuild()
 ConditionResult.model_rebuild()
 PendingAction.model_rebuild()
 FlipPoint.model_rebuild()
+ParameterScan.model_rebuild()
 ScenarioOutcome.model_rebuild()
 EvaluationRun.model_rebuild()
 ImpactSummary.model_rebuild()

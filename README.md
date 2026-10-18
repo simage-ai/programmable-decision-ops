@@ -59,6 +59,10 @@ Readiness: READY   Actionable: no (alt:B has no approval)
   closed-form weight trade-offs, and robustness over declared scenarios.
 - **Decisions under uncertainty.** Monte Carlo over declared distributions with common random numbers
   and chance constraints (`rule_kind: expected_mavt`).
+- **Sensitivity analysis.** Response curves through nonlinear evaluators (slope, elasticity, departure
+  from linear), the response to one input's distribution (spread, P(win), regret), a tornado of the
+  decision margin, Sobol first-order and total indices, and value of information (EVPI, and EVPPI per
+  input with the evidence that would resolve it).
 - **Decision Packages.** `package.md` for people and `record.json` for machines (it conforms to the
   published record schema and replays node by node), with assessments expressed as claims whose basis
   is computed, semantic (agent interpretation) or human.
@@ -91,7 +95,8 @@ Every command takes `--json` (`{"ok": true, ...}`, or `{"ok": false, "error": ..
 | `pdo impact PATH CHANGE.yaml` | Dry-run a change set: delta, impact set, rerun versus reused, before and after |
 | `pdo flip PATH` / `pdo scenarios PATH` | Flip points and weight trade-offs; scenario robustness |
 | `pdo uncertainty PATH` | E[U], Pr(feasible), the chance-constrained decision, scenario robustness |
-| `pdo package PATH -o DIR` / `pdo replay RECORD.json` | Write a Decision Package; replay it node by node |
+| `pdo sensitivity PATH [-p ID.slot] [--figures DIR]` | Response curve and distribution of one input; or tornado, Sobol indices and value of information for all |
+| `pdo package PATH -o DIR [--sensitivity]` / `pdo replay RECORD.json` | Write a Decision Package (optionally with sensitivity and value of information); replay it node by node |
 | `pdo sysml import FILES --map M --out DIR` / `pdo sysml gaps FILES` | Import SysML v2 into a draft state; list what did not map |
 | `pdo bench run\|check bench/vehicle` | The representation benchmark |
 | `pdo schema describe [CLASS]` / `pdo example list\|copy` | The schema; the bundled examples |
@@ -145,7 +150,7 @@ including:
 - ablations that break equivalence (delta only, one hop, no readiness);
 - an edge-omission curve that simulates compilation errors.
 
-Figures are in `results/figures/`.
+Figures are in `results/figures/` (sensitivity figures from `make sensitivity-figures`).
 
 ## Layout
 
@@ -176,9 +181,15 @@ also runs `pdo bench check`.
 
 ## Roadmap
 
-- **Sensitivity analysis.** Response curves across a variable's range, the response to a distribution
-  over one variable through nonlinear evaluators, global (variance-based) indices, and value of
-  information per input: which evidence is worth collecting next.
+- **Dashboard (read-only).** A rendering of a decision program: the dependency graph colored by status,
+  with each episode's impact set; the episode timeline; and panels for readiness, pending actions,
+  flips, sensitivity and uncertainty. Generated from kernel output, never recomputed.
+- **Document provenance.** A skill and tools that index Word and PDF reports into sections with content
+  digests, attach a locator (document, section, page, quote) to every extracted value, and flag only the
+  observations whose section changed when a report is revised.
+- **Onboarding.** `pdo init` and an onboarding skill that take someone from a folder of reports and SysML
+  models through three funnels (construct the decision graph, run it, study it), always offering the
+  next step.
 - **More skills.** Decision framing, evidence compilation from documents, evaluator authoring, program
   refresh, and audit.
 - **The agent-extraction experiment and an LLM document baseline.** These test how well agents populate

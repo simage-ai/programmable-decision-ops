@@ -735,7 +735,7 @@ class Observation(NamedThing):
                        'OutputDeclaration',
                        'CheckOutcome'],
          'mixins': ['hashable']} })
-    evidence: str = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['Observation'], 'mixins': ['hashable']} })
+    evidence: str = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['Observation', 'SensitivityEntry'], 'mixins': ['hashable']} })
     applicability: Optional[Applicability] = Field(default=None, description="""Default accepted.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Observation'], 'mixins': ['hashable']} })
     applicability_rationale: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Observation'], 'mixins': ['unhashable']} })
     uncertainty: Optional[UncertaintySpec] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Observation', 'Assumption'], 'mixins': ['hashable']} })
@@ -1287,11 +1287,34 @@ class DecisionEpisodeRecord(ConfiguredBaseModel):
     scenario_outcomes: Optional[list[ScenarioOutcome]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     robust: Optional[bool] = Field(default=None, description="""On a scenario outcome, the baseline recommendation is feasible and uniquely best in that scenario; on a record, in every scenario of the declared set.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord', 'ScenarioOutcome'],
          'mixins': ['hashable']} })
+    sensitivity: Optional[list[SensitivityEntry]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
+    evpi: Optional[float] = Field(default=None, description="""Expected value of perfect information about every uncertain input (utility points).""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     pending_actions: Optional[list[PendingAction]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     runs: Optional[list[EvaluationRun]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     propositions: Optional[list[Proposition]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     claims: Optional[list[Claim]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     impact: Optional[ImpactSummary] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
+
+
+class SensitivityEntry(ConfiguredBaseModel):
+    """
+    How the decision responds to one input (pdo.sensitivity): the decision margin at the low and high end of the input's range with everything else fixed, its Sobol total index for the margin, and the expected value of resolving its uncertainty (EVPPI), with the evidence that would resolve it.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/pdo/schema/record'})
+
+    parameter: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry', 'FlipPoint', 'ParameterScan'],
+         'mixins': ['hashable']} })
+    low_number: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    high_number: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    range_source: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['unhashable']} })
+    margin_low: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    margin_high: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    swing: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    flips_within: Optional[bool] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    first_order: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    total_index: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    evppi: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    evidence: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Observation', 'SensitivityEntry'], 'mixins': ['hashable']} })
 
 
 class AlternativeOutcome(ConfiguredBaseModel):
@@ -1385,7 +1408,8 @@ class FlipPoint(ConfiguredBaseModel):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/pdo/schema/record'})
 
-    parameter: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint', 'ParameterScan'], 'mixins': ['hashable']} })
+    parameter: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry', 'FlipPoint', 'ParameterScan'],
+         'mixins': ['hashable']} })
     target: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'PendingAction', 'FlipPoint', 'ParameterScan'],
          'mixins': ['hashable']} })
     slot: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'FlipPoint', 'ParameterScan'],
@@ -1408,7 +1432,8 @@ class ParameterScan(ConfiguredBaseModel):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/pdo/schema/record'})
 
-    parameter: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['FlipPoint', 'ParameterScan'], 'mixins': ['hashable']} })
+    parameter: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry', 'FlipPoint', 'ParameterScan'],
+         'mixins': ['hashable']} })
     target: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'PendingAction', 'FlipPoint', 'ParameterScan'],
          'mixins': ['hashable']} })
     slot: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SlotAssignment', 'FlipPoint', 'ParameterScan'],
@@ -1541,6 +1566,7 @@ ExecutableDecisionState.model_rebuild()
 DecisionProgram.model_rebuild()
 ChangeSet.model_rebuild()
 DecisionEpisodeRecord.model_rebuild()
+SensitivityEntry.model_rebuild()
 AlternativeOutcome.model_rebuild()
 CheckOutcome.model_rebuild()
 CriterionValue.model_rebuild()

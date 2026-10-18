@@ -723,6 +723,13 @@
                         "null"
                     ]
                 },
+                "evpi": {
+                    "description": "Expected value of perfect information about every uncertain input (utility points).",
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
                 "feasible": {
                     "items": {
                         "type": "string"
@@ -859,6 +866,15 @@
                 "scenario_outcomes": {
                     "items": {
                         "$ref": "#/$defs/ScenarioOutcome"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "sensitivity": {
+                    "items": {
+                        "$ref": "#/$defs/SensitivityEntry"
                     },
                     "type": [
                         "array",
@@ -2994,6 +3010,86 @@
             "title": "ScenarioOutcome",
             "type": "object"
         },
+        "SensitivityEntry": {
+            "additionalProperties": false,
+            "description": "How the decision responds to one input (pdo.sensitivity): the decision margin at the low and high end of the input's range with everything else fixed, its Sobol total index for the margin, and the expected value of resolving its uncertainty (EVPPI), with the evidence that would resolve it.",
+            "properties": {
+                "evidence": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "evppi": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "first_order": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "flips_within": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "high_number": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "low_number": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "margin_high": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "margin_low": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "parameter": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "range_source": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "swing": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "total_index": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                }
+            },
+            "title": "SensitivityEntry",
+            "type": "object"
+        },
         "SlotAssignment": {
             "additionalProperties": false,
             "description": "Set one slot of one object, identified by id, to a new value.",
@@ -3191,6 +3287,13 @@
                 "null"
             ]
         },
+        "evpi": {
+            "description": "Expected value of perfect information about every uncertain input (utility points).",
+            "type": [
+                "number",
+                "null"
+            ]
+        },
         "feasible": {
             "items": {
                 "type": "string"
@@ -3327,6 +3430,15 @@
         "scenario_outcomes": {
             "items": {
                 "$ref": "#/$defs/ScenarioOutcome"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "sensitivity": {
+            "items": {
+                "$ref": "#/$defs/SensitivityEntry"
             },
             "type": [
                 "array",

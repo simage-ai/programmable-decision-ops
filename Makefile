@@ -2,7 +2,7 @@ SCHEMA := schema/pdo.yaml
 RUN := uv run
 PROPOSAL_DIR ?= ../papers-and-proposals/src/army-nv012
 
-.PHONY: install lint gen-project test bench proposal-values all
+.PHONY: install lint gen-project test bench proposal-values sensitivity-figures all
 
 install:
 	uv sync --all-extras
@@ -30,5 +30,11 @@ bench:
 # Proposal numbers: results/proposal/pdo_values.tsv, also copied into the proposal version directory.
 proposal-values: bench
 	$(RUN) python -m scripts.proposal_values --proposal-dir $(PROPOSAL_DIR)
+
+# Sensitivity figures for the proposal (seeded, so reproducible on one machine).
+sensitivity-figures:
+	$(RUN) pdo sensitivity examples/fires_sensor --samples 256 --figures results/figures/fires > /dev/null
+	$(RUN) pdo sensitivity examples/fires_sensor -p asm:threat-rcs-factor.value --figures results/figures/fires > /dev/null
+	$(RUN) pdo sensitivity examples/vehicle -p obs:B.cost.value --figures results/figures/vehicle > /dev/null
 
 all: lint test

@@ -150,6 +150,7 @@ def values(result: SuiteResult, root: Path) -> list[tuple[str, str, str, str]]:
         out.append((f"PDO_BENCH_OUTCOME_{outcome.upper()}", str(n), "cases",
                     f"Benchmark cases in outcome class {outcome}"))
     out += example_values(result)
+    out += sensitivity_values(root)
     out += [("PDO_SCHEMA_CLASSES", str(schema_classes(root / "schema" / "pdo.yaml")), "classes",
              "Classes in the LinkML decision schema (schema/pdo.yaml and its imports)"),
             ("PDO_EXAMPLE_YAML_LINES", str(suite_yaml_lines(suite.program_dir)), "lines",
@@ -192,6 +193,52 @@ def example_values(result: SuiteResult) -> list[tuple[str, str, str, str]]:
                 ("PDO_PROGRAM_SAVINGS_PCT", pct(cutoff), "%",
                  "Computed-node evaluations avoided by cutoff refresh across the program's episodes")]
     return out
+
+
+def sensitivity_values(root: Path) -> list[tuple[str, str, str, str]]:
+    """pdo.sensitivity on the Fires example (seeded, so deterministic) and the vehicle tornado."""
+    from pdo.episodes import Program
+    from pdo.sensitivity import analyze
+
+    fires = Program.load(root / "examples" / "fires_sensor")
+    state = fires.materialize(fires.baseline_episode)
+    full = analyze(state, fires.base_dir, samples=256)
+    voi, glob, torn = full["value_of_information"], full["global"], full["tornado"]
+    top = voi["parameters"][0]
+    margin_index = next(r["margin"] for r in glob["indices"] if r["parameter"] == top["parameter"])
+    rcs = analyze(state, fires.base_dir, "asm:threat-rcs-factor.value", samples=200)["response"]["shape"]
+    shape = rcs["alt:new-array"]
+    vehicle = Program.load(root / "examples" / "vehicle")
+    vtorn = analyze(vehicle.materialize(vehicle.baseline_episode), vehicle.base_dir)["tornado"]
+    where = "examples/fires_sensor, pdo sensitivity"
+    return [
+        ("PDO_SENS_FIRES_INPUTS", str(len(glob["indices"])), "inputs",
+         f"Uncertain inputs analysed jointly in the Fires example ({where})"),
+        ("PDO_SENS_FIRES_SAMPLES", str(glob["samples"]), "samples",
+         f"Samples per Saltelli matrix ({glob['evaluations']} kernel probes; {where})"),
+        ("PDO_SENS_FIRES_EVPI", f"{voi['evpi']:.4f}", "utility",
+         f"Expected value of perfect information about every uncertain input ({where})"),
+        ("PDO_SENS_FIRES_TOP_INPUT", top["parameter"], "input",
+         f"Input whose uncertainty is most valuable to resolve (highest EVPPI; {where})"),
+        ("PDO_SENS_FIRES_TOP_EVIDENCE", top["evidence"] or "", "evidence",
+         f"Evidence item that would resolve the top input ({where})"),
+        ("PDO_SENS_FIRES_TOP_EVPPI", f"{top['evppi']:.4f}", "utility",
+         f"EVPPI of the top input ({where})"),
+        ("PDO_SENS_FIRES_TOP_EVPPI_SHARE_PCT", f"{100 * top['evppi'] / voi['evpi']:.0f}", "%",
+         f"Top input's EVPPI as a share of EVPI ({where})"),
+        ("PDO_SENS_FIRES_TOP_TOTAL_INDEX", f"{margin_index['total']:.2f}", "fraction",
+         f"Sobol total index of the top input for the decision margin ({where})"),
+        ("PDO_SENS_FIRES_SIGNIFICANT_INPUTS", str(len(voi["collect_next"])), "inputs",
+         f"Inputs whose EVPPI exceeds the shuffled-binning noise floor ({where})"),
+        ("PDO_SENS_TORNADO_EXECUTED_PCT", f"{100 * torn['cost']['executed_fraction']:.1f}", "%",
+         f"Share of computed nodes each one-at-a-time probe re-ran, against a full run ({where})"),
+        ("PDO_SENS_RCS_ELASTICITY", f"{shape['elasticity']:.3f}", "1",
+         "Elasticity of the new array's utility to the threat RCS factor (radar equation, range ~ RCS^0.25)"),
+        ("PDO_SENS_RCS_NONLINEAR_PCT", f"{100 * shape['relative_deviation']:.0f}", "%",
+         "Largest departure of the new array's utility from linear over the RCS range, as a share of its rise"),
+        ("PDO_SENS_VEHICLE_TOP_INPUT", vtorn["rows"][0]["parameter"], "input",
+         "Input with the largest swing of the vehicle decision margin (tornado, one at a time)"),
+    ]
 
 
 def table(result: SuiteResult, root: Path) -> str:

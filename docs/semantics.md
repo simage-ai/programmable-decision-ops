@@ -238,3 +238,58 @@ Each draw is the point state with the drawn values assigned, evaluated by the sa
 
 The same seed reproduces the same result. The point-value decision is reported alongside for
 contrast.
+
+## Sensitivity analysis
+
+`pdo sensitivity` describes how the decision responds to its inputs, beyond the single value where it
+flips.
+
+**Inputs** are written `<object id>.<slot>`:
+
+- an observation's or assumption's `value`;
+- a requirement's `threshold_value`;
+- a criterion's `anchor_worst` or `anchor_best`;
+- an evaluator parameter, as `<spec id>.<arg>`.
+
+An input's **range** is the first of these that applies:
+
+1. the 5th to 95th percentile of its declared distribution;
+2. its plausible range;
+3. its value ± `span` (default 10%).
+
+**Value of a choice.** Each alternative in each draw gets a value: its utility when feasible, and
+`infeasible_value` (default 0, the worst score on every scale) when a mandatory check fails. An unknown
+value is left out and counted. The **decision margin** is the baseline recommendation's value minus the
+best other alternative's value.
+
+- **Response curve.** One input is swept over its range with everything else fixed. It reports utility
+  and feasibility per alternative, the points where the recommendation changes (found by bisection), the
+  slope and elasticity at the input's point value, and how far each utility curve departs from a
+  straight line (kinks from clipping, curvature from nonlinear evaluators). A change point is where the
+  recommendation leaves its set; with a tie tolerance τ that is τ/slope before the exact crossing.
+- **Distribution.** One input is drawn from its distribution (or uniformly over its range), with
+  everything else fixed. It reports each alternative's utility mean, sd and 5th/50th/95th percentiles,
+  P(feasible), P(win) (ties split evenly), and expected regret (the best value minus its own), plus
+  P(the recommendation differs from the baseline). Draws use the same per-object streams as
+  `pdo uncertainty`.
+- **Tornado.** Each input is set to the low and the high end of its range, one at a time. Inputs are
+  ranked by the largest change in the decision margin, and each is flagged if the recommendation changes
+  within its range.
+- **Global indices.** All inputs that declare distributions are drawn jointly in a Saltelli design:
+  matrices A and B, plus A with column i taken from B, for N(k + 2) probes.
+  - First-order index: the Saltelli (2010) estimator on centered outputs. It is exactly 0 for an input
+    with no effect.
+  - Total index: Jansen (1999).
+  - Spearman rank correlations, from the same sample.
+  - Indices are computed for each alternative's value and for the decision margin. They are estimates:
+    small negative values are sampling noise, and more samples narrow them.
+- **Value of information.** Computed for the expected-value choice under the infeasible-value penalty,
+  not under a chance-constrained rule.
+  - EVPI = E[max_a V(a)] − max_a E[V(a)].
+  - EVPPI per input is estimated by binning the joint sample on that input (√N quantile bins). A noise
+    floor (the largest EVPPI over shuffled orderings) separates signal from binning noise.
+  - Inputs above the floor name the evidence that would resolve them: what to collect next.
+
+Every probe is the point graph with the varied source nodes rebuilt, run in cutoff mode, so it equals
+compiling the assigned state but re-runs only what the varied inputs reach. Results report the probes
+and the share of computed nodes each one re-ran.

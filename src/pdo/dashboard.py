@@ -117,6 +117,14 @@ def _node_state(graph: Graph, result: RunResult, nid: str, units: dict[str, str]
     out = {"s": status, "v": text, "e": res.exec_status}
     if detail:
         out["d"] = detail
+    if node.kind in ("measure", "source"):
+        from pdo.provenance import sources
+
+        located = [{k: row.get(k) for k in ("observation", "document", "section", "section_path", "page", "quote",
+                                            "current")}
+                   for row in sources(graph.state, node.inputs if node.kind == "measure" else [nid]) if "quote" in row]
+        if located:
+            out["src"] = located  # the report passages the value was taken from
     return out
 
 

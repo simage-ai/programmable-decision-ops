@@ -40,6 +40,7 @@ PREDICATE_INPUTS = {
     "coverage": ("decision", "utilities"),
     "evidence_current": ("decision", "clock", "observations", "evidence_items"),
     "evidence_traceable": ("decision", "observations", "evidence_items"),
+    "locators_current": ("observations", "evidence_items"),
     "assumptions_validated": ("assumptions",),
     "risks_treated": ("risks", "policy"),
     "review_status": ("review",),
@@ -292,6 +293,15 @@ def compile_graph(state: m.DecisionState, base_dir: Path | str = ".") -> Graph:
                     local["covered"] = covered
             else:
                 inputs += selectors[selector]
+        if c.predicate == "locators_current":
+            # Locators and document digests are unhashable (they locate values without being part of them),
+            # so they reach this condition through its local data: re-anchoring changes this node alone.
+            local["documents"] = {e.id: e.document_digest for e in items(state.evidence_items) if e.document_digest}
+            local["locators"] = {o.id: {"evidence": o.evidence, "document_digest": o.locator.document_digest,
+                                        "section": o.locator.section, "section_path": o.locator.section_path}
+                                 for o in items(state.observations) if o.locator is not None}
+            local["unlocated"] = sorted(o.id for o in items(state.observations)
+                                        if o.locator is None and o.evidence in local["documents"])
         add(_node(f"cond/{c.id}", "condition", c.predicate, inputs, local, subject=c.id))
 
     add(_node("readiness", "readiness", "aggregate", [f"cond/{c.id}" for c in conditions]))

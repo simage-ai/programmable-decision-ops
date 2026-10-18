@@ -91,6 +91,7 @@ accepted, valued observations of the *recommended* alternatives (all of their me
 | review_status | the review is `pass` and not stale | the review is `fail`, stale or not | the review is pending, or it passed and is stale |
 | omitted_options | at least `min_alternatives` (default 2) alternatives, and at least one not incumbent | otherwise | — |
 | distinct_measures | no two criteria score the same measure | two do | — |
+| locators_current | every observation (not rejected) whose evidence is an indexed document is located in that document's current version | — | some cite an earlier version (their section changed in a revision), or have no locator |
 
 Supporting evidence is limited to the recommended alternatives: the evidence behind a runner-up's
 utility, or behind the check that excludes an infeasible alternative, is not tested. That is a
@@ -167,6 +168,75 @@ make a decision actionable.
 A plain state (a file or directory without `program.yaml`) is treated as a baseline: its reviews and
 approvals are stamped against it when it is run. It has no history, so nothing in it can be stale;
 staleness and approval matching across changes need a program.
+
+## Document provenance
+
+An evidence item may name an indexed document (`document_path`, a .docx, .pdf, .md or .txt file in the
+program directory) and record its version (`document_digest`). A document is indexed into sections: the
+body text between one heading and the next, with a heading path and an id. The id is the number printed in
+the heading ("3.2 Vehicle B" has id "3.2") when the headings carry numbers (an unnumbered or repeated one
+gets "s" and its outline position), else the outline position. Word headings come from heading styles,
+PDF headings from the outline (bookmarks; without one, numbered heading lines whose numbers form a
+continuing chain), Markdown headings from `#` or underlined titles. Text is normalized before digests are
+taken: superscript digits kept as exponents (10⁵ is "10^5"), NFKC, typographic quotes and dashes folded,
+whitespace collapsed, Markdown inline markup removed, PDF line-break hyphenation joined (a hyphen that
+belongs to the text, as in "MIL-STD-810" or "2,000-mile", is kept), and PDF page furniture dropped: the
+printed title, and a first or last line repeated on most pages (both of two) that is identical on each or
+differs only in a standalone number tracking the page ("Page 3 of 9"), unless it prints an outline
+heading.
+
+- A **section digest** covers the section's body words, not its heading or paragraph breaks, and ignores a
+  hyphen between two letters when the second is lowercase. So renaming, renumbering or moving a section,
+  a different paragraph split by a PDF parser, or a word hyphenated across a PDF line leaves it unchanged,
+  while any other edit to its words changes it (one exception: a hyphenated and a closed spelling of the
+  same letters, such as "re-sign" and "resign", count as the same). A report with headings, paragraphs and simple tables gives
+  the same section digests as Word, PDF and Markdown (the example's reports do); complex layouts (merged
+  table headers, footnotes, multi-column pages) may not.
+- The **document digest** covers every heading path and section digest, so any edit is a new version.
+
+An observation taken from such a document carries a **locator**: the file and document digest it was
+made against, the section id, heading path and digest, the page (PDF) and paragraph, and the exact quote
+with up to 32 characters either side and its character span in the section text (a W3C Web Annotation
+TextQuoteSelector and TextPositionSelector). The tools compute locators; `pdo docs locate` and `pdo docs
+extract` refuse a quote that is not in the document, that occurs more than once in the searched scope, or
+that cuts a word or number ("0.9" is not a quote of "0.98", nor "10" of "10^5" or "1.2" of "1.2×10^-3").
+`pdo docs extract` also refuses a quote that does not state the observation's value, and locating a value
+whose evidence is already indexed but whose locator is missing or on an earlier version, unless a person
+accepts it: `accept`, with a role that exists and owns the value (the observation's owner, else its
+evidence's owner), recorded in the observation's applicability rationale. Values it adds or changes
+without acceptance are provisional. Other change sets (`pdo_apply_change`) may not set locators or
+document digests; only the docs tools compute them.
+
+**Locators are unhashable.** A locator locates a value without being part of it (as DAPPER treats
+representation locators), so it is not in the observation's content digest, the state digest or any
+review's covered digest, and changing it re-runs no measure, check, value, utility or decision. The
+`locators_current` condition reads the locators and document digests through its own local data,
+so a locator change re-evaluates that condition, readiness and actionable, and nothing else.
+`document_path` and `document_digest` on evidence are unhashable for the same reason; whole-file
+identity stays with the hashable `content_sha256`, which should be left empty for a document whose
+values are located, so that a revision is judged section by section.
+
+**Revisions.** `pdo docs revise` absorbs a new version of a document, placed beside the old file (a file
+copied over the old one is refused), as a change set. It sets `document_path` and `document_digest` on
+every evidence item naming the old file. A locator moves to the new version only when its section's text
+is unchanged there: a section still at its heading path is the same section (unchanged, or changed, and
+then it is never matched to another section that now holds its old text); a section whose heading path is
+gone moved to the one section with its digest that does not continue another old section (none: removed;
+several: ambiguous). Every other locator stays on the old version, and `locators_current` is unknown
+until a person reviews that value and re-anchors it (`pdo docs extract` with the observation's id,
+accepted with their role): readiness is pending and the pending action `review_locator` goes to the
+observation's owner, else its evidence's owner. A value from the document without a locator is flagged
+the same way. A revision changes no value, so the state digest is unchanged and every approval still
+matches; when the person corrects a value, the value change is material as usual.
+
+`pdo docs verify` (also run by `pdo validate`; `pdo package` refuses to package when a readable document
+contradicts a locator) checks the files, and fails when it could not read them. Errors: a
+missing or unreadable document; an evidence item whose file is not the version it indexed (a file replaced
+in place); a current locator whose file is another version, whose quote is not at its recorded span, or
+whose recorded heading path, page, paragraph, prefix or suffix the document does not give. Warnings: a
+current quote that does not state the observation's value; a value from an indexed document without a
+locator; problems with locators on earlier versions, which are checked against their own (earlier) files;
+and Word or PDF files when the docs extra is not installed.
 
 ## Benchmark outcome classes
 

@@ -16,7 +16,7 @@ VERSIONS = {
     "value": 1, "utility": 1, "feasible": 1, "decide": 2, "aggregate": 1, "state_digest": 1, "actionable": 1,
     "recommendation_exists": 2, "unique_recommendation": 1, "coverage": 1, "evidence_current": 1,
     "evidence_traceable": 1, "assumptions_validated": 1, "risks_treated": 1, "review_status": 2,
-    "omitted_options": 1, "distinct_measures": 1,
+    "omitted_options": 1, "distinct_measures": 1, "locators_current": 1,
 }
 DEFAULT_TOLERANCE = 1.0e-9
 DEFAULT_RISK_THRESHOLD = 12
@@ -260,6 +260,34 @@ def evidence_traceable(node, inputs):
     return {"status": "pass"}
 
 
+def locators_current(node, inputs):
+    """Every value located in an indexed document is located in that document's current version."""
+    documents, stale = node.local["documents"], []
+
+    def applies(oid: str) -> bool:
+        return inputs.get(oid, {}).get("applicability", "accepted") != "rejected"
+
+    for oid, loc in sorted(node.local["locators"].items()):
+        current = documents.get(loc["evidence"])
+        if applies(oid) and current is not None and current != loc["document_digest"]:
+            stale.append((oid, loc))
+    unlocated = [oid for oid in node.local.get("unlocated", []) if applies(oid)]
+    if not stale and not unlocated:
+        return {"status": "pass"}
+    reasons = []
+    if stale:
+        reasons.append("located in an earlier version of their document: " + ", ".join(
+            f"{oid} (section {loc['section']}{' ' + loc['section_path'] if loc.get('section_path') else ''})"
+            for oid, loc in stale))
+    if unlocated:
+        reasons.append("taken from an indexed document without a locator: " + ", ".join(unlocated))
+    actions = [_action("review_locator", oid, f"section {loc['section']} of {loc['evidence']}'s document changed in "
+                       "its current version; confirm or revise the value and re-anchor it") for oid, loc in stale]
+    actions += [_action("review_locator", oid, "its evidence is an indexed document, but the value is not located "
+                        "in it; locate it with its passage, or cite other evidence") for oid in unlocated]
+    return {"status": "unknown", "reason": "; ".join(reasons), "actions": actions}
+
+
 def assumptions_validated(node, inputs):
     critical = {k: v for k, v in inputs.items() if v.get("class") == "Assumption" and v.get("critical")}
     invalid = sorted(k for k, v in critical.items() if v.get("validation_status") == "invalid")
@@ -402,6 +430,7 @@ BUILTINS = {
     "state_digest": state_digest_fn, "actionable": actionable,
     "recommendation_exists": recommendation_exists, "unique_recommendation": unique_recommendation,
     "coverage": coverage, "evidence_current": evidence_current, "evidence_traceable": evidence_traceable,
+    "locators_current": locators_current,
     "assumptions_validated": assumptions_validated, "risks_treated": risks_treated, "review_status": review_status,
     "omitted_options": omitted_options, "distinct_measures": distinct_measures,
 }

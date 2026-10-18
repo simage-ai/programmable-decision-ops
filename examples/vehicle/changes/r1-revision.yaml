@@ -1,0 +1,64 @@
+# Revision 2 of the phase 1 reliability report arrives (docs/reliability-test-report-rev2.docx): it adds
+# test temperatures to section 2 and notes, in section 3.3, a disputed driveline failure on C. Section 3.1
+# (A) and 3.2 (B) are unchanged, so their locators move to revision 2; C's locator stays on revision 1 and
+# rc:locators-current keeps readiness pending until the test engineer reviews it. No value changed, so the
+# e08 approval of B still matches. Produced by:
+#   pdo docs revise examples/vehicle docs/reliability-test-report.docx docs/reliability-test-report-rev2.docx
+#     --parent ep:e08 --id ep:r1 --as-of 2027-10-01 --role role:test-engineer --write
+# Written by pdo docs revise: locators move only where the cited section's text is unchanged.
+# Episodes are never rewritten: to change this, write a new change set.
+id: ep:r1
+parent: ep:e08
+as_of: 2027-10-01
+trigger: evidence
+change_description: 'New version of docs/reliability-test-report.docx (docs/reliability-test-report-rev2.docx).
+  Sections changed, added, moved or removed: 2 Test conditions; 3 Results > 3.3 Vehicle C. 2 locators moved to the
+  new version because their section text is unchanged; obs:C.reliability needs review.'
+author_role: role:test-engineer
+assign:
+- target: ev:reliability-A
+  slot: document_path
+  new_value: docs/reliability-test-report-rev2.docx
+- target: ev:reliability-A
+  slot: document_digest
+  new_value: VCelCrH3Qc-Ubdm9N5KImJ2K1HA-mx6O
+- target: ev:reliability-B
+  slot: document_path
+  new_value: docs/reliability-test-report-rev2.docx
+- target: ev:reliability-B
+  slot: document_digest
+  new_value: VCelCrH3Qc-Ubdm9N5KImJ2K1HA-mx6O
+- target: ev:reliability-C
+  slot: document_path
+  new_value: docs/reliability-test-report-rev2.docx
+- target: ev:reliability-C
+  slot: document_digest
+  new_value: VCelCrH3Qc-Ubdm9N5KImJ2K1HA-mx6O
+- target: obs:A.reliability
+  slot: locator
+  new_value:
+    document_path: docs/reliability-test-report-rev2.docx
+    document_digest: VCelCrH3Qc-Ubdm9N5KImJ2K1HA-mx6O
+    section: '3.1'
+    section_path: 3 Results > 3.1 Vehicle A
+    section_digest: ztsgmIpZZBfEzEC0OB9Ow3sGi2AeziFP
+    paragraph: 1
+    quote: Its demonstrated mission reliability is 0.97.
+    quote_prefix: 'res, all in the cooling system. '
+    quote_suffix: ''
+    char_start: 117
+    char_end: 162
+- target: obs:B.reliability
+  slot: locator
+  new_value:
+    document_path: docs/reliability-test-report-rev2.docx
+    document_digest: VCelCrH3Qc-Ubdm9N5KImJ2K1HA-mx6O
+    section: '3.2'
+    section_path: 3 Results > 3.2 Vehicle B
+    section_digest: nIZ_tfAZ34x4RdhI6npzfWPhdOyqzBkc
+    paragraph: 1
+    quote: Its demonstrated mission reliability is 0.98.
+    quote_prefix: 'n the hybrid power electronics. '
+    quote_suffix: ''
+    char_start: 118
+    char_end: 163

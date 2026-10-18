@@ -26,6 +26,7 @@ from pdo.builtins import VERSIONS
 from pdo.canonical import digest
 from pdo.graph import DECISION_KINDS, covered_digest, resolve_selectors
 from pdo.load import index, items
+from pdo.provenance import cite, sources
 from pdo.run import RunResult
 
 _HERE = Path(__file__).resolve()
@@ -140,14 +141,14 @@ class _Claims:
         self.claims: dict[str, m.Claim] = {}
 
     def add(self, statement: str, about: list[str], status: str, basis: str, produced_by: str,
-            supported_by: list[str] | None = None) -> str:
+            supported_by: list[str] | None = None, source_locator: str | None = None) -> str:
         about = sorted(set(about))
         pid = "prop:" + digest(statement, about)
         self.propositions.setdefault(pid, m.Proposition(id=pid, statement=statement, about=about))
         supported = sorted(set(supported_by or []))
         cid = "claim:" + digest(pid, status, basis, produced_by, supported)
         self.claims[cid] = m.Claim(id=cid, proposition=pid, status=status, basis=basis, produced_by=produced_by,
-                                   supported_by=supported or None)
+                                   supported_by=supported or None, source_locator=source_locator)
         return cid
 
 
@@ -170,12 +171,14 @@ def _claims(result: RunResult) -> tuple[list[m.Proposition], list[m.Claim]]:
         status = "unknown" if stale and rv.review_status != "fail" else REVIEW_STATUS[rv.review_status]
         out.add(f"{rv.id} passes review of {', '.join(items(rv.covers))}", [rv.id, *covered],
                 status, "human", rv.id)
+    located = {row["observation"]: cite(row) for row in sources(state, [o.id for o in items(state.observations)])
+               if "quote" in row}
     for o in sorted(items(state.observations), key=lambda o: o.id):
         applicability = o.applicability or "accepted"
         status = {"accepted": "pass", "rejected": "fail", "provisional": "unknown"}[applicability]
         basis = "semantic" if applicability == "provisional" else "human"
         out.add(f"{o.evidence} applies to {o.alternative} for {o.measure}",
-                [o.id, o.alternative, o.measure, o.evidence], status, basis, o.id, [o.evidence])
+                [o.id, o.alternative, o.measure, o.evidence], status, basis, o.id, [o.evidence], located.get(o.id))
     return list(out.propositions.values()), list(out.claims.values())
 
 
@@ -473,6 +476,22 @@ def _scenarios(r: m.DecisionEpisodeRecord) -> list[str]:
     return lines
 
 
+def _value_sources(r: m.DecisionEpisodeRecord) -> list[str]:
+    """Where each observed value comes from: the document passage when located, else the evidence."""
+    rows = [c for c in r.claims or [] if c.basis in ("human", "semantic") and c.supported_by
+            and c.produced_by.startswith("obs:")]
+    if not any(c.source_locator for c in rows):
+        return []
+    status = {"pass": "accepted", "fail": "rejected", "unknown": "provisional"}
+    lines = ["## Where the values come from", "", "Each value located in an indexed report cites its section and "
+             "the exact passage; `pdo docs verify` checks every passage against its document.", "",
+             "| observation | applicability | source |", "|---|---|---|"]
+    for c in sorted(rows, key=lambda c: c.produced_by):
+        source = (c.source_locator or f"{', '.join(c.supported_by)} (not located in a document)").replace("|", "\\|")
+        lines.append(f"| `{c.produced_by}` | {status.get(c.status, c.status)} | {source} |")
+    return lines + [""]
+
+
 def _provenance(r: m.DecisionEpisodeRecord) -> list[str]:
     lines = ["## Provenance", "", "Every computed node, in evaluation order. The signature identifies what was "
              "computed from what; equal value digests on replay show the result is reproduced.", "",
@@ -505,7 +524,7 @@ def render_markdown(record: m.DecisionEpisodeRecord) -> str:
     if record.question:
         lines += [f"> {record.question.strip()}", ""]
     lines += _summary(record, outcomes) + _why(record, outcomes) + _feasibility(outcomes) + _flips(record)
-    lines += _readiness_section(record) + _scenarios(record) + _sensitivity_section(record)
+    lines += _readiness_section(record) + _value_sources(record) + _scenarios(record) + _sensitivity_section(record)
     lines += ["## Decision graph", "", "```mermaid", mermaid(record).rstrip(), "```", ""]
     lines += _provenance(record)
     claims = Counter(c.basis for c in record.claims or [])

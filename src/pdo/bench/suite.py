@@ -339,15 +339,39 @@ def disagreements(result: SuiteResult) -> list[dict]:
 
 
 def suite_yaml_lines(program_dir: Path) -> int:
-    """Non-blank, non-comment YAML lines authored for a program: program.yaml, the baseline and change sets."""
+    """Non-blank, non-comment YAML lines authored for a program: program.yaml, the baseline and change sets.
+
+    What tools write is not authored: change sets written by a pdo tool (their header says so) and source
+    locators (computed by pdo docs, in flow or block style) are left out."""
     files = [program_dir / "program.yaml"]
     meta = yaml.safe_load((program_dir / "program.yaml").read_text(encoding="utf-8")) or {}
     for sub in (meta.get("baseline_dir") or "baseline", meta.get("changes_dir") or "changes"):
         files += sorted((program_dir / sub).glob("*.yaml"))
     lines = 0
     for file in files:
-        for line in file.read_text(encoding="utf-8").splitlines():
+        text = file.read_text(encoding="utf-8")
+        if "# Written by pdo" in text:
+            continue
+        depth, block_indent = 0, None  # inside a flow locator (brace depth) or a block locator (its indent)
+        for line in text.splitlines():
             stripped = line.strip()
+            indent = len(line) - len(line.lstrip())
+            if block_indent is not None:
+                if stripped and indent > block_indent:
+                    continue
+                block_indent = None
+            if depth:
+                depth += line.count("{") - line.count("}")
+                depth = max(depth, 0) if depth > 0 else 0
+                continue
+            if stripped.startswith("locator:"):
+                rest = stripped[len("locator:"):].strip()
+                if rest.startswith("{"):
+                    depth = rest.count("{") - rest.count("}")
+                    depth = depth - 1 if depth > 0 and rest.endswith("}}") else depth  # closes its observation too
+                else:
+                    block_indent = indent
+                continue
             if stripped and not stripped.startswith("#"):
                 lines += 1
     return lines

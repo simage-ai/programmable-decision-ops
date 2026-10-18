@@ -23,6 +23,10 @@ mcp = [
 figures = [
     "matplotlib>=3.8",
 ]
+docs = [
+    "python-docx>=1.1",  # Word reports: sections from heading styles, tables as rows
+    "pypdf>=5",          # PDF reports: sections from the outline, else numbered headings
+]
 
 [dependency-groups]
 dev = [

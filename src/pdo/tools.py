@@ -79,6 +79,8 @@ SYSML_HINT = ("Pass SysML v2 textual files (.sysml) or directories holding them,
 SENSITIVITY_HINT = ("Inputs are '<object id>.<slot>': observation or assumption values, requirement "
                     "thresholds, criterion anchors or evaluator parameters. Run without param to see them "
                     "all (the tornado lists every one).")
+DOCS_HINT = ("Documents are .docx, .pdf, .md or .txt files (Word and PDF need the docs extra: uv sync --extra docs). "
+             "Quote values exactly as pdo_docs_read prints the section text; never paraphrase.")
 UNCERTAINTY_HINT = ("Uncertain inputs are observations or assumptions with an `uncertainty` distribution; samples "
                     "must be at least 1 and the rule's chance_alpha in [0, 1).")
 
@@ -155,6 +157,8 @@ def _message(exc: BaseException) -> str:
 
 
 def _hint(exc: BaseException, default: str) -> str:
+    if getattr(exc, "hint", None):  # QuoteError, ProvenanceError
+        return exc.hint
     if isinstance(exc, ChangeError):
         return CHANGE_HINT
     if isinstance(exc, sysml.SysMLError):
@@ -281,6 +285,8 @@ def _actions(result: RunResult, role: str | None = None) -> list[dict]:
         if kind is not None:
             row["resolve_with"] = {"tool": "pdo_record_human_action", "kind": kind, "target": action.target,
                                    "role": action.role}
+        elif action.kind == "review_locator":  # a person confirms the value in the new version, then re-anchors it
+            row["resolve_with"] = {"tool": "pdo_docs_extract", "target": action.target, "role": action.role}
         else:
             row["resolve_with"] = {"tool": "pdo_apply_change"}
         out.append(row)
@@ -442,6 +448,32 @@ def _episode_errors(program_dir: Path) -> tuple[list[str], int, list[str]]:
     return errors, len(episodes) - len(skipped), skipped
 
 
+def _document_problems(path: Path) -> tuple[list[str], list[str]]:
+    """Locator problems in every episode (or the state), each reported once with the episodes it appears in.
+    A missing docs extra is a warning: the decision is still valid, its locators are just not checked."""
+    from pdo.provenance import verify
+
+    states = _states(path, None)
+    if not any(e.document_path for _, state, _ in states for e in items(state.evidence_items)):
+        return [], []
+    seen: dict[tuple[str, str, str], list[str]] = {}
+    for ep, state, base in states:
+        for x in verify(state, base):
+            seen.setdefault((x["severity"], x["where"], x["message"]), []).append(ep or "")
+    errors, warnings = [], []
+    if any("--extra docs" in message for _, _, message in seen):  # one warning, not one per object
+        warnings.append("warning: documents: Word and PDF documents were not checked: install the docs extra "
+                        "(uv sync --extra docs)")
+    for (severity, where, message), eps in seen.items():
+        if "--extra docs" in message:
+            continue
+        eps = [e for e in eps if e]
+        text = f"{severity}: {where}: {message}" + (f" (in {eps[0]}" + (f" and {len(eps) - 1} more)" if len(eps) > 1
+                                                                       else ")") if eps else "")
+        (errors if severity == "error" else warnings).append(text)
+    return errors, warnings
+
+
 @tool(LOAD_HINT)
 def validate(path: str | Path) -> dict:
     """Check a decision: schema, references, units, weights, producers, and that it compiles.
@@ -468,6 +500,10 @@ def validate(path: str | Path) -> dict:
         episode_errors, checked, unchecked = _episode_errors(p)
         errors += episode_errors
         data.update(episodes=checked, unchecked_episodes=unchecked)
+    if not errors:
+        doc_errors, doc_warnings = _document_problems(p)
+        errors += doc_errors
+        warnings += doc_warnings
     data.update(valid=not errors, errors=errors, warnings=warnings)
     if errors:
         data["hint"] = LOAD_HINT
@@ -719,11 +755,28 @@ def _write(program: Program, change: m.ChangeSet, name: str, header: str) -> Pat
     return file
 
 
+def _no_typed_provenance(data: dict) -> None:
+    """Locators and document digests come from the pdo docs tools, which compute them from the documents."""
+    typed = [f"assign {a.get('target')}.{a.get('slot')}" for a in data.get("assign") or []
+             if isinstance(a, dict) and a.get("slot") in ("locator", "document_digest")]
+    add = data.get("add") or {}
+    typed += [f"add {o.get('id')} with a locator" for o in add.get("observations") or [] if o.get("locator")]
+    typed += [f"add {e.get('id')} with a document_digest" for e in add.get("evidence_items") or []
+              if e.get("document_digest")]
+    if typed:
+        raise ToolError("locators and document digests are computed by the pdo docs tools, never typed: "
+                        + ", ".join(typed), "Use pdo docs extract (values with quotes) or pdo docs revise (a new "
+                        "version of a document).")
+
+
 def _new_episode(program: Program, data: dict) -> tuple[dict, str]:
     """Default the parent to the newest episode and the id to the next in the program's numbering."""
     parent = _episode(program, data.get("parent") or program.newest())
     data["parent"] = parent
     data.setdefault("id", program.next_episode_id(parent))
+    roles = sorted(r.id for r in items(program.materialize(parent).roles))
+    if data.get("author_role") and data["author_role"] not in roles:
+        raise ToolError(f"author_role {data['author_role']} is not a role in {parent}", f"Roles: {', '.join(roles)}.")
     if data["id"] == program.baseline_episode or data["id"] in program.changes:
         raise ToolError(f"episode {data['id']} already exists",
                         f"Episodes are never rewritten. Omit id to take the next one "
@@ -741,6 +794,7 @@ def apply_change(path: str | Path, change: dict | str, write: bool = False) -> d
     """
     program = _program(path)
     data, parent = _new_episode(program, _change_data(change, program))
+    _no_typed_provenance(data)
     model = _change_model(data)
     preview = _preview(program, model, parent)
     file = None
@@ -847,7 +901,15 @@ def package(path: str | Path, episode: str | None = None, out: str | Path | None
     outcomes = scenario_sweep(ev.result.graph.state, base=ev.result)
     record = episode_record(ev.result, episode=ev.episode, parent=ev.parent, source=str(ev.path.resolve()),
                             flips=flips, scenarios=outcomes, scans=scans)
+    from pdo.provenance import contradicted, verify
+
+    problems = verify(ev.result.graph.state, ev.result.graph.base_dir)
+    broken = contradicted(problems)
+    if broken:
+        raise ToolError("locators do not match their documents: " + "; ".join(broken),
+                        "Nothing was packaged. Fix them first (pdo docs verify lists them).")
     data = {**ev.where(), "recommended": record.recommended, "robust": record.robust,
+            "document_problems": problems,
             "readiness": record.readiness.readiness_state if record.readiness else None,
             "actionable": record.actionable, "flips": len(record.flips or []), "runs": len(record.runs or []),
             "claims": len(record.claims or [])}
@@ -953,6 +1015,162 @@ def dashboard(path: str | Path, out: str | Path, flips: bool = True, sensitivity
     return _ok(path=str(p), page=paths["page"], data=paths["data"], episodes=len(data["episodes"]),
                nodes=len(data["layout"]["nodes"]), newest={"episode": last["id"], "recommended": last["recommended"],
                                                           "readiness": last["readiness"]})
+
+
+# --- documents ------------------------------------------------------------------------------------
+
+def _document(path: str | Path) -> Path:
+    p = Path(path).expanduser()
+    if not p.is_file():
+        raise ToolError(f"no document at {p}", DOCS_HINT)
+    return p
+
+
+@tool(DOCS_HINT)
+def docs_index(path: str | Path) -> dict:
+    """A document's sections: id, heading path, pages, size and content digest, and the document digest."""
+    from pdo.provenance import load_index
+
+    return _ok(**{**load_index(_document(path)).summary(), "path": str(path)})
+
+
+@tool(DOCS_HINT)
+def docs_read(path: str | Path, section: str | None = None) -> dict:
+    """The text of one section (by id, heading or heading path), or of every section, as pdo matches quotes
+    against it."""
+    from pdo.provenance import load_index
+
+    ix = load_index(_document(path))
+    chosen = [ix.section(section)] if section else ix.sections
+    return _ok(path=str(path), digest=ix.digest,
+               sections=[{**s.summary(), "text": s.paragraphs} for s in chosen])
+
+
+@tool(DOCS_HINT)
+def docs_locate(path: str | Path, quote: str, section: str | None = None) -> dict:
+    """The locator of a quote: section, page, paragraph, character span and digests. Refused when the quote is
+    not in the document, or occurs more than once (quote more, or name the section)."""
+    from pdo.docs import locate
+    from pdo.provenance import load_index, numbers_in
+
+    loc = locate(load_index(_document(path)), quote, section)
+    return _ok(locator=loc, numbers=numbers_in(loc["quote"]))
+
+
+def _states(path: str | Path, episode: str | None) -> list[tuple[str | None, m.DecisionState, Path]]:
+    p = _path(path)
+    if is_program(p):
+        program = _program(p)
+        episodes = [_episode(program, episode)] if episode else program.episodes()
+        return [(ep, program.materialize(ep), program.base_dir) for ep in episodes]
+    if episode is not None:
+        raise ToolError(f"{p} is not a program directory (no program.yaml), so it has no episodes",
+                        "Omit the episode for a single state, or pass the program directory.")
+    loaded = load_state(p)
+    return [(None, loaded.state, loaded.base_dir)]
+
+
+@tool(DOCS_HINT)
+def docs_verify(path: str | Path, episode: str | None = None) -> dict:
+    """Check every locator against its document: the quote must be in the cited section of the indexed
+    version (errors), and should state the value (warnings). For a program, every episode unless one is given."""
+    from pdo.provenance import verify
+
+    out = []
+    for ep, state, base in _states(path, episode):
+        for problem in verify(state, base):
+            out.append({"episode": ep, **problem} if ep else problem)
+    unchecked = sum(1 for x in out if "--extra docs" in x["message"])  # an explicit verify that checked nothing fails
+    errors = sum(1 for x in out if x["severity"] == "error") + unchecked
+    return _ok(path=str(path), errors=errors, warnings=len(out) - errors, unchecked=unchecked, problems=out)
+
+
+def _proposals(proposals: dict | str) -> dict:
+    if isinstance(proposals, dict):
+        return dict(proposals)
+    text = proposals
+    if isinstance(proposals, str) and "\n" not in proposals and proposals.strip().endswith((".yaml", ".yml")):
+        file = Path(proposals.strip()).expanduser()
+        if not file.is_file():
+            raise ToolError(f"{proposals}: no such proposals file", DOCS_HINT)
+        text = file.read_text(encoding="utf-8")
+    data = yaml.safe_load(text) if isinstance(text, str) else None
+    if not isinstance(data, dict) or not data.get("observations"):
+        raise ToolError("proposals must be a mapping with observations",
+                        "Example: {evidence: ev:reliability-B, observations: [{id: obs:B.reliability, value: 0.98, "
+                        "quote: 'Its demonstrated mission reliability is 0.98.'}]}")
+    return data
+
+
+def _document_change(program: Program, data: dict, role: str | None, parent: str | None, episode_id: str | None,
+                     as_of: str | None) -> tuple[dict, str]:
+    data = {**data, "parent": parent}
+    if episode_id:
+        data["id"] = episode_id
+    if as_of:
+        data["as_of"] = as_of
+    data, parent = _new_episode(program, data)
+    if role:
+        data["author_role"] = role
+    return data, parent
+
+
+@tool(CHANGE_HINT)
+def docs_extract(path: str | Path, proposals: dict | str, write: bool = False, role: str | None = None,
+                 parent: str | None = None, episode_id: str | None = None, as_of: str | None = None) -> dict:
+    """Turn proposed values with quotes into a change set: each quote is located in its evidence's document
+    (a quote not in it is refused), new values are provisional unless proposals say accept: true, and an
+    existing observation id updates that observation's value and locator. For a program, previews the new
+    episode and with write=True adds it; for a plain state, returns the change without writing."""
+    from pdo.provenance import extract
+
+    props = _proposals(proposals)
+    role = role or props.get("author_role")
+    p = _path(path)
+    if not is_program(p):
+        loaded = load_state(p)
+        change, rows = extract(loaded.state, loaded.base_dir, props, role)
+        return _ok(written=False, change=change, rows=rows,
+                   note="A plain state has no episodes: add these objects to its files, or use a program.")
+    program = _program(p)
+    base = _episode(program, parent or program.newest())
+    change, rows = extract(program.materialize(base), program.base_dir, props, role)
+    located = ", ".join(f"{r['observation']} (section {r['section']})" for r in rows)
+    change.setdefault("change_description", props.get("change_description") or
+                      f"Values located in their documents: {located}.")
+    data, base = _document_change(program, change, role, base, episode_id, as_of)
+    model = _change_model(data)
+    preview = _preview(program, model, base)
+    file = None
+    if write:
+        file = _write(program, model, f"{model.id.split(':', 1)[-1]}-extract",
+                      "Written by pdo docs extract: each locator was computed from its document, never typed.\n"
+                      "Episodes are never rewritten: to change this, write a new change set.")
+    return _ok(written=write, file=_relative(file, program.path), rows=rows, change=model, **preview)
+
+
+@tool(CHANGE_HINT)
+def docs_revise(path: str | Path, document: str, new_file: str | Path, write: bool = False, role: str | None = None,
+                parent: str | None = None, episode_id: str | None = None, as_of: str | None = None) -> dict:
+    """Absorb a new version of a document (named by an evidence id or its document_path): every evidence item
+    on it moves to the new file, locators whose section text is unchanged move with it, and locators in
+    changed sections stay on the old version, so locators_current keeps readiness pending until a person
+    re-anchors those values (pdo docs extract with the observation id). Previews; with write=True, writes."""
+    from pdo.provenance import describe_revision, revise
+
+    program = _program(path)
+    base = _episode(program, parent or program.newest())
+    change, report = revise(program.materialize(base), program.base_dir, document, new_file)
+    change["change_description"] = describe_revision(report)
+    data, base = _document_change(program, change, role, base, episode_id, as_of)
+    model = _change_model(data)
+    preview = _preview(program, model, base)
+    file = None
+    if write:
+        file = _write(program, model, f"{model.id.split(':', 1)[-1]}-revision",
+                      "Written by pdo docs revise: locators move only where the cited section's text is unchanged.\n"
+                      "Episodes are never rewritten: to change this, write a new change set.")
+    return _ok(written=write, file=_relative(file, program.path), revision=report, change=model, **preview)
 
 
 # --- examples -------------------------------------------------------------------------------------

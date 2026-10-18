@@ -412,6 +412,7 @@ const DATA = /*__PDO_DATA__*/null;
     sw("", "value", "background:var(--panel)");
     sw("", "re-evaluated this episode", "background:var(--panel);border:1.6px solid var(--accent)");
     sw("", "reused (inputs unchanged)", "background:var(--panel);border:1.2px dashed var(--accent)");
+    lg.append(el("span", {}, "¶ taken from a report section (¶? awaiting review)"));
   }
   function renderGraph(e) {
     const svg = clear($("graph"));
@@ -448,7 +449,8 @@ const DATA = /*__PDO_DATA__*/null;
       g.append(sv("rect", { width: G.node_w, height: G.node_h, rx: 4 }));
       if (n.alternative && alts.includes(n.alternative)) g.append(sv("rect", { width: 3, height: G.node_h - 8, x: 3, y: 4, rx: 1.5, style: `fill:${altColor(n.alternative)};stroke:none` }));
       const glyph = STATUS[st.s] ? STATUS[st.s][0] + " " : "";
-      g.append(sv("text", { class: "lbl", x: 10, y: 13 }, glyph + n.label));
+      const located = (st.src || []).length ? ((st.src || []).every((x) => x.current) ? " ¶" : " ¶?") : "";
+      g.append(sv("text", { class: "lbl", x: 10, y: 13 }, glyph + n.label + located));
       g.append(sv("text", { class: "val", x: 10, y: 25 }, st.v));
       const hover = (on) => {
         for (const p of edgeEls) if (p.dataset.a === id || p.dataset.b === id) p.classList.toggle("hot", on);
@@ -473,9 +475,12 @@ const DATA = /*__PDO_DATA__*/null;
     t.textContent = full.slice(0, lo) + "…";
   }
   const EXEC = { executed: "re-evaluated in this episode", reused: "reused: outside the impact set", cutoff_reused: "reused: its inputs did not change", failed: "evaluator failed" };
+  const cite = (src) => `${src.document || ""} § ${src.section}${src.section_path ? " (" + src.section_path + ")" : ""}`
+    + (src.page ? `, p. ${src.page}` : "");
   function nodeTipRows(id, st) {
     const rows = [{ value: st.v, label: "" }, { value: EXEC[st.e] || st.e, label: "" }];
     if (st.d) rows.push({ value: st.d, label: "" });
+    for (const src of st.src || []) rows.push({ value: cite(src), label: src.current ? "" : "(earlier version; awaiting review)" });
     return rows;
   }
   const clip = (s, n) => (s && s.length > n ? s.slice(0, n - 1) + "…" : s || "");
@@ -490,6 +495,9 @@ const DATA = /*__PDO_DATA__*/null;
     if (st.d) add("why", st.d);
     add("this episode", EXEC[st.e] || st.e);
     if (n.subject) add("from", `${n.subject}${DATA.objects[n.subject] && DATA.objects[n.subject] !== n.subject ? " · " + DATA.objects[n.subject] : ""}`);
+    for (const src of st.src || []) {
+      add("source", `${cite(src)}: “${src.quote}”` + (src.current ? "" : " — located in an earlier version of the document; awaiting review"));
+    }
     const inputs = L.edges.filter(([, b]) => b === id).map(([a]) => a).filter((a) => e.nodes[a]);
     add("inputs", inputs.length ? inputs.map((a) => `${L.nodes[a] ? L.nodes[a].label : a} = ${e.nodes[a].v}`).join("; ") : "none (a source object)");
     const outs = L.edges.filter(([a]) => a === id).map(([, b]) => b).filter((b) => e.nodes[b]);

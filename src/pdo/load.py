@@ -220,9 +220,16 @@ def check_state(state: m.DecisionState, origins: dict[str, str] | None = None) -
     for o in items(state.observations):
         ref(o.id, "alternative", o.alternative, m.Alternative)
         measure = ref(o.id, "measure", o.measure, m.Measure)
-        ref(o.id, "evidence", o.evidence, m.Evidence)
+        evidence = ref(o.id, "evidence", o.evidence, m.Evidence)
         if measure is not None and o.unit != measure.unit:
             err(o.id, "unit", f"unit {o.unit!r} does not match {measure.id} unit {measure.unit!r}")
+        if o.locator is not None and evidence is not None and not evidence.document_digest:
+            err(o.id, "locator", f"has a locator, but {evidence.id} is not an indexed document (no document_digest), "
+                "so locators_current ignores it", "warning")
+    for e in items(state.evidence_items):
+        if e.document_digest and not e.document_path:
+            err(e.id, "document_path", "has a document_digest but no document_path, so its locators cannot be "
+                "verified", "warning")
 
     alternatives = [a.id for a in items(state.alternatives)]
     produced: Counter = Counter()

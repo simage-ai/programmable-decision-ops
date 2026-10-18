@@ -118,6 +118,13 @@ def register(app: typer.Typer) -> None:
         from pdo.package import episode_record, write_package
 
         result, ep, parent = _evaluated(path, episode, as_json)
+        from pdo.provenance import contradicted, verify
+
+        problems = verify(result.graph.state, result.graph.base_dir)
+        broken = contradicted(problems)
+        if broken:
+            fail("locators do not match their documents (nothing was packaged; see pdo docs verify): "
+                 + "; ".join(broken), as_json)
         try:
             scans, flips = _analyse(result, None, span, grid)
             outcomes = scenario_sweep(result.graph.state, base=result)
@@ -134,8 +141,10 @@ def register(app: typer.Typer) -> None:
             fail(str(exc), as_json)
         data = {"package": str(paths["package"]), "record": str(paths["record"]), "episode": ep,
                 "recommended": record.recommended, "robust": record.robust, "flips": len(record.flips),
-                "runs": len(record.runs), "claims": len(record.claims)}
-        emit(data, as_json, f"wrote {paths['package']} and {paths['record']}")
+                "runs": len(record.runs), "claims": len(record.claims), "document_problems": problems}
+        text = f"wrote {paths['package']} and {paths['record']}"
+        text += "".join(f"\n{x['severity']}: {x['where']}: {x['message']}" for x in problems)
+        emit(data, as_json, text)
 
     @app.command()
     def replay(record_path: Path = typer.Argument(..., metavar="RECORD.json", help="A package's record.json."),

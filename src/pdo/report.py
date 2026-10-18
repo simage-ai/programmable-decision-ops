@@ -104,6 +104,13 @@ def explain_node(result: RunResult, nid: str, depth: int = 1) -> dict:
     out = {"node": nid, "kind": node.kind, "fn": node.fn, "subject": node.subject, "alternative": node.alternative,
            "value": res.value, "signature": res.sig, "value_digest": res.vdig, "execution": res.exec_status,
            "error": res.error, "inputs": []}
+    observed = [nid] if node.kind == "source" else list(node.inputs) if node.kind == "measure" else []
+    if observed:
+        from pdo.provenance import sources
+
+        found = sources(graph.state, observed)
+        if found:
+            out["sources"] = found  # the evidence, and the document passage when the value is located
     for parent in node.inputs:
         if depth > 1:
             out["inputs"].append(explain_node(result, parent, depth - 1))

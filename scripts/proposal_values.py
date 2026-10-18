@@ -151,11 +151,12 @@ def values(result: SuiteResult, root: Path) -> list[tuple[str, str, str, str]]:
                     f"Benchmark cases in outcome class {outcome}"))
     out += example_values(result)
     out += sensitivity_values(root)
+    out += provenance_values(root)
     out += [("PDO_SCHEMA_CLASSES", str(schema_classes(root / "schema" / "pdo.yaml")), "classes",
              "Classes in the LinkML decision schema (schema/pdo.yaml and its imports)"),
             ("PDO_EXAMPLE_YAML_LINES", str(suite_yaml_lines(suite.program_dir)), "lines",
              "Non-blank, non-comment YAML lines authored for the vehicle program (program.yaml, baseline, "
-             "change sets)")]
+             "change sets); locators and change sets written by pdo tools are not authored and not counted")]
     return sorted(out)
 
 
@@ -244,8 +245,43 @@ def sensitivity_values(root: Path) -> list[tuple[str, str, str, str]]:
     ]
 
 
+def provenance_values(root: Path) -> list[tuple[str, ...]]:
+    """pdo.bench.provenance on bench/provenance: section-level edits to the vehicle example's indexed reports,
+    absorbed with pdo docs revise, against hand labels and a whole-document review policy."""
+    from pdo.bench.provenance import run_provenance
+
+    result = run_provenance(root / "bench" / "provenance")
+    t = result.totals()
+    where = f"bench/provenance, {t['cases']} section-level edits to two indexed reports"
+
+    def p(num: int, den: int) -> str:
+        return f"{100 * num / den:.1f}" if den else "NA"
+
+    rows = [
+        ("PDO_PROV_CASES", str(t["cases"]), "cases", f"Report revisions in the provenance benchmark ({where})"),
+        ("PDO_PROV_AGREE_PCT", p(*t["agree"]), "%", f"Cases whose flagged values match the hand labels ({where})"),
+        ("PDO_PROV_FLAGGED", str(t["flagged"]), "values",
+         f"Values sent back for review when only changed sections flag them ({where})"),
+        ("PDO_PROV_FLAGGED_WHOLE_DOC", str(t["whole_document"]), "values",
+         f"Values a whole-document policy would send back for review ({where})"),
+        ("PDO_PROV_REVIEW_REDUCTION_PCT", p(t["whole_document"] - t["flagged"], t["whole_document"]), "%",
+         f"Reviews avoided by section-level provenance against a whole-document policy ({where})"),
+        ("PDO_PROV_RECALL_PCT", p(t["changed_flagged"], t["changed_passages"]), "%",
+         f"Values whose quoted passage changed that were flagged ({where})"),
+        ("PDO_PROV_PRECISION_PCT", p(t["changed_flagged"], t["flagged"]), "%",
+         f"Flagged values whose quoted passage itself changed; the rest share a changed section ({where})"),
+        ("PDO_PROV_APPROVALS_KEPT_PCT", p(*t["approvals_kept"]), "%",
+         f"Revisions after which the approval still matched, since no value changed ({where})"),
+        ("PDO_PROV_NO_DECISION_NODES_PCT", p(*t["no_decision_nodes"]), "%",
+         f"Revisions whose impact set holds no measure, check, value, utility or decision node ({where})"),
+    ]
+    return [(*row, result.source) for row in rows]
+
+
 def table(result: SuiteResult, root: Path) -> str:
-    return report.tsv(HEADER, [(*row, result.source, COMMAND) for row in values(result, root)])
+    """Rows carry the vehicle suite's source unless they name their own (a fifth field)."""
+    return report.tsv(HEADER, [(*row[:4], row[4] if len(row) > 4 else result.source, COMMAND)
+                               for row in values(result, root)])
 
 
 def main(argv: list[str] | None = None) -> int:

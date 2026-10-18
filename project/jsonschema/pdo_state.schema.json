@@ -14,7 +14,8 @@
                 "revise_alternatives",
                 "approve",
                 "fix_evaluator",
-                "run_uncertainty_analysis"
+                "run_uncertainty_analysis",
+                "review_locator"
             ],
             "title": "ActionKind",
             "type": "string"
@@ -498,6 +499,13 @@
                     ]
                 },
                 "proposition": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_locator": {
+                    "description": "The passage a claim's value was taken from: document, section, page and exact quote (from the observation's SourceLocator), marked when it cites an earlier version of the document.",
                     "type": [
                         "string",
                         "null"
@@ -1501,6 +1509,20 @@
                         "null"
                     ]
                 },
+                "document_digest": {
+                    "description": "Digest of an indexed document's headings and section texts (pdo docs index). On Evidence it is the current version; on a locator, the version the locator was made against. Written by the pdo docs tools. Whole-file identity stays with content_sha256; leave it empty for a document whose values carry section locators, so a revision is judged section by section.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "document_path": {
+                    "description": "The indexed document (.docx, .pdf, .md or .txt), relative to the state or program directory. Several evidence items may share one document (e.g. one section each). On a locator, the file of the version the locator was made against.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
                 "document_version": {
                     "type": [
                         "string",
@@ -2264,6 +2286,17 @@
                     "description": "Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).",
                     "type": "string"
                 },
+                "locator": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/SourceLocator"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The passage of the evidence's document this value was taken from."
+                },
                 "measure": {
                     "type": "string"
                 },
@@ -2672,6 +2705,7 @@
                 "coverage",
                 "evidence_current",
                 "evidence_traceable",
+                "locators_current",
                 "assumptions_validated",
                 "risks_treated",
                 "review_status",
@@ -3218,6 +3252,92 @@
                 "slot"
             ],
             "title": "SlotAssignment",
+            "type": "object"
+        },
+        "SourceLocator": {
+            "additionalProperties": false,
+            "description": "Where in an indexed document a value was taken from: the document and section digests, the section's id and heading path, the page and paragraph, and the exact quote with its surrounding text and its character span in the section text. Written by the pdo docs tools, which refuse a quote that is not in the document; never written by hand. A locator locates a value without being part of it, so it is unhashable (as DAPPER treats representation locators): re-anchoring it to a new version of the document changes no digest, and the locators_current readiness predicate checks it instead.",
+            "properties": {
+                "char_end": {
+                    "description": "End of the quote in the section text, exclusive (TextPositionSelector end).",
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "char_start": {
+                    "description": "Start of the quote in the section text (TextPositionSelector start).",
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "document_digest": {
+                    "description": "Digest of an indexed document's headings and section texts (pdo docs index). On Evidence it is the current version; on a locator, the version the locator was made against. Written by the pdo docs tools. Whole-file identity stays with content_sha256; leave it empty for a document whose values carry section locators, so a revision is judged section by section.",
+                    "type": "string"
+                },
+                "document_path": {
+                    "description": "The indexed document (.docx, .pdf, .md or .txt), relative to the state or program directory. Several evidence items may share one document (e.g. one section each). On a locator, the file of the version the locator was made against.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "page": {
+                    "description": "Page of the quoted paragraph (PDF), 1-based.",
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "paragraph": {
+                    "description": "Paragraph within the section, 1-based.",
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "quote": {
+                    "description": "The exact passage stating the value, as normalized by pdo docs (TextQuoteSelector exact).",
+                    "type": "string"
+                },
+                "quote_prefix": {
+                    "description": "Up to 32 characters before the quote in the section (TextQuoteSelector prefix).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "quote_suffix": {
+                    "description": "Up to 32 characters after the quote in the section (TextQuoteSelector suffix).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "section": {
+                    "description": "Section id in the document's outline, e.g. \"3.2\" (\"0\" is text before the first heading).",
+                    "type": "string"
+                },
+                "section_digest": {
+                    "description": "Digest of the section's normalized body text (not its heading). Equal digests in two versions of a document mean the cited text did not change.",
+                    "type": "string"
+                },
+                "section_path": {
+                    "description": "Heading path of the section, e.g. \"3 Results > 3.2 Vehicle B\".",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "document_digest",
+                "section",
+                "section_digest",
+                "quote"
+            ],
+            "title": "SourceLocator",
             "type": "object"
         },
         "SourceRef": {

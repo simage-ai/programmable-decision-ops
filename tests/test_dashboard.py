@@ -38,7 +38,7 @@ def state(state_dir):
 
 
 def test_program_export_covers_every_episode(program):
-    assert len(program["episodes"]) == 17
+    assert len(program["episodes"]) == 21
     assert program["meta"]["baseline"] == "ep:e00"
     assert program["meta"]["main_line"][0] == "ep:e00" and program["meta"]["main_line"][-1] == "ep:e12"
     by_id = {e["id"]: e for e in program["episodes"]}

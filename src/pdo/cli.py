@@ -79,6 +79,12 @@ def validate(path: Path = PathArg, as_json: bool = JsonOpt) -> None:
     if compile_error:
         errors.append(compile_error)
     warnings = [str(i) for i in issues if i.severity == "warning"]
+    if not errors:  # every locator against its document (pdo docs verify), as tools.validate does
+        from pdo.tools import _document_problems
+
+        doc_errors, doc_warnings = _document_problems(path)
+        errors += doc_errors
+        warnings += doc_warnings
     ok = not errors
     data = {"valid": ok, "errors": errors, "warnings": warnings, "objects": len(loaded.origins)}
     if as_json:
@@ -144,11 +150,20 @@ def actions(path: Path = PathArg, episode: str = EpisodeOpt,
 
 
 def _register_groups() -> None:
-    from pdo import cli_analysis, cli_dashboard, cli_program, cli_sensitivity, cli_sysml, cli_tools, cli_uncertainty
+    from pdo import (
+        cli_analysis,
+        cli_dashboard,
+        cli_docs,
+        cli_program,
+        cli_sensitivity,
+        cli_sysml,
+        cli_tools,
+        cli_uncertainty,
+    )
     from pdo.bench import cli as bench_cli
 
     for module in (cli_program, cli_analysis, bench_cli, cli_tools, cli_uncertainty, cli_sysml, cli_sensitivity,
-                   cli_dashboard):
+                   cli_dashboard, cli_docs):
         module.register(app)
 
 

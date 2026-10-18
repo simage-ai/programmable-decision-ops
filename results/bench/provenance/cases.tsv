@@ -1,0 +1,24 @@
+case	document	family	flagged	expected	agree	changed_passages	changed_detected	whole_document	reanchored	sections_differing	readiness	approval_kept	no_decision_nodes	verified
+rel-purpose-wording	reliability	unrelated_section			true			3	3	1	ready	true	true	true
+rel-conditions-temperature	reliability	unrelated_section			true			3	3	1	ready	true	true	true
+rel-a-failure-detail	reliability	cited_section_context	obs:A.reliability	obs:A.reliability	true			3	2	1	pending	true	true	true
+rel-b-value-revised	reliability	cited_value	obs:B.reliability	obs:B.reliability	true	obs:B.reliability	obs:B.reliability	3	2	1	pending	true	true	true
+rel-c-disputed	reliability	cited_value	obs:C.reliability	obs:C.reliability	true	obs:C.reliability	obs:C.reliability	3	2	1	pending	true	true	true
+rel-summary-table	reliability	unrelated_section			true			3	3	1	ready	true	true	true
+rel-limitations-added	reliability	unrelated_section			true			3	3	1	ready	true	true	true
+rel-heading-renamed	reliability	structure			true			3	3	1	ready	true	true	true
+rel-section-inserted	reliability	structure			true			3	3	5	ready	true	true	true
+rel-a-and-c	reliability	cited_value	obs:A.reliability,obs:C.reliability	obs:A.reliability,obs:C.reliability	true	obs:C.reliability	obs:C.reliability	3	1	2	pending	true	true	true
+rel-b-section-removed	reliability	structure	obs:B.reliability	obs:B.reliability	true	obs:B.reliability	obs:B.reliability	3	2	1	pending	true	true	true
+rel-typography	reliability	formatting			true			3	3	0	ready	true	true	true
+rel-c-superseded-appendix	reliability	cited_value	obs:C.reliability	obs:C.reliability	true	obs:C.reliability	obs:C.reliability	3	2	2	pending	true	true	true
+rel-a-text-moves-to-b	reliability	cited_value	obs:A.reliability,obs:B.reliability	obs:A.reliability,obs:B.reliability	true	obs:A.reliability,obs:B.reliability	obs:A.reliability,obs:B.reliability	3	1	2	pending	true	true	true
+rel-c-renumbered-superseded	reliability	cited_value	obs:C.reliability	obs:C.reliability	true	obs:C.reliability	obs:C.reliability	3	2	6	pending	true	true	true
+sheets-b-economy	sheets	cited_value	obs:B.mpg,obs:B.tank	obs:B.mpg,obs:B.tank	true	obs:B.mpg	obs:B.mpg	6	4	1	pending	true	true	true
+sheets-notes	sheets	unrelated_section			true			6	6	1	ready	true	true	true
+sheets-scope	sheets	unrelated_section			true			6	6	1	ready	true	true	true
+sheets-c-tank	sheets	cited_value	obs:C.mpg,obs:C.tank	obs:C.mpg,obs:C.tank	true	obs:C.tank	obs:C.tank	6	4	1	pending	true	true	true
+sheets-reordered	sheets	structure			true			6	6	3	ready	true	true	true
+sheets-a-heading	sheets	structure			true			6	6	1	ready	true	true	true
+sheets-a-and-c	sheets	cited_value	obs:A.mpg,obs:A.tank,obs:C.mpg,obs:C.tank	obs:A.mpg,obs:A.tank,obs:C.mpg,obs:C.tank	true	obs:A.mpg,obs:C.tank	obs:A.mpg,obs:C.tank	6	2	2	pending	true	true	true
+sheets-identical-reexport	sheets	formatting			true			6	6	0	ready	true	true	true

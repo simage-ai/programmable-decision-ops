@@ -3,8 +3,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-/* Layout: an engineering console. An episode strip runs across the top; summary tiles; the decision
-   table beside the dependency graph; readiness and actions; then the program's history and analyses. */
+/* Two views of one decision program. Decision (for decision makers and reviewers, the default): a timeline
+   of what happened beside the selected episode's story: the verdict, what changed, why, what blocks action
+   and what would change it, in plain words. Engineering: the console of the compiled graph, every node's
+   status and recomputation, raw tables and analyses. */
 :root {
   --paper: #f5f6f7; --panel: #ffffff; --ink: #151a20; --ink-2: #4a5561; --muted: #828c97; --rule: #dce1e6;
   --accent: #2f5274; --accent-soft: #e3ebf3;
@@ -151,6 +153,66 @@ svg text { fill: var(--ink); }
 .empty { color: var(--muted); font-size: 0.82rem; }
 footer { font: 0.74rem var(--f-mono); color: var(--muted); }
 @media (prefers-reduced-motion: no-preference) { .node rect, .edge { transition: opacity .15s, stroke .15s; } }
+
+/* views */
+.views { display: flex; gap: 2px; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+.views button { font: 600 0.95rem var(--f-display); background: none; border: none; border-bottom: 2px solid transparent;
+                color: var(--ink-2); padding: 8px 14px; margin-bottom: -1px; cursor: pointer; }
+.views button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.views .hint { margin-left: auto; align-self: center; font-size: 0.78rem; color: var(--muted); }
+
+/* decision view: the timeline beside the story */
+.decision { display: grid; grid-template-columns: minmax(270px, 340px) minmax(0, 1fr); gap: 20px; align-items: start; }
+.timeline-col { position: sticky; top: max(12px, env(safe-area-inset-top, 0px)); max-height: calc(100vh - 24px);
+                overflow: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 4px 2px 0; }
+.story { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (max-width: 980px) {
+  .decision { grid-template-columns: minmax(0, 1fr); }
+  .timeline-col { position: static; max-height: 380px; }
+}
+.timeline { list-style: none; margin: 0; padding: 0 0 0 16px; position: relative; display: flex; flex-direction: column; gap: 2px; }
+.timeline::before { content: ""; position: absolute; left: 5px; top: 10px; bottom: 10px; width: 2px; background: var(--rule); }
+.tl-item { position: relative; }
+.tl-marker { position: absolute; left: -16px; top: 13px; width: 12px; height: 12px; border-radius: 50%;
+             box-shadow: 0 0 0 3px var(--paper); }
+.tl-entry { display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; background: none; color: var(--ink);
+            border: 1px solid transparent; border-radius: 8px; padding: 7px 9px; cursor: pointer; font: inherit; }
+.tl-entry:hover { background: var(--panel); border-color: var(--rule); }
+.tl-entry[aria-current="true"] { background: var(--panel); border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.tl-when { font: 0.72rem var(--f-mono); color: var(--muted); }
+.tl-title { font-size: 0.84rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+            overflow: hidden; }
+.tl-effects { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font: 500 0.7rem var(--f-mono); padding: 1px 7px; border-radius: 999px;
+        border: 1px solid var(--rule); color: var(--ink-2); background: var(--panel); white-space: nowrap; }
+.chip.flip { border-color: var(--accent); color: var(--ink); font-weight: 600; }
+.tl-branch { margin: 2px 0 6px 4px; }
+.tl-branch > summary { font: 500 0.72rem var(--f-mono); color: var(--ink-2); padding: 4px 8px; border-radius: 6px; }
+.tl-branch > summary:hover { background: var(--panel); }
+.tl-branch .timeline::before { background: repeating-linear-gradient(var(--rule) 0 4px, transparent 4px 8px); }
+
+/* the story */
+.verdict { background: var(--panel); border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: 8px;
+           padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.verdict h2 { font-size: 1.65rem; line-height: 1.15; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.verdict h2 .who { font: 500 1rem var(--f-body); color: var(--ink-2); }
+.verdict .status { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 0.95rem; }
+.lead { font-size: 0.95rem; line-height: 1.55; max-width: 82ch; margin: 0; }
+.bullets { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; font-size: 0.9rem; max-width: 90ch; }
+.quote { border-left: 3px solid var(--rule); margin: 0; padding: 2px 0 2px 12px; font-size: 0.95rem; max-width: 82ch; }
+.matrix { font-size: 0.86rem; }
+.matrix th.alt-col { text-transform: none; letter-spacing: 0; font: 600 0.86rem var(--f-body); color: var(--ink); min-width: 120px; }
+.matrix th.alt-col .small { font-weight: 400; display: block; white-space: normal; }
+.matrix .rec { background: var(--accent-soft); }
+.matrix .excluded { color: var(--muted); }
+.matrix tr.total td { font-weight: 600; border-top: 2px solid var(--rule); }
+.bar { display: block; height: 6px; border-radius: 3px; background: var(--rule); margin-top: 5px; position: relative; overflow: hidden;
+       max-width: 140px; }
+.bar > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+.g-ok { color: var(--good); font-weight: 600; } .g-no { color: var(--bad); font-weight: 600; }
+.g-maybe { color: color-mix(in srgb, var(--warn) 70%, var(--ink)); font-weight: 600; }
+details > summary { cursor: pointer; }
+.sources td { font-size: 0.8rem; }
 </style>
 
 <div class="wrap" id="app">
@@ -161,77 +223,114 @@ footer { font: 0.74rem var(--f-mono); color: var(--muted); }
     <div class="meta" id="meta"></div>
   </header>
 
-  <nav class="strip" aria-label="Episodes" id="strip"></nav>
+  <div class="views" role="tablist" aria-label="Views">
+    <button type="button" role="tab" id="tab-decision" aria-controls="view-decision" aria-selected="true">Decision</button>
+    <button type="button" role="tab" id="tab-engineering" aria-controls="view-engineering" aria-selected="false">Engineering</button>
+    <span class="hint" id="view-hint">For decision makers and reviewers: what was decided, why, and what it waits on.</span>
+  </div>
 
-  <section class="tiles" id="tiles" aria-label="Summary"></section>
+  <div class="decision" id="view-decision" role="tabpanel" aria-labelledby="tab-decision">
+    <aside class="timeline-col" id="timeline-col" aria-label="Timeline">
+      <div class="eyebrow">Timeline</div>
+      <ol class="timeline" id="timeline"></ol>
+    </aside>
+    <div class="story">
+      <section class="verdict" id="verdict" aria-live="polite"></section>
+      <section class="panel" aria-labelledby="changed-title">
+        <h2 id="changed-title">What changed</h2>
+        <div id="changed" class="story-block"></div>
+      </section>
+      <section class="panel" aria-labelledby="h-why">
+        <h2 id="h-why">Why this recommendation</h2>
+        <p class="lead" id="why"></p>
+        <div class="scroll"><table class="matrix" id="matrix"></table></div>
+        <div class="scroll"><table class="matrix" id="musts"></table></div>
+        <p class="note" id="matrix-note"></p>
+      </section>
+      <div class="grid-2">
+        <section class="panel" aria-labelledby="h-act"><h2 id="h-act">Before anyone can act</h2><div id="act"></div></section>
+        <section class="panel" aria-labelledby="h-robust"><h2 id="h-robust">What would change it</h2><div id="robust"></div></section>
+      </div>
+      <section class="panel" aria-labelledby="h-history" id="history-panel">
+        <div class="panel-head"><h2 id="h-history">Scores over time</h2><span class="small" id="history-note">main line of episodes; band: readiness</span></div>
+        <div class="legend" id="history-legend"></div>
+        <svg class="chart" id="history" role="img" aria-label="Score of each alternative by episode"></svg>
+      </section>
+      <section class="panel">
+        <details id="sources-box"><summary><h2 style="display:inline" id="sources-title">Where the numbers come from</h2></summary>
+          <div class="scroll" style="margin-top:10px"><table class="sources" id="sources"></table></div>
+        </details>
+      </section>
+    </div>
+  </div>
 
-  <section class="panel" aria-labelledby="h-graph">
-    <div class="panel-head">
-      <h2 id="h-graph">Dependency graph</h2>
-      <div class="toolbar">
-        <button class="toggle" id="t-inputs" aria-pressed="false" type="button">Show inputs</button>
-        <button class="toggle" id="t-impact" aria-pressed="false" type="button">Highlight what this episode recomputed</button>
+  <div id="view-engineering" role="tabpanel" aria-labelledby="tab-engineering" class="stack" hidden>
+    <nav class="strip" aria-label="Episodes" id="strip"></nav>
+
+    <section class="tiles" id="tiles" aria-label="Summary"></section>
+
+    <section class="panel" aria-labelledby="h-graph">
+      <div class="panel-head">
+        <h2 id="h-graph">Dependency graph</h2>
+        <div class="toolbar">
+          <button class="toggle" id="t-inputs" aria-pressed="false" type="button">Show inputs</button>
+          <button class="toggle" id="t-impact" aria-pressed="false" type="button">Highlight what this episode recomputed</button>
+        </div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="graph-box" id="graph-box"><svg id="graph" role="img" aria-label="Dependency graph of the decision"></svg></div>
+      <div class="detail" id="detail"><span class="empty">Select a node to see its value, its inputs and how this episode computed it.</span></div>
+    </section>
+
+    <div class="grid-main">
+      <section class="panel" aria-labelledby="h-table">
+        <div class="panel-head"><h2 id="h-table">Decision table</h2><span class="small" id="table-note"></span></div>
+        <div class="scroll"><table id="table"></table></div>
+        <p class="note">Margins are in the g ≤ 0 convention: a check passes when g is at or below 0, so a negative g is room
+          to spare and a positive g is the shortfall.</p>
+      </section>
+      <div class="stack">
+        <section class="panel" aria-labelledby="h-ready">
+          <div class="panel-head"><h2 id="h-ready">Readiness conditions</h2><span id="ready-pill"></span></div>
+          <ul class="list" id="conditions"></ul>
+        </section>
+        <section class="panel" aria-labelledby="h-actions">
+          <div class="panel-head"><h2 id="h-actions">Pending actions by role</h2></div>
+          <div id="actions"></div>
+        </section>
       </div>
     </div>
-    <div class="legend" id="legend"></div>
-    <div class="graph-box" id="graph-box"><svg id="graph" role="img" aria-label="Dependency graph of the decision"></svg></div>
-    <div class="detail" id="detail"><span class="empty">Select a node to see its value, its inputs and how this episode computed it.</span></div>
-  </section>
 
-  <div class="grid-main">
-    <section class="panel" aria-labelledby="h-table">
-      <div class="panel-head"><h2 id="h-table">Decision table</h2><span class="small" id="table-note"></span></div>
-      <div class="scroll"><table id="table"></table></div>
-      <p class="note">Margins are in the g ≤ 0 convention: a check passes when g is at or below 0, so a negative g is room
-        to spare and a positive g is the shortfall.</p>
+    <section class="panel" aria-labelledby="h-work" id="work-panel">
+      <div class="panel-head"><h2 id="h-work">Refresh work by episode</h2><span class="small" id="work-note"></span></div>
+      <svg class="chart" id="work" role="img" aria-label="Computed nodes executed and reused per episode"></svg>
     </section>
-    <div class="stack">
-      <section class="panel" aria-labelledby="h-ready">
-        <div class="panel-head"><h2 id="h-ready">Readiness conditions</h2><span id="ready-pill"></span></div>
-        <ul class="list" id="conditions"></ul>
-      </section>
-      <section class="panel" aria-labelledby="h-actions">
-        <div class="panel-head"><h2 id="h-actions">Pending actions by role</h2></div>
-        <div id="actions"></div>
-      </section>
-    </div>
-  </div>
 
-  <section class="panel" aria-labelledby="h-history" id="history-panel">
-    <div class="panel-head"><h2 id="h-history">Utility across the program</h2><span class="small" id="history-note">main line of episodes; band: readiness</span></div>
-    <div class="legend" id="history-legend"></div>
-    <svg class="chart" id="history" role="img" aria-label="Utility of each alternative by episode"></svg>
-  </section>
-
-  <section class="panel" aria-labelledby="h-work" id="work-panel">
-    <div class="panel-head"><h2 id="h-work">Refresh work by episode</h2><span class="small" id="work-note"></span></div>
-    <svg class="chart" id="work" role="img" aria-label="Computed nodes executed and reused per episode"></svg>
-  </section>
-
-  <div class="grid-2">
-    <section class="panel" aria-labelledby="h-flips">
-      <div class="panel-head"><h2 id="h-flips">What flips the decision</h2></div>
-      <div class="scroll"><table id="flips"></table></div>
-    </section>
-    <section class="panel" aria-labelledby="h-tornado">
-      <div class="panel-head"><h2 id="h-tornado">Tornado of the decision margin</h2></div>
-      <svg class="chart" id="tornado" role="img" aria-label="Decision margin at the low and high end of each input"></svg>
-      <p class="note" id="tornado-note"></p>
-    </section>
-  </div>
-
-  <section class="panel" aria-labelledby="h-unc" id="unc-panel" hidden>
-    <div class="panel-head"><h2 id="h-unc">Decision under uncertainty</h2><span class="small" id="unc-note"></span></div>
-    <div class="scroll"><table id="unc"></table></div>
-  </section>
-
-  <section class="panel" aria-labelledby="h-voi" id="voi-panel" hidden>
-    <div class="panel-head"><h2 id="h-voi">Sensitivity and value of information</h2><span class="small" id="voi-note"></span></div>
     <div class="grid-2">
-      <div><h3 class="eyebrow">Sobol total index of the margin</h3><svg class="chart" id="sobol" role="img" aria-label="Sobol total indices"></svg></div>
-      <div><h3 class="eyebrow">Value of resolving each input (EVPPI)</h3><svg class="chart" id="voi" role="img" aria-label="Expected value of partial perfect information"></svg></div>
+      <section class="panel" aria-labelledby="h-flips">
+        <div class="panel-head"><h2 id="h-flips">What flips the decision</h2></div>
+        <div class="scroll"><table id="flips"></table></div>
+      </section>
+      <section class="panel" aria-labelledby="h-tornado">
+        <div class="panel-head"><h2 id="h-tornado">Tornado of the decision margin</h2></div>
+        <svg class="chart" id="tornado" role="img" aria-label="Decision margin at the low and high end of each input"></svg>
+        <p class="note" id="tornado-note"></p>
+      </section>
     </div>
-  </section>
+
+    <section class="panel" aria-labelledby="h-unc" id="unc-panel" hidden>
+      <div class="panel-head"><h2 id="h-unc">Decision under uncertainty</h2><span class="small" id="unc-note"></span></div>
+      <div class="scroll"><table id="unc"></table></div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-voi" id="voi-panel" hidden>
+      <div class="panel-head"><h2 id="h-voi">Sensitivity and value of information</h2><span class="small" id="voi-note"></span></div>
+      <div class="grid-2">
+        <div><h3 class="eyebrow">Sobol total index of the margin</h3><svg class="chart" id="sobol" role="img" aria-label="Sobol total indices"></svg></div>
+        <div><h3 class="eyebrow">Value of resolving each input (EVPPI)</h3><svg class="chart" id="voi" role="img" aria-label="Expected value of partial perfect information"></svg></div>
+      </div>
+    </section>
+  </div>
 
   <footer id="footer"></footer>
 </div>
@@ -308,8 +407,13 @@ const DATA = /*__PDO_DATA__*/null;
 
   /* state */
   const mainLine = DATA.meta.main_line || [episodes[0].id];
-  const fromHash = () => { const h = (location.hash || "").slice(1); return episodes.find((e) => short(e.id) === h || e.id === h); };
-  let current = (fromHash() || byId[mainLine[mainLine.length - 1]] || episodes[0]).id;
+  // The hash is "#e06" (an episode) or "#e06.engineering" (that episode in the engineering view).
+  const fromHash = () => {
+    const [h, v] = (location.hash || "").slice(1).split(".");
+    return { ep: episodes.find((e) => short(e.id) === h || e.id === h), view: v === "engineering" ? v : null };
+  };
+  let current = (fromHash().ep || byId[mainLine[mainLine.length - 1]] || episodes[0]).id;
+  let view = fromHash().view || "decision";
   let showInputs = false, showImpact = false, selectedNode = null;
 
   /* episode strip */
@@ -742,21 +846,436 @@ const DATA = /*__PDO_DATA__*/null;
     }
   }
 
+  /* --- decision view: words for reviewers ---------------------------------------------------------- */
+  const roleName = (r) => (r ? DATA.roles[r] || short(r) : "someone");
+  const objName = (id) => (id && DATA.objects[id] && DATA.objects[id] !== id ? DATA.objects[id] : short(id));
+  const measureOf = Object.fromEntries(DATA.measures.map((m) => [m.id, m]));
+  const altList = (xs) => (xs || []).map(short).join(" and ");
+  const score = (x) => (x === null || x === undefined ? "unknown" : x.toFixed(2));
+  const parentOf = (e) => (e.parent ? byId[e.parent] : null);
+  const rowOf = (e, a) => e.table.find((r) => r.alternative === a);
+  const withUnit = (x, unit) => (x === null || x === undefined) ? "unknown"
+    : unit === "%" ? `${fmt(100 * x, 3)}%` : `${fmt(x, 4)}${unit && unit !== "1" ? " " + unit : ""}`;
+  const CMP = { ge: "≥", le: "≤", gt: ">", lt: "<", eq: "=" };
+  function obsLabel(e, oid) {
+    const row = (e.evidence || []).find((r) => r.observation === oid);
+    if (!row) return objName(oid);
+    const m = measureOf[row.measure];
+    return `${short(row.alternative)}'s ${(m ? m.name : short(row.measure)).toLowerCase()}`;
+  }
+  function unitOf(e, target) {
+    const row = (e.evidence || []).find((r) => r.observation === target);
+    if (row) return row.unit;
+    return e.requirements[target] ? e.requirements[target].unit : null;
+  }
+  const needs = (e, q) => { const r = e.requirements[q]; return r ? `${CMP[r.comparator] || r.comparator} ${withUnit(r.threshold, r.unit)}` : ""; };
+  function margin(e, row, q) {  // a requirement check in words (g <= 0 passes; -g is the room to spare)
+    const r = e.requirements[q], g = row.g[q], st = row.checks[q];
+    const y = r ? row.measures[r.measure] : undefined;
+    if (st === "unknown" || g === null || g === undefined) return { st: "unknown", text: "unknown" };
+    const val = withUnit(y, r && r.unit);
+    return st === "pass" ? { st, text: `${val} · ${withUnit(-g, r && r.unit)} to spare` }
+      : { st, text: `${val} · ${withUnit(g, r && r.unit)} short` };
+  }
+
+  function timelineItem(e, branch) {
+    const li = el("li", { class: "tl-item" });
+    li.append(el("span", { class: "tl-marker", style: `background:${statusColor(READY[e.readiness])}`, "aria-hidden": "true" }));
+    const p = parentOf(e);
+    const b = el("button", { class: "tl-entry", type: "button", "aria-current": String(e.id === current) });
+    const after = branch && p && !mainLine.includes(p.id) ? ` · after ${short(p.id)}` : "";
+    b.append(el("span", { class: "tl-when" }, `${e.as_of} · ${short(e.id)} · ${e.trigger}${after}`));
+    b.append(el("span", { class: "tl-title" }, p ? (e.description || "(no description)") : "Baseline: the trade study as first framed"));
+    const fx = el("span", { class: "tl-effects" });
+    const rec = choice(e), prec = p ? choice(p) : null;
+    const flipped = prec && prec.join() !== rec.join();
+    const chip = el("span", { class: "chip" + (flipped ? " flip" : "") });
+    if (rec.length === 1) chip.append(el("span", { class: "dot", style: `background:${altColor(rec[0])}` }));
+    chip.append(document.createTextNode(flipped ? `${altList(prec) || "none"} → ${altList(rec) || "none"}`
+      : rec.length ? `recommends ${altList(rec)}` : "no recommendation"));
+    fx.append(chip, pill(READY[e.readiness], e.readiness));
+    if (e.actionable) fx.append(el("span", { class: "chip" }, "✓ approved"));
+    else if (p && p.approval && !e.approval) fx.append(el("span", { class: "chip" }, "approval lost"));
+    b.append(fx);
+    b.addEventListener("click", () => select(e.id));
+    li.append(b);
+    return li;
+  }
+  function renderTimeline() {
+    const ol = clear($("timeline"));
+    const branchesFrom = {};  // main-line episode -> the off-line episodes that fork from it
+    for (const e of episodes) {
+      if (mainLine.includes(e.id)) continue;
+      let fork = e.parent;
+      while (fork && !mainLine.includes(fork)) fork = byId[fork] ? byId[fork].parent : null;
+      (branchesFrom[fork] = branchesFrom[fork] || []).push(e);
+    }
+    for (const id of mainLine) {
+      const e = byId[id];
+      if (!e) continue;
+      const li = timelineItem(e, false);
+      const branch = branchesFrom[id];
+      if (branch && branch.length) {
+        const det = el("details", { class: "tl-branch" });
+        det.open = branch.some((b) => b.id === current);
+        det.append(el("summary", {}, `${branch.length} branch episode${branch.length === 1 ? "" : "s"} from ${short(id)}: what-ifs off the main line`));
+        const inner = el("ol", { class: "timeline" });
+        for (const b of branch) inner.append(timelineItem(b, true));
+        det.append(inner);
+        li.append(det);
+      }
+      ol.append(li);
+    }
+    const col = $("timeline-col"), entry = col.querySelector('[aria-current="true"]');
+    if (entry && !col.hidden) {
+      const r = entry.getBoundingClientRect(), c = col.getBoundingClientRect();
+      if (r.top < c.top || r.bottom > c.bottom) col.scrollTop += r.top - c.top - 48;
+    }
+  }
+
+  function statusSentence(e) {
+    const open = e.conditions.filter((c) => c.status !== "pass" && c.required !== false);
+    const rec = altList(choice(e));
+    if (e.actionable) return `Approved (“${objName(e.approval)}”) and ready: the decision can be acted on.`;
+    if (e.readiness === "ready") {
+      const ap = e.pending.find((a) => a.kind === "approve");
+      const stale = /earlier state|approves .*, not /.test(e.actionable_reason || "");
+      return `Ready for a decision, waiting for ${ap ? roleName(ap.role) : "an approver"} to approve ${rec || "an alternative"}.`
+        + (stale ? " Earlier approvals cover a different state, so they do not count." : "");
+    }
+    const n = open.length, verb = e.readiness === "blocked" ? "Blocked" : "Not ready yet";
+    return `${verb}: ${n} check${n === 1 ? " needs" : "s need"} attention before anyone can act.`
+      + (e.approval ? ` The approval of ${rec} still matches, so it can be acted on once ${n === 1 ? "it is" : "they are"} resolved.` : "");
+  }
+  function renderVerdict(e) {
+    const v = clear($("verdict"));
+    const rec = choice(e), branch = !mainLine.includes(e.id);
+    v.append(el("div", { class: "eyebrow" }, `Episode ${short(e.id)} · ${e.as_of}${branch ? " · branch off the main line" : ""}`
+      + (expectedRule && e.uncertainty ? " · decided on expected score under uncertainty" : "")));
+    const h = el("h2");
+    if (rec.length === 1) {
+      h.append(el("span", { class: "dot", style: `background:${altColor(rec[0])};width:14px;height:14px`, "aria-hidden": "true" }),
+               document.createTextNode(`Recommend ${short(rec[0])}`), el("span", { class: "who" }, altName(rec[0])));
+    } else h.textContent = rec.length ? `Tie between ${altList(rec)}` : "No recommendation";
+    v.append(h);
+    const st = el("div", { class: "status" });
+    st.append(pill(e.actionable ? "pass" : READY[e.readiness], e.actionable ? "approved" : e.readiness), el("span", {}, statusSentence(e)));
+    v.append(st);
+  }
+
+  const SLOT_WORDS = { value: "", threshold_value: "threshold", weight: "weight", applicability: "acceptance",
+                       review_status: "status", valid_until: "valid until", treatment_status: "treatment",
+                       validation_status: "validation" };
+  function describeSet(e, c) {
+    const target = c.target.startsWith("obs:") ? obsLabel(e, c.target) : objName(c.target);
+    if (c.slot === "evidence") return `${target} now cites ${objName(c.after)} (was ${objName(c.before)}).`;
+    const unit = c.slot === "weight" ? "%" : (c.slot === "value" || c.slot === "threshold_value") ? unitOf(e, c.target) : null;
+    const show = (x) => (x === null || x === undefined ? "unset" : typeof x === "number" ? withUnit(x, unit)
+      : typeof x === "string" && /^[a-z]+:/.test(x) ? objName(x) : String(x));
+    const words = SLOT_WORDS[c.slot] !== undefined ? SLOT_WORDS[c.slot] : c.slot.replace(/_/g, " ");
+    return `${target}${words ? " " + words : ""}: ${show(c.before)} → ${show(c.after)}.`;
+  }
+  function describeAdd(e, c) {
+    if (c.kind === "Observation") return `${obsLabel(e, c.target)} = ${withUnit(c.value, c.unit)}`;
+    const kind = c.kind ? c.kind.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase() : "object";
+    return `${objName(c.target)} (${kind})`;
+  }
+  function renderChanged(e) {
+    const box = clear($("changed"));
+    const p = parentOf(e);
+    $("changed-title").textContent = p ? "What changed" : "Where it starts";
+    if (!p) {
+      box.append(el("p", { class: "lead" }, `The baseline: ${alts.length} alternatives judged on ${DATA.criteria.length} weighted criteria `
+        + `and ${DATA.requirements.length} requirements every alternative must meet. Later episodes on the timeline change it one `
+        + "step at a time."));
+      return;
+    }
+    if (e.description) box.append(el("blockquote", { class: "quote" }, e.description));
+    box.append(el("div", { class: "small" }, `Recorded by ${roleName(e.author_role)} on ${e.as_of} (${e.trigger}), after episode ${short(p.id)}.`));
+    const ul = el("ul", { class: "bullets" });
+    const add = (text) => ul.append(el("li", {}, text));
+    const rec = choice(e), prec = choice(p);
+    add(rec.join() === prec.join() ? `The recommendation is unchanged: ${altList(rec) || "none"}.`
+      : `The recommendation changes from ${altList(prec) || "none"} to ${altList(rec) || "none"}.`);
+    add(e.readiness === p.readiness ? `Readiness stays ${e.readiness}.` : `Readiness goes from ${p.readiness} to ${e.readiness}.`);
+    if (p.approval && e.approval === p.approval) add(`The approval “${objName(e.approval)}” still matches: nothing it covered changed.`);
+    else if (p.approval && !e.approval) add(`The approval “${objName(p.approval)}” no longer matches: inputs it covered changed, so it must be renewed.`);
+    else if (e.approval && e.approval !== p.approval) add(`New approval: “${objName(e.approval)}”.`);
+    for (const c of e.changes.filter((x) => x.op === "set" && !x.provenance && !/rationale|description|reviewer/.test(x.slot))) add(describeSet(e, c));
+    const added = e.changes.filter((x) => x.op === "add");
+    if (added.length) add(`Added: ${added.map((c) => describeAdd(e, c)).join("; ")}.`);
+    const removed = e.changes.filter((x) => x.op === "remove");
+    if (removed.length) add(`Removed: ${removed.map((c) => objName(c.target)).join(", ")}.`);
+    const prov = e.changes.filter((x) => x.provenance);
+    if (prov.length) {
+      const docs = [...new Set(prov.filter((c) => c.slot === "document_path").map((c) => c.after))];
+      const moved = prov.filter((c) => c.slot === "locator").length;
+      const review = e.pending.filter((a) => a.kind === "review_locator").map((a) => obsLabel(e, a.target));
+      add((docs.length ? `A new version of a source document: ${docs.join(", ")}. ` : "")
+        + `${moved} value${moved === 1 ? "" : "s"} ${docs.length ? "moved to it because their section is unchanged" : "re-anchored to the current document"}`
+        + (review.length ? `; awaiting review because their section changed: ${review.join(", ")}.` : "."));
+    }
+    box.append(ul);
+  }
+
+  function whySentence(e) {
+    const rec = choice(e), rows = e.table;
+    if (expectedRule && e.uncertainty) {
+      const u = e.uncertainty, by = Object.fromEntries((u.alternatives || []).map((a) => [a.alternative, a]));
+      const r = rec[0];
+      if (!r) return "No alternative meets the chance constraint under the stated uncertainty.";
+      const point = e.recommended;
+      let s = `Under the stated uncertainty, ${short(r)} has the best expected score (${score(by[r].expected_utility)}) among the alternatives `
+        + `that meet every requirement with enough probability (it does with probability ${fmt(by[r].p_feasible, 2)}).`;
+      if (point.length && point.join() !== rec.join()) {
+        const pb = by[point[0]];
+        s += ` At the point estimates ${altList(point)} would score highest`
+          + (pb && pb.chance !== "pass" ? `, but it meets every requirement with probability only ${fmt(pb.p_feasible, 2)}.` : ".");
+      }
+      return s;
+    }
+    if (!rec.length) {
+      const failing = rows.filter((x) => x.feasibility === "fail").map((x) => `${short(x.alternative)} fails ${x.failed.map((q) => objName(q).toLowerCase()).join(" and ")}`);
+      return `No alternative is recommended: ${failing.join("; ") || "none is known to meet every requirement"}.`;
+    }
+    if (rec.length > 1) return `${altList(rec)} tie at ${score(rowOf(e, rec[0]).utility)}: a person must choose between them.`;
+    const r = rowOf(e, rec[0]);
+    let s = `${short(r.alternative)} scores ${score(r.utility)} out of 1`;
+    const runner = rows.filter((x) => x !== r && x.feasibility === "pass" && x.utility !== null).sort((a, b) => b.utility - a.utility)[0];
+    if (runner) {
+      const diffs = DATA.criteria.map((c) => [c, (e.weights[c.id] || 0) * ((r.values[c.id] ?? 0) - (runner.values[c.id] ?? 0))]);
+      const plus = diffs.filter(([, d]) => d > 0.005).sort((a, b) => b[1] - a[1]).map(([c, d]) => `${c.name.toLowerCase()} (+${score(d)})`);
+      const minus = diffs.filter(([, d]) => d < -0.005).sort((a, b) => a[1] - b[1]).map(([c, d]) => `${c.name.toLowerCase()} (−${score(-d)})`);
+      s += `, ahead of ${short(runner.alternative)} at ${score(runner.utility)}`
+        + (plus.length ? `: it leads on ${plus.join(" and ")}` : "") + (minus.length ? `${plus.length ? " and" : ":"} trails on ${minus.join(" and ")}` : "") + ".";
+    } else s += ", and it is the only alternative known to meet every requirement.";
+    for (const x of rows.filter((x) => x !== r && x.feasibility === "fail" && x.utility !== null && x.utility > r.utility)) {
+      s += ` ${short(x.alternative)} would score higher (${score(x.utility)}) but is excluded: it fails `
+        + x.failed.map((q) => `${objName(q).toLowerCase()} (${withUnit(x.measures[e.requirements[q].measure], e.requirements[q].unit)}; needs ${needs(e, q)})`).join(" and ") + ".";
+    }
+    for (const x of rows.filter((x) => x.feasibility === "unknown" || x.utility === null)) {
+      s += ` ${short(x.alternative)} cannot be ranked yet: some of its inputs are unknown or not yet accepted`
+        + (x.utility === null ? ` (its score would be between ${score(x.utility_bounds[0])} and ${score(x.utility_bounds[1])})` : "") + ".";
+    }
+    return s;
+  }
+  function renderWhy(e) {
+    $("why").textContent = whySentence(e);
+    const rec = choice(e);
+    const t = clear($("matrix")), head = el("tr");
+    head.append(el("th", {}, "Criterion"), el("th", { class: "r" }, "Weight"));
+    const colHead = (a) => {
+      const th = el("th", { class: "alt-col" + (rec.includes(a) ? " rec" : "") });
+      const s = el("span", { class: "alt" }); s.append(el("span", { class: "dot", style: `background:${altColor(a)}` }), document.createTextNode(short(a)));
+      th.append(s, el("span", { class: "small" }, altName(a)));
+      return th;
+    };
+    alts.forEach((a) => head.append(colHead(a)));
+    const thead = el("thead"); thead.append(head); t.append(thead);
+    const tb = el("tbody");
+    for (const c of DATA.criteria) {
+      const tr = el("tr");
+      const m = measureOf[c.measure];
+      const name = el("td"); name.append(document.createTextNode(c.name), el("div", { class: "small" }, m ? m.name : ""));
+      tr.append(name, el("td", { class: "r" }, withUnit(e.weights[c.id], "%")));
+      for (const a of alts) {
+        const r = rowOf(e, a), v = r ? r.values[c.id] : null;
+        const td = el("td", { class: (rec.includes(a) ? "rec " : "") + (r && r.feasibility === "fail" ? "excluded" : "") });
+        td.append(document.createTextNode(r ? withUnit(r.measures[c.measure], m && m.unit) : "—"));
+        const bar = el("span", { class: "bar", title: `value score ${v === null || v === undefined ? "unknown" : score(v)} of 1` });
+        if (v !== null && v !== undefined) bar.append(el("span", { style: `width:${Math.max(0, Math.min(1, v)) * 100}%;background:${altColor(a)}` }));
+        td.append(bar);
+        tr.append(td);
+      }
+      tb.append(tr);
+    }
+    const total = el("tr", { class: "total" });
+    total.append(el("td", {}, "Overall score"), el("td", { class: "r" }, "100%"));
+    for (const a of alts) {
+      const r = rowOf(e, a);
+      const txt = !r ? "—" : r.utility !== null ? score(r.utility) : `${score(r.utility_bounds[0])} to ${score(r.utility_bounds[1])}`;
+      const note = rec.includes(a) ? " · recommended" : r && r.feasibility === "fail" ? " · excluded" : r && r.feasibility === "unknown" ? " · unresolved" : "";
+      total.append(el("td", { class: (rec.includes(a) ? "rec " : "") + (r && r.feasibility === "fail" ? "excluded" : "") }, txt + note));
+    }
+    tb.append(total);
+    t.append(tb);
+    const mt = clear($("musts")), mh = el("tr");
+    mh.append(el("th", {}, "Must meet"), el("th", {}, "Needs"));
+    alts.forEach((a) => mh.append(colHead(a)));
+    const mhead = el("thead"); mhead.append(mh); mt.append(mhead);
+    const mb = el("tbody");
+    for (const [q, req] of Object.entries(e.requirements)) {
+      if (!req.mandatory) continue;
+      const tr = el("tr");
+      tr.append(el("td", {}, objName(q)), el("td", {}, needs(e, q)));
+      for (const a of alts) {
+        const r = rowOf(e, a);
+        const td = el("td", { class: rec.includes(a) ? "rec" : "" });
+        if (!r || !(q in r.checks)) { td.textContent = "—"; tr.append(td); continue; }
+        const mg = margin(e, r, q);
+        td.append(el("span", { class: { pass: "g-ok", fail: "g-no", unknown: "g-maybe" }[mg.st], "aria-hidden": "true" }, { pass: "✓ ", fail: "✕ ", unknown: "? " }[mg.st]),
+                  document.createTextNode(mg.text));
+        tr.append(td);
+      }
+      mb.append(tr);
+    }
+    mt.append(mb);
+    $("matrix-note").textContent = "Each criterion turns a measured value into a score from 0 (worst considered) to 1 (best); the bar "
+      + "shows it. The overall score is the weighted sum. An alternative that fails a must-meet requirement is excluded "
+      + "whatever its score." + (expectedRule ? " Values here are the point estimates; the recommendation uses expected scores under uncertainty." : "");
+  }
+
+  const ACTION_WORDS = {
+    approve: (e, a) => `Approve ${short(a.target)} (${altName(a.target)})`,
+    review_locator: (e, a) => `Re-check ${obsLabel(e, a.target)} against its source: ${/without a locator|not located/.test(a.reason) ? "it is not traced to a passage" : "its section changed in a revision"}`,
+    complete_review: (e, a) => `Complete the review “${objName(a.target)}”`,
+    review_applicability: (e, a) => `Accept or reject ${obsLabel(e, a.target)} (proposed, not yet accepted)`,
+    refresh_evidence: (e, a) => `Refresh expired evidence: ${objName(a.target)}`,
+    state_source: (e, a) => `Name the source of ${objName(a.target)}`,
+    provide_value: (e, a) => `Provide the missing or unaccepted inputs for ${short(a.target)}`,
+    validate_assumption: (e, a) => `Validate the assumption “${objName(a.target)}”`,
+    treat_risk: (e, a) => `Treat or accept the risk “${objName(a.target)}”`,
+    resolve_tie: () => "Choose between the tied alternatives",
+    revise_alternatives: () => "Revise the alternatives or the requirements: none can be recommended",
+    fix_evaluator: (e, a) => `Fix the evaluator “${objName(a.target)}”`,
+    run_uncertainty_analysis: () => "Decide on the expected scores under uncertainty",
+  };
+  function renderAct(e) {
+    const box = clear($("act"));
+    const open = e.conditions.filter((c) => c.status !== "pass"), passing = e.conditions.filter((c) => c.status === "pass");
+    if (!open.length) box.append(el("p", { class: "lead" }, e.actionable ? "Nothing is outstanding: every check passes and the approval matches."
+      : "Every readiness check passes."));
+    else {
+      const ul = el("ul", { class: "list" });
+      for (const c of open) {
+        const li = el("li");
+        li.append(pill(c.status), el("span", {}, objName(c.condition) + (c.required === false ? " (advisory)" : "")));
+        if (c.reason) li.append(el("span", { class: "why" }, c.reason));
+        ul.append(li);
+      }
+      box.append(ul);
+    }
+    if (e.pending.length) {
+      box.append(el("div", { class: "eyebrow", style: "margin-top:4px" }, "Waiting on"));
+      const byRole = {};
+      for (const a of e.pending) (byRole[a.role || ""] = byRole[a.role || ""] || []).push(a);
+      for (const [role, acts] of Object.entries(byRole)) {
+        box.append(el("div", { class: "role" }, roleName(role)));
+        const ul = el("ul", { class: "bullets" });
+        for (const a of acts) ul.append(el("li", {}, (ACTION_WORDS[a.kind] || ((x, y) => `${y.kind.replace(/_/g, " ")} ${objName(y.target)}`))(e, a)));
+        box.append(ul);
+      }
+    }
+    if (passing.length) {
+      const det = el("details");
+      det.append(el("summary", { class: "small" }, `${passing.length} check${passing.length === 1 ? "" : "s"} pass`));
+      const ul = el("ul", { class: "bullets", style: "margin-top:6px" });
+      for (const c of passing) ul.append(el("li", { class: "small" }, objName(c.condition)));
+      det.append(ul);
+      box.append(det);
+    }
+  }
+
+  function flipSentence(f) {
+    const pct = Math.round(100 * Math.abs(f.flip_number - f.baseline_number) / Math.max(Math.abs(f.baseline_number), 1e-9));
+    const outcome = (f.new_recommendation || []).length ? `${altList(f.new_recommendation)} would be recommended instead`
+      : "no alternative would meet every requirement";
+    const from = f.counterpart_label ? `, taking weight from ${f.counterpart_label.replace(/^the weight on /, "")}` : "";
+    return `If ${f.label || f.parameter} ${f.direction === "above" ? "rises above" : "falls below"} ${withUnit(f.flip_number, f.unit)} `
+      + `(now ${withUnit(f.baseline_number, f.unit)}, a ${pct}% change${from}), ${outcome}.`;
+  }
+  function renderRobust(e) {
+    const box = clear($("robust"));
+    const flips = (e.flips || []).filter((f) => f.verified !== false && f.flip_number !== null && f.baseline_number !== null);
+    if (!e.flips) box.append(el("p", { class: "empty" }, "Not analysed for this episode."));
+    else if (!flips.length) box.append(el("p", { class: "lead" }, "No single input changes the recommendation within the range scanned."));
+    else {
+      const rel = (f) => Math.abs(f.flip_number - f.baseline_number) / Math.max(Math.abs(f.baseline_number), 1e-9);
+      const sorted = [...flips].sort((a, b) => rel(a) - rel(b));
+      box.append(el("p", { class: "small" }, expectedRule
+        ? `At the point estimates (where ${altList(e.recommended) || "nothing"} ranks first), the smallest single changes that would change that ranking:`
+        : "The smallest single changes that would change the recommendation:"));
+      const ul = el("ul", { class: "bullets" });
+      sorted.slice(0, 5).forEach((f) => ul.append(el("li", {}, flipSentence(f))));
+      box.append(ul);
+      if (sorted.length > 5) {
+        const det = el("details");
+        det.append(el("summary", { class: "small" }, `${sorted.length - 5} more`));
+        const more = el("ul", { class: "bullets", style: "margin-top:6px" });
+        sorted.slice(5).forEach((f) => more.append(el("li", { class: "small" }, flipSentence(f))));
+        det.append(more);
+        box.append(det);
+      }
+    }
+    const voi = e.sensitivity && e.sensitivity.value_of_information;
+    if (voi && voi.collect_next && voi.collect_next.length) {
+      const top = voi.collect_next[0];
+      const oid = top.parameter.replace(/\.[a-z_]+$/, "");
+      box.append(el("p", { class: "lead", style: "margin-top:6px" }, `Most worth pinning down next: ${oid.startsWith("obs:") ? obsLabel(e, oid) : objName(oid)}`
+        + (top.evidence ? ` (from ${objName(top.evidence)})` : "") + `. Knowing it exactly is worth about ${score(top.evppi)} of score on average.`));
+    }
+  }
+
+  function renderSources(e) {
+    const rows = e.evidence || [];
+    const located = rows.filter((r) => r.located).length;
+    $("sources-title").textContent = `Where the numbers come from (${rows.length} values, ${located} traced to a report passage)`;
+    const t = clear($("sources")), head = el("tr");
+    ["Value", "", "Source", "Status"].forEach((h) => head.append(el("th", {}, h)));
+    const thead = el("thead"); thead.append(head); t.append(thead);
+    const tb = el("tbody");
+    for (const r of rows) {
+      const tr = el("tr");
+      const m = measureOf[r.measure];
+      tr.append(el("td", {}, `${short(r.alternative)} · ${m ? m.name : short(r.measure)}`), el("td", { class: "r" }, withUnit(r.value, r.unit)),
+                el("td", {}, r.source));
+      const st = r.applicability !== "accepted" ? r.applicability : !r.current ? "awaiting review" : "accepted";
+      tr.append(el("td", {}, st));
+      tb.append(tr);
+    }
+    t.append(tb);
+  }
+
+  function setView(v) {
+    view = v;
+    $("tab-decision").setAttribute("aria-selected", String(v === "decision"));
+    $("tab-engineering").setAttribute("aria-selected", String(v === "engineering"));
+    $("view-decision").hidden = v !== "decision";
+    $("view-engineering").hidden = v !== "engineering";
+    $("view-hint").textContent = v === "decision" ? "For decision makers and reviewers: what was decided, why, and what it waits on."
+      : "For engineers: every node of the compiled graph, its status, and what each refresh recomputed.";
+    updateHash();
+    render();
+  }
+  function updateHash() {
+    try { history.replaceState(null, "", "#" + short(current) + (view === "engineering" ? ".engineering" : "")); } catch (err) { /* sandboxed */ }
+  }
   function select(id) {
     current = id; selectedNode = null;
-    try { history.replaceState(null, "", "#" + short(id)); } catch (err) { /* sandboxed */ }
+    updateHash();
     render();
   }
   function render() {
     const e = byId[current];
-    renderStrip(); renderTiles(e); renderTable(e); renderGraph(e); renderReadiness(e); renderHistory(); renderWork();
-    renderFlips(e); renderTornado(e); renderUncertainty(e);
-    clear($("detail")).append(el("span", { class: "empty" }, "Select a node to see its value, its inputs and how this episode computed it."));
+    if (view === "decision") {
+      renderTimeline(); renderVerdict(e); renderChanged(e); renderWhy(e); renderAct(e); renderRobust(e); renderHistory(); renderSources(e);
+    } else {
+      // the graph measures its labels, so it is drawn only while visible
+      renderStrip(); renderTiles(e); renderTable(e); renderGraph(e); renderReadiness(e); renderWork();
+      renderFlips(e); renderTornado(e); renderUncertainty(e);
+      clear($("detail")).append(el("span", { class: "empty" }, "Select a node to see its value, its inputs and how this episode computed it."));
+    }
   }
+  $("tab-decision").addEventListener("click", () => setView("decision"));
+  $("tab-engineering").addEventListener("click", () => setView("engineering"));
   $("t-inputs").addEventListener("click", () => { showInputs = !showInputs; $("t-inputs").setAttribute("aria-pressed", String(showInputs)); renderGraph(byId[current]); });
   $("t-impact").addEventListener("click", () => { showImpact = !showImpact; $("t-impact").setAttribute("aria-pressed", String(showImpact)); renderGraph(byId[current]); });
-  window.addEventListener("hashchange", () => { const e = fromHash(); if (e && e.id !== current) select(e.id); });
-  renderLegend(); renderVoi(); render();
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => renderGraph(byId[current]));
+  window.addEventListener("hashchange", () => {
+    const h = fromHash();
+    if (h.view && h.view !== view) { if (h.ep) current = h.ep.id; setView(h.view); }
+    else if (h.ep && h.ep.id !== current) select(h.ep.id);
+  });
+  renderLegend(); renderVoi(); setView(view);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (view === "engineering") renderGraph(byId[current]); });
 })();
 </script>

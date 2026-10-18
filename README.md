@@ -75,10 +75,12 @@ Readiness: READY   Actionable: no (alt:B has no approval)
 - **Pending actions by role.** With one person they are a to-do list. In a collaborative harness each
   role is a person to notify.
 - **A read-only dashboard.** `pdo dashboard` writes one self-contained HTML page (and the JSON behind it)
-  for people to look at: the dependency graph of every episode, with each node's status and whether that
-  episode's refresh recomputed or reused it; the decision table, readiness and pending actions; utility
-  and refresh work across the program; and flips, a tornado, uncertainty and value of information. The
-  page draws kernel results and computes nothing. See [docs/dashboard.md](docs/dashboard.md).
+  with two views. The Decision view, for decision makers and reviewers, tells the program as a timeline. For
+  each episode it gives the verdict, what changed and its effect, why this recommendation (a decision matrix
+  and the must-meet requirements in words), what it waits on and who, what would change it, and where every
+  number comes from. The Engineering view shows the compiled graph: every node's status and whether the
+  episode's refresh recomputed or reused it, with the raw tables and analyses. The page draws kernel results
+  and computes nothing. See [docs/dashboard.md](docs/dashboard.md).
 
 ## Examples
 

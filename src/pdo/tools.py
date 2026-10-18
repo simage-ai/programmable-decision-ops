@@ -1160,8 +1160,9 @@ def docs_revise(path: str | Path, document: str, new_file: str | Path, write: bo
 
     program = _program(path)
     base = _episode(program, parent or program.newest())
-    change, report = revise(program.materialize(base), program.base_dir, document, new_file)
-    change["change_description"] = describe_revision(report)
+    state = program.materialize(base)
+    change, report = revise(state, program.base_dir, document, new_file)
+    change["change_description"] = describe_revision(report, state)
     data, base = _document_change(program, change, role, base, episode_id, as_of)
     model = _change_model(data)
     preview = _preview(program, model, base)

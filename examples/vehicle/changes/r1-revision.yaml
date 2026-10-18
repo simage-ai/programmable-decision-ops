@@ -11,9 +11,9 @@ id: ep:r1
 parent: ep:e08
 as_of: 2027-10-01
 trigger: evidence
-change_description: 'New version of docs/reliability-test-report.docx (docs/reliability-test-report-rev2.docx).
-  Sections changed, added, moved or removed: 2 Test conditions; 3 Results > 3.3 Vehicle C. 2 locators moved to the
-  new version because their section text is unchanged; obs:C.reliability needs review.'
+change_description: 'New version of Reliability growth test report, phase 1, revision 2 (synthetic) (docs/reliability-test-report-rev2.docx):
+  changed 2 Test conditions, 3.3 Vehicle C. 2 values carried over (their sections are unchanged); C''s mission reliability
+  needs review because its section changed.'
 author_role: role:test-engineer
 assign:
 - target: ev:reliability-A

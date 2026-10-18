@@ -144,10 +144,11 @@ def actions(path: Path = PathArg, episode: str = EpisodeOpt,
 
 
 def _register_groups() -> None:
-    from pdo import cli_analysis, cli_program, cli_sensitivity, cli_sysml, cli_tools, cli_uncertainty
+    from pdo import cli_analysis, cli_dashboard, cli_program, cli_sensitivity, cli_sysml, cli_tools, cli_uncertainty
     from pdo.bench import cli as bench_cli
 
-    for module in (cli_program, cli_analysis, bench_cli, cli_tools, cli_uncertainty, cli_sysml, cli_sensitivity):
+    for module in (cli_program, cli_analysis, bench_cli, cli_tools, cli_uncertainty, cli_sysml, cli_sensitivity,
+                   cli_dashboard):
         module.register(app)
 
 

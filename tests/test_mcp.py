@@ -369,7 +369,7 @@ EXPECTED_TOOLS = {f"pdo_{name}" for name in (
     "describe_schema", "validate", "run", "explain", "flip", "scenarios", "readiness", "pending_actions",
     "program_status", "refresh", "impact", "uncertainty", "sensitivity", "list_examples", "apply_change",
     "record_human_action",
-    "package", "import_sysml", "copy_example")}
+    "package", "dashboard", "import_sysml", "copy_example")}
 
 
 @pytest.fixture(scope="module")

@@ -2,7 +2,7 @@ SCHEMA := schema/pdo.yaml
 RUN := uv run
 PROPOSAL_DIR ?= ../papers-and-proposals/src/army-nv012
 
-.PHONY: install lint gen-project test bench proposal-values sensitivity-figures all
+.PHONY: install lint gen-project test bench proposal-values sensitivity-figures dashboards all
 
 install:
 	uv sync --all-extras
@@ -36,5 +36,10 @@ sensitivity-figures:
 	$(RUN) pdo sensitivity examples/fires_sensor --samples 1024 --figures results/figures/fires > /dev/null
 	$(RUN) pdo sensitivity examples/fires_sensor -p asm:threat-rcs-factor.value --figures results/figures/fires > /dev/null
 	$(RUN) pdo sensitivity examples/vehicle -p obs:B.cost.value --figures results/figures/vehicle > /dev/null
+
+# Read-only dashboards of the examples (site/ is not committed).
+dashboards:
+	$(RUN) pdo dashboard examples/vehicle -o site/vehicle
+	$(RUN) pdo dashboard examples/fires_sensor -o site/fires_sensor
 
 all: lint test

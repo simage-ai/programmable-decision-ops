@@ -11,7 +11,7 @@ HASHABLE: dict[str, tuple[str, ...]] = {
     'ConditionResult': ('condition', 'required', 'status'),
     'Criterion': ('anchor_best', 'anchor_worst', 'clip', 'measure', 'points', 'weight'),
     'CriterionValue': ('criterion', 'measured', 'value_score', 'weight'),
-    'DecisionEpisodeRecord': ('actionable', 'as_of', 'claims', 'episode', 'evpi', 'feasible', 'flips', 'impact', 'infeasible', 'matching_approval', 'outcomes', 'parameter_scans', 'parent', 'pending_actions', 'propositions', 'readiness', 'recommended', 'robust', 'runs', 'scenario_outcomes', 'sensitivity', 'state_digest', 'unresolved'),
+    'DecisionEpisodeRecord': ('actionable', 'as_of', 'claims', 'episode', 'evpi', 'evpi_high', 'evpi_low', 'expected_value_choice', 'feasible', 'flips', 'impact', 'infeasible', 'matching_approval', 'outcomes', 'parameter_scans', 'parent', 'pending_actions', 'propositions', 'readiness', 'recommended', 'robust', 'runs', 'scenario_outcomes', 'sensitivity', 'sensitivity_settings', 'state_digest', 'unresolved'),
     'DecisionProgram': (),
     'DecisionRule': ('chance_alpha', 'rule_kind', 'samples', 'seed', 'tie_tolerance'),
     'DecisionState': ('alternatives', 'approvals', 'as_of', 'assumptions', 'bias_checks', 'criteria', 'decision_rule', 'evaluation_specifications', 'evidence_items', 'measures', 'objectives', 'observations', 'readiness_conditions', 'readiness_policy', 'requirements', 'reviews', 'risks', 'roles', 'scenarios'),
@@ -42,7 +42,8 @@ HASHABLE: dict[str, tuple[str, ...]] = {
     'Role': (),
     'Scenario': ('assignments',),
     'ScenarioOutcome': ('feasible', 'infeasible', 'outcomes', 'recommended', 'robust', 'scenario', 'unresolved'),
-    'SensitivityEntry': ('evidence', 'evppi', 'first_order', 'flips_within', 'high_number', 'low_number', 'margin_high', 'margin_low', 'parameter', 'swing', 'total_index'),
+    'SensitivityEntry': ('evidence', 'evppi', 'evppi_high', 'evppi_low', 'first_order', 'flips_within', 'high_number', 'low_number', 'margin_high', 'margin_low', 'parameter', 'swing', 'total_high', 'total_index', 'total_low', 'worth_resolving'),
+    'SensitivitySettings': ('infeasible_value', 'samples', 'seed', 'span'),
     'SlotAssignment': ('new_value', 'slot', 'target'),
     'UncertaintySpec': ('family', 'high', 'low', 'mean', 'mode', 'sd'),
 }

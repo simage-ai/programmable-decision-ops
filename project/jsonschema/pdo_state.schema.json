@@ -730,6 +730,27 @@
                         "null"
                     ]
                 },
+                "evpi_high": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "evpi_low": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "expected_value_choice": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
                 "feasible": {
                     "items": {
                         "type": "string"
@@ -879,6 +900,16 @@
                     "type": [
                         "array",
                         "null"
+                    ]
+                },
+                "sensitivity_settings": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/SensitivitySettings"
+                        },
+                        {
+                            "type": "null"
+                        }
                     ]
                 },
                 "source_path": {
@@ -3026,6 +3057,18 @@
                         "null"
                     ]
                 },
+                "evppi_high": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "evppi_low": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
                 "first_order": {
                     "type": [
                         "number",
@@ -3080,14 +3123,73 @@
                         "null"
                     ]
                 },
+                "total_high": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
                 "total_index": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "total_low": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "worth_resolving": {
+                    "description": "The EVPPI's 90% bootstrap interval excludes zero.",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                }
+            },
+            "title": "SensitivityEntry",
+            "type": "object"
+        },
+        "SensitivitySettings": {
+            "additionalProperties": false,
+            "description": "What a sensitivity analysis needs to be re-run exactly (pdo replay re-runs and compares it).",
+            "properties": {
+                "estimator": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "infeasible_value": {
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "samples": {
+                    "description": "Monte Carlo samples for expected_mavt.",
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "seed": {
+                    "description": "Random seed for expected_mavt; recorded so runs replay exactly.",
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "span": {
                     "type": [
                         "number",
                         "null"
                     ]
                 }
             },
-            "title": "SensitivityEntry",
+            "title": "SensitivitySettings",
             "type": "object"
         },
         "SlotAssignment": {

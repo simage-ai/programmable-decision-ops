@@ -33,7 +33,7 @@ proposal-values: bench
 
 # Sensitivity figures for the proposal (seeded, so reproducible on one machine).
 sensitivity-figures:
-	$(RUN) pdo sensitivity examples/fires_sensor --samples 256 --figures results/figures/fires > /dev/null
+	$(RUN) pdo sensitivity examples/fires_sensor --samples 1024 --figures results/figures/fires > /dev/null
 	$(RUN) pdo sensitivity examples/fires_sensor -p asm:threat-rcs-factor.value --figures results/figures/fires > /dev/null
 	$(RUN) pdo sensitivity examples/vehicle -p obs:B.cost.value --figures results/figures/vehicle > /dev/null
 

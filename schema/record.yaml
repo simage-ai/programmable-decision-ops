@@ -26,8 +26,8 @@ classes:
     description: One evaluated decision episode.
     slots: [episode, parent, source_path, question, as_of, state_digest, kernel_version, recommended, feasible,
       infeasible, unresolved, outcomes, readiness, actionable, actionable_reason, matching_approval, flips,
-      parameter_scans, scenario_outcomes, robust, sensitivity, evpi, pending_actions, runs, propositions, claims,
-      impact]
+      parameter_scans, scenario_outcomes, robust, sensitivity, sensitivity_settings, evpi, evpi_low, evpi_high,
+      expected_value_choice, pending_actions, runs, propositions, claims, impact]
 
   SensitivityEntry:
     description: >-
@@ -35,7 +35,11 @@ classes:
       of the input's range with everything else fixed, its Sobol total index for the margin, and the
       expected value of resolving its uncertainty (EVPPI), with the evidence that would resolve it.
     slots: [parameter, low_number, high_number, range_source, margin_low, margin_high, swing, flips_within,
-      first_order, total_index, evppi, evidence]
+      first_order, total_index, total_low, total_high, evppi, evppi_low, evppi_high, worth_resolving, evidence]
+
+  SensitivitySettings:
+    description: What a sensitivity analysis needs to be re-run exactly (pdo replay re-runs and compares it).
+    slots: [seed, samples, span, infeasible_value, estimator]
 
   AlternativeOutcome:
     description: How one alternative fared.
@@ -388,6 +392,45 @@ slots:
   evppi:
     mixins: [hashable]
     range: float
+
+  sensitivity_settings:
+    mixins: [hashable]
+    range: SensitivitySettings
+    inlined: true
+  evpi_low:
+    mixins: [hashable]
+    range: float
+  evpi_high:
+    mixins: [hashable]
+    range: float
+  expected_value_choice:
+    mixins: [hashable]
+    range: Alternative
+    multivalued: true
+  total_low:
+    mixins: [hashable]
+    range: float
+  total_high:
+    mixins: [hashable]
+    range: float
+  evppi_low:
+    mixins: [hashable]
+    range: float
+  evppi_high:
+    mixins: [hashable]
+    range: float
+  worth_resolving:
+    mixins: [hashable]
+    range: boolean
+    description: The EVPPI's 90% bootstrap interval excludes zero.
+  span:
+    mixins: [hashable]
+    range: float
+  infeasible_value:
+    mixins: [hashable]
+    range: float
+  estimator:
+    mixins: [unhashable]
 
 enums:
   ExecutionStatus:

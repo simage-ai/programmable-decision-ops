@@ -249,7 +249,7 @@ flips.
 - an observation's or assumption's `value`;
 - a requirement's `threshold_value`;
 - a criterion's `anchor_worst` or `anchor_best`;
-- an evaluator parameter, as `<spec id>.<arg>`.
+- an evaluator parameter, as `<spec id>.<arg>` (evaluator parameters never collide with slot names).
 
 An input's **range** is the first of these that applies:
 
@@ -257,38 +257,63 @@ An input's **range** is the first of these that applies:
 2. its plausible range;
 3. its value ± `span` (default 10%).
 
-**Value of a choice.** Each alternative in each draw gets a value: its utility when feasible, and
-`infeasible_value` (default 0, the worst score on every scale) when a mandatory check fails. An unknown
-value is left out and counted. The **decision margin** is the baseline recommendation's value minus the
-best other alternative's value.
+A criterion anchor's default range stops halfway to the other anchor, and an explicit range that reaches
+the other anchor is refused. An input whose value is 0, with no distribution or plausible range, has no
+range: give `low` and `high`, otherwise the tornado lists it as skipped.
+
+**Value of a choice and the decision margin.** Each alternative in each draw gets a value: its utility
+when feasible, and `infeasible_value` (default 0, never positive) when a mandatory check fails. An
+unknown value is left out and counted.
+
+The **decision margin** is the baseline recommendation's value minus the best competitor's optimistic
+value. For a tie, the recommendation's value is the best value in the tied set. The optimistic value is:
+
+- `infeasible_value` for a competitor that fails a check;
+- its utility, when only its feasibility is unknown;
+- its utility upper bound, when its utility is unknown.
+
+This is the same rule as the coverage condition, so an unresolved competitor can only shrink the margin.
+A negative margin means another alternative could win.
 
 - **Response curve.** One input is swept over its range with everything else fixed. It reports utility
   and feasibility per alternative, the points where the recommendation changes (found by bisection), the
   slope and elasticity at the input's point value, and how far each utility curve departs from a
-  straight line (kinks from clipping, curvature from nonlinear evaluators). A change point is where the
-  recommendation leaves its set; with a tie tolerance τ that is τ/slope before the exact crossing.
+  straight line.
+  - Change points are reported in increasing order of the input.
+  - A change point is where the recommendation leaves its current set. At a preference crossing that is
+    τ/|slope| before the exact crossing, τ being the tie tolerance.
+  - At a feasibility boundary it is offset by the requirement's `check_tolerance`, on either side.
 - **Distribution.** One input is drawn from its distribution (or uniformly over its range), with
-  everything else fixed. It reports each alternative's utility mean, sd and 5th/50th/95th percentiles,
-  P(feasible), P(win) (ties split evenly), and expected regret (the best value minus its own), plus
-  P(the recommendation differs from the baseline). Draws use the same per-object streams as
-  `pdo uncertainty`.
-- **Tornado.** Each input is set to the low and the high end of its range, one at a time. Inputs are
-  ranked by the largest change in the decision margin, and each is flagged if the recommendation changes
-  within its range.
+  everything else fixed, using the same per-object streams as `pdo uncertainty`. It reports:
+  - each alternative's utility mean, sd, and 5th/50th/95th percentiles;
+  - P(feasible) and P(win), with ties split evenly;
+  - P(no recommendation) and P(the recommendation differs from the baseline);
+  - expected regret (the best value minus its own);
+  - the number of draws with an unknown value.
+- **Tornado.** Each input is set to the low and the high end of its range, one at a time, and inputs are
+  ranked by the largest change in the decision margin. It also scans 9 points across each range, so a
+  recommendation change inside the range is flagged even when both ends agree.
 - **Global indices.** All inputs that declare distributions are drawn jointly in a Saltelli design:
-  matrices A and B, plus A with column i taken from B, for N(k + 2) probes.
+  matrices A and B, plus A with column i taken from B, for N(k + 2) probes (default N = 512).
   - First-order index: the Saltelli (2010) estimator on centered outputs. It is exactly 0 for an input
     with no effect.
   - Total index: Jansen (1999).
-  - Spearman rank correlations, from the same sample.
-  - Indices are computed for each alternative's value and for the decision margin. They are estimates:
-    small negative values are sampling noise, and more samples narrow them.
+  - Spearman rank correlations come from the same sample.
+  - The decision margin's indices carry 90% bootstrap intervals. Estimates can leave [0, 1] by sampling
+    noise; the interval shows by how much.
 - **Value of information.** Computed for the expected-value choice under the infeasible-value penalty,
-  not under a chance-constrained rule.
+  without a chance constraint, from the 2N draws of A and B.
   - EVPI = E[max_a V(a)] − max_a E[V(a)].
-  - EVPPI per input is estimated by binning the joint sample on that input (√N quantile bins). A noise
-    floor (the largest EVPPI over shuffled orderings) separates signal from binning noise.
-  - Inputs above the floor name the evidence that would resolve them: what to collect next.
+  - EVPPI per input uses **cross-fitted quantile binning**. Plain binning (the best mean in each bin of
+    the input) is biased upward, because the maximum of noisy means exceeds the maximum of true
+    conditional means.
+  - Cross-fitting splits the draws in two folds by draw index, chooses in each bin on one fold, scores
+    on the other, and averages both directions. The estimate can be slightly negative for an input that
+    does not matter.
+  - Each EVPPI carries a 90% Poisson-bootstrap interval. An input is **worth resolving** when its
+    interval excludes zero, and only those name the evidence to collect next.
+- **Replay.** A Decision Package records the analysis settings (seed, samples, span, infeasible value)
+  with its sensitivity section, and `pdo replay` re-runs the analysis and checks it reproduces.
 
 Every probe is the point graph with the varied source nodes rebuilt, run in cutoff mode, so it equals
 compiling the assigned state but re-runs only what the varied inputs reach. Results report the probes

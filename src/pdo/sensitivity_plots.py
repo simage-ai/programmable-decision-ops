@@ -74,7 +74,7 @@ def response_figure(result: dict, path: Path) -> Path:
     ax.set_title(f"Response of each alternative's utility to {p['parameter']}", loc="left")
     ax.legend(loc="best", title="hollow points: infeasible", title_fontsize=7)
     fig.tight_layout()
-    fig.savefig(path, dpi=180)
+    fig.savefig(path, dpi=180, metadata={"Software": None})
     plt.close(fig)
     return path
 
@@ -106,7 +106,7 @@ def distribution_figure(result: dict, path: Path) -> Path:
                  f"(P(decision changes) = {dist['p_decision_changes']:.2f})", fontsize=9, color=INK_2, x=0.01,
                  ha="left")
     fig.tight_layout()
-    fig.savefig(path, dpi=180)
+    fig.savefig(path, dpi=180, metadata={"Software": None})
     plt.close(fig)
     return path
 
@@ -116,6 +116,8 @@ def tornado_figure(result: dict, path: Path, top: int = 12) -> Path:
     t = result["tornado"]
     rows = [r for r in t["rows"] if r["swing"] is not None][:top][::-1]
     m0 = t["margin"]
+    if m0 is None or not rows:
+        return None  # no margin to draw (no recommendation, or no competitor)
     fig, ax = plt.subplots(figsize=(6.8, 0.38 * len(rows) + 1.2))
     # Low and high ends side by side (not stacked), so both stay visible when they move the same way.
     for i, r in enumerate(rows):
@@ -128,11 +130,12 @@ def tornado_figure(result: dict, path: Path, top: int = 12) -> Path:
     ax.annotate("margin < 0: another alternative wins", (0, 0), xycoords=("data", "axes fraction"),
                 xytext=(-4, 4), textcoords="offset points", fontsize=7, color=INK_2, ha="right")
     ax.set_yticks(range(len(rows)), [r["parameter"] for r in rows])
-    ax.set_xlabel(f"decision margin of {', '.join(_short(a) for a in t['baseline'])} (baseline {m0:.3g})")
+    ax.set_xlabel(f"decision margin of {', '.join(_short(a) for a in t['baseline'])} (baseline {m0:.3g}; "
+                  "unresolved competitors at their upper bound)")
     ax.set_title("Tornado: each input across its range, one at a time", loc="left")
     ax.legend(loc="lower right")
     fig.tight_layout()
-    fig.savefig(path, dpi=180)
+    fig.savefig(path, dpi=180, metadata={"Software": None})
     plt.close(fig)
     return path
 
@@ -142,19 +145,22 @@ def voi_figure(result: dict, path: Path, top: int = 12) -> Path:
     voi = result["value_of_information"]
     rows = voi["parameters"][:top][::-1]
     fig, ax = plt.subplots(figsize=(6.8, 0.38 * len(rows) + 1.2))
-    ax.barh(range(len(rows)), [r["evppi"] for r in rows], color=SERIES[0], height=0.6)
+    est = [max(0.0, r["evppi"] or 0.0) for r in rows]
+    colors = [SERIES[0] if r["above_noise"] else OTHER for r in rows]
+    ax.barh(range(len(rows)), est, color=colors, height=0.6)
     for i, r in enumerate(rows):
-        label = f"{r['evppi']:.3g}" + (f"  ({r['evidence']})" if r["evidence"] else "")
-        ax.annotate(label, (r["evppi"], i), xytext=(3, 0), textcoords="offset points", va="center", fontsize=7,
-                    color=INK_2)
-    if voi["noise_floor"] > 0:
-        ax.axvline(voi["noise_floor"], color=MUTED, linewidth=1, linestyle=":")
+        if r["interval"]:
+            lo, hi = max(0.0, r["interval"][0]), max(0.0, r["interval"][1])
+            ax.plot([lo, hi], [i, i], color=INK_2, linewidth=1)
+        label = f"{est[i]:.3g}" + (f"  ({r['evidence']})" if r["evidence"] else "")
+        ax.annotate(label, (max(est[i], (r["interval"] or [0, 0])[1]), i), xytext=(4, 0), textcoords="offset points",
+                    va="center", fontsize=7, color=INK_2)
     ax.set_yticks(range(len(rows)), [r["parameter"] for r in rows])
-    ax.set_xlabel("expected value of resolving this input (utility points)")
-    ax.set_title(f"Value of information: EVPI {voi['evpi']:.3g}, by input (EVPPI)", loc="left")
-    ax.set_xlim(0, max([r["evppi"] for r in rows] + [1e-6]) * 1.6)
+    ax.set_xlabel("expected value of resolving this input (utility points; line: 90% interval)")
+    ax.set_title(f"Value of information: EVPI {voi['evpi']:.3g} (blue: interval excludes 0)", loc="left")
+    ax.set_xlim(0, max(est + [(r["interval"] or [0, 0])[1] for r in rows] + [1e-6]) * 1.7)
     fig.tight_layout()
-    fig.savefig(path, dpi=180)
+    fig.savefig(path, dpi=180, metadata={"Software": None})
     plt.close(fig)
     return path
 
@@ -162,7 +168,7 @@ def voi_figure(result: dict, path: Path, top: int = 12) -> Path:
 def global_figure(result: dict, path: Path, top: int = 12) -> Path:
     plt = _plt()
     g = result["global"]
-    target = "margin" if "margin" in g["targets"] else g["targets"][0]
+    target = g["main_target"]
     rows = g["indices"][:top][::-1]
     fig, ax = plt.subplots(figsize=(6.8, 0.42 * len(rows) + 1.2))
     ys = range(len(rows))
@@ -176,7 +182,7 @@ def global_figure(result: dict, path: Path, top: int = 12) -> Path:
     ax.set_title(f"Global sensitivity (Sobol, {g['samples']} samples)", loc="left")
     ax.legend(loc="lower right")
     fig.tight_layout()
-    fig.savefig(path, dpi=180)
+    fig.savefig(path, dpi=180, metadata={"Software": None})
     plt.close(fig)
     return path
 
@@ -194,4 +200,4 @@ def write_figures(result: dict, out_dir: str | Path, prefix: str = "sensitivity"
         written.append(global_figure(result, out / f"{prefix}_global.png"))
     if result.get("value_of_information"):
         written.append(voi_figure(result, out / f"{prefix}_voi.png"))
-    return written
+    return [p for p in written if p is not None]

@@ -196,21 +196,22 @@ def example_values(result: SuiteResult) -> list[tuple[str, str, str, str]]:
 
 
 def sensitivity_values(root: Path) -> list[tuple[str, str, str, str]]:
-    """pdo.sensitivity on the Fires example (seeded, so deterministic) and the vehicle tornado."""
+    """pdo.sensitivity on the Fires example: seeded (deterministic), 1024 samples per Saltelli matrix, with
+    90% bootstrap intervals, so the quoted numbers carry their uncertainty."""
     from pdo.episodes import Program
     from pdo.sensitivity import analyze
 
     fires = Program.load(root / "examples" / "fires_sensor")
     state = fires.materialize(fires.baseline_episode)
-    full = analyze(state, fires.base_dir, samples=256)
+    full = analyze(state, fires.base_dir, samples=1024)
     voi, glob, torn = full["value_of_information"], full["global"], full["tornado"]
     top = voi["parameters"][0]
-    margin_index = next(r["margin"] for r in glob["indices"] if r["parameter"] == top["parameter"])
+    margin = next(r["margin"] for r in glob["indices"] if r["parameter"] == top["parameter"])
     rcs = analyze(state, fires.base_dir, "asm:threat-rcs-factor.value", samples=200)["response"]["shape"]
     shape = rcs["alt:new-array"]
-    vehicle = Program.load(root / "examples" / "vehicle")
-    vtorn = analyze(vehicle.materialize(vehicle.baseline_episode), vehicle.base_dir)["tornado"]
-    where = "examples/fires_sensor, pdo sensitivity"
+    where = "examples/fires_sensor, pdo sensitivity, 1024 samples"
+    lo, hi = top["interval"]
+    tlo, thi = margin["total_interval"]
     return [
         ("PDO_SENS_FIRES_INPUTS", str(len(glob["indices"])), "inputs",
          f"Uncertain inputs analysed jointly in the Fires example ({where})"),
@@ -223,21 +224,23 @@ def sensitivity_values(root: Path) -> list[tuple[str, str, str, str]]:
         ("PDO_SENS_FIRES_TOP_EVIDENCE", top["evidence"] or "", "evidence",
          f"Evidence item that would resolve the top input ({where})"),
         ("PDO_SENS_FIRES_TOP_EVPPI", f"{top['evppi']:.4f}", "utility",
-         f"EVPPI of the top input ({where})"),
+         f"EVPPI of the top input, cross-fitted binning ({where})"),
+        ("PDO_SENS_FIRES_TOP_EVPPI_LO", f"{lo:.4f}", "utility", f"Lower end of its 90% bootstrap interval ({where})"),
+        ("PDO_SENS_FIRES_TOP_EVPPI_HI", f"{hi:.4f}", "utility", f"Upper end of its 90% bootstrap interval ({where})"),
         ("PDO_SENS_FIRES_TOP_EVPPI_SHARE_PCT", f"{100 * top['evppi'] / voi['evpi']:.0f}", "%",
          f"Top input's EVPPI as a share of EVPI ({where})"),
-        ("PDO_SENS_FIRES_TOP_TOTAL_INDEX", f"{margin_index['total']:.2f}", "fraction",
+        ("PDO_SENS_FIRES_WORTH_RESOLVING", str(len(voi["collect_next"])), "inputs",
+         f"Inputs whose EVPPI interval excludes zero ({where})"),
+        ("PDO_SENS_FIRES_TOP_TOTAL_INDEX", f"{margin['total']:.2f}", "fraction",
          f"Sobol total index of the top input for the decision margin ({where})"),
-        ("PDO_SENS_FIRES_SIGNIFICANT_INPUTS", str(len(voi["collect_next"])), "inputs",
-         f"Inputs whose EVPPI exceeds the shuffled-binning noise floor ({where})"),
+        ("PDO_SENS_FIRES_TOP_TOTAL_INDEX_LO", f"{tlo:.2f}", "fraction", f"Lower end of its 90% interval ({where})"),
+        ("PDO_SENS_FIRES_TOP_TOTAL_INDEX_HI", f"{thi:.2f}", "fraction", f"Upper end of its 90% interval ({where})"),
         ("PDO_SENS_TORNADO_EXECUTED_PCT", f"{100 * torn['cost']['executed_fraction']:.1f}", "%",
          f"Share of computed nodes each one-at-a-time probe re-ran, against a full run ({where})"),
         ("PDO_SENS_RCS_ELASTICITY", f"{shape['elasticity']:.3f}", "1",
          "Elasticity of the new array's utility to the threat RCS factor (radar equation, range ~ RCS^0.25)"),
         ("PDO_SENS_RCS_NONLINEAR_PCT", f"{100 * shape['relative_deviation']:.0f}", "%",
          "Largest departure of the new array's utility from linear over the RCS range, as a share of its rise"),
-        ("PDO_SENS_VEHICLE_TOP_INPUT", vtorn["rows"][0]["parameter"], "input",
-         "Input with the largest swing of the vehicle decision margin (tornado, one at a time)"),
     ]
 
 

@@ -613,8 +613,8 @@ class DecisionRule(NamedThing):
 
     rule_kind: DecisionRuleKind = Field(default=..., json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionRule'], 'mixins': ['hashable']} })
     tie_tolerance: Optional[float] = Field(default=None, description="""Alternatives within this utility of the maximum are tied (default 1.0e-9).""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionRule'], 'mixins': ['hashable']} })
-    samples: Optional[int] = Field(default=None, description="""Monte Carlo samples for expected_mavt.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionRule'], 'mixins': ['hashable']} })
-    seed: Optional[int] = Field(default=None, description="""Random seed for expected_mavt; recorded so runs replay exactly.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionRule'], 'mixins': ['hashable']} })
+    samples: Optional[int] = Field(default=None, description="""Monte Carlo samples for expected_mavt.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionRule', 'SensitivitySettings'], 'mixins': ['hashable']} })
+    seed: Optional[int] = Field(default=None, description="""Random seed for expected_mavt; recorded so runs replay exactly.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionRule', 'SensitivitySettings'], 'mixins': ['hashable']} })
     chance_alpha: Optional[float] = Field(default=None, description="""Joint chance constraint tolerance; feasible iff Pr(all mandatory checks pass) >= 1 - alpha.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionRule'], 'mixins': ['hashable']} })
     id: str = Field(default=..., description="""Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).""", json_schema_extra = { "linkml_meta": {'domain_of': ['NamedThing',
                        'ChangeSet',
@@ -1288,7 +1288,11 @@ class DecisionEpisodeRecord(ConfiguredBaseModel):
     robust: Optional[bool] = Field(default=None, description="""On a scenario outcome, the baseline recommendation is feasible and uniquely best in that scenario; on a record, in every scenario of the declared set.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord', 'ScenarioOutcome'],
          'mixins': ['hashable']} })
     sensitivity: Optional[list[SensitivityEntry]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
+    sensitivity_settings: Optional[SensitivitySettings] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     evpi: Optional[float] = Field(default=None, description="""Expected value of perfect information about every uncertain input (utility points).""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
+    evpi_low: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
+    evpi_high: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
+    expected_value_choice: Optional[list[str]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     pending_actions: Optional[list[PendingAction]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     runs: Optional[list[EvaluationRun]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
     propositions: Optional[list[Proposition]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionEpisodeRecord'], 'mixins': ['hashable']} })
@@ -1313,8 +1317,26 @@ class SensitivityEntry(ConfiguredBaseModel):
     flips_within: Optional[bool] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
     first_order: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
     total_index: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    total_low: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    total_high: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
     evppi: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    evppi_low: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    evppi_high: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
+    worth_resolving: Optional[bool] = Field(default=None, description="""The EVPPI's 90% bootstrap interval excludes zero.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivityEntry'], 'mixins': ['hashable']} })
     evidence: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Observation', 'SensitivityEntry'], 'mixins': ['hashable']} })
+
+
+class SensitivitySettings(ConfiguredBaseModel):
+    """
+    What a sensitivity analysis needs to be re-run exactly (pdo replay re-runs and compares it).
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/pdo/schema/record'})
+
+    seed: Optional[int] = Field(default=None, description="""Random seed for expected_mavt; recorded so runs replay exactly.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionRule', 'SensitivitySettings'], 'mixins': ['hashable']} })
+    samples: Optional[int] = Field(default=None, description="""Monte Carlo samples for expected_mavt.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DecisionRule', 'SensitivitySettings'], 'mixins': ['hashable']} })
+    span: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivitySettings'], 'mixins': ['hashable']} })
+    infeasible_value: Optional[float] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivitySettings'], 'mixins': ['hashable']} })
+    estimator: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['SensitivitySettings'], 'mixins': ['unhashable']} })
 
 
 class AlternativeOutcome(ConfiguredBaseModel):
@@ -1567,6 +1589,7 @@ DecisionProgram.model_rebuild()
 ChangeSet.model_rebuild()
 DecisionEpisodeRecord.model_rebuild()
 SensitivityEntry.model_rebuild()
+SensitivitySettings.model_rebuild()
 AlternativeOutcome.model_rebuild()
 CheckOutcome.model_rebuild()
 CriterionValue.model_rebuild()

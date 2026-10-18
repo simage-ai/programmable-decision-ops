@@ -30,15 +30,12 @@ def register(app: typer.Typer) -> None:
         """How the decision responds to its inputs: response curves, distributions, tornado, Sobol indices
         and value of information."""
         from pdo.cli import emit, fail
-        from pdo.graph import CompileError
-        from pdo.load import LoadError
-        from pdo.sensitivity import SensitivityError, analyze_path, render
-        from pdo.uncertainty import UncertaintyError
+        from pdo.sensitivity import analyze_path, render
 
         try:
             result = analyze_path(path, episode, param, span=span, points=points, samples=samples, seed=seed,
                                   low=low, high=high, infeasible_value=infeasible_value)
-        except (SensitivityError, UncertaintyError, LoadError, CompileError, ValueError, KeyError) as exc:
+        except (ValueError, KeyError, ArithmeticError) as exc:  # Sensitivity/Load/Compile errors are ValueErrors
             fail(str(exc), as_json)
         if figures is not None:
             try:

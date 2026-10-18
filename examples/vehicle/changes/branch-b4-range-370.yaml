@@ -1,0 +1,9 @@
+# Research-brief branch 4, off the baseline: the minimum range rises to 370 mi. A and B fail range and
+# C still fails reliability, so the feasible set is empty and the decision is blocked.
+id: ep:b4
+parent: ep:e00
+trigger: requirement
+change_description: "Brief branch: the minimum operating range rises from 300 to 370 mi."
+author_role: role:systems-engineer
+assign:
+  - {target: req:min-range, slot: threshold_value, new_value: 370}

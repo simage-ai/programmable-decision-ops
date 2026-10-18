@@ -1,0 +1,15 @@
+# The MDA re-approves B on the revised quote.
+id: ep:e03
+parent: ep:e02
+as_of: 2027-04-01
+trigger: approval
+change_description: The MDA re-approves configuration B at the revision 2 quote.
+author_role: role:mda
+add:
+  approvals:
+    - id: appr:e03-b
+      name: Re-approval for configuration B (quote revision 2)
+      approved_alternative: alt:B
+      approver_role: role:mda
+      approver: you
+      rationale: B remains the unique feasible winner at 1.25 MUSD.

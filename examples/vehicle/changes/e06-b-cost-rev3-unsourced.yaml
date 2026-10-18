@@ -1,0 +1,15 @@
+# Quote revision 3 lowers B's cost to 1.22 (U_B 0.50), but its evidence item states no source. It
+# supports the recommended alternative, so evidence traceability fails and the decision is blocked.
+id: ep:e06
+parent: ep:e05
+as_of: 2027-08-01
+trigger: cost
+change_description: Supplier B quote revision 3 at 1.22 MUSD is entered without a source citation.
+author_role: role:cost-analyst
+add:
+  evidence_items:
+    - {id: ev:cost-B-3, name: Supplier quote B revision 3, evidence_kind: cost estimate, source_ref: "",
+       document_version: "3", issued_on: 2027-07-25, valid_until: 2027-12-31, owner_role: role:cost-analyst}
+assign:
+  - {target: obs:B.cost, slot: value, new_value: 1.22}
+  - {target: obs:B.cost, slot: evidence, new_value: ev:cost-B-3}

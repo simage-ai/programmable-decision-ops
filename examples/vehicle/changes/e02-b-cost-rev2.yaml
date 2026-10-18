@@ -1,0 +1,12 @@
+# Supplier B revises its quote. B still wins (U_B 0.50 against U_A 0.466667), but the change is
+# hashable content, so the e01 approval no longer matches the state.
+id: ep:e02
+parent: ep:e01
+as_of: 2027-03-15
+trigger: cost
+change_description: Supplier B issues quote revision 2 at 1.25 MUSD per unit.
+author_role: role:cost-analyst
+assign:
+  - {target: ev:cost-B, slot: document_version, new_value: "2"}
+  - {target: ev:cost-B, slot: source_ref, new_value: "Synthetic supplier quote, vehicle B, revision 2"}
+  - {target: obs:B.cost, slot: value, new_value: 1.25}

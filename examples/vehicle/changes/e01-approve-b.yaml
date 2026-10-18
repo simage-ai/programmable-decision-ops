@@ -1,0 +1,16 @@
+# The milestone decision authority approves B against the baseline trade study. Nothing but the
+# approval changes, so the state digest the kernel stamps on it equals the baseline's.
+id: ep:e01
+parent: ep:e00
+as_of: 2027-02-01
+trigger: approval
+change_description: The MDA approves configuration B for development on the baseline trade study.
+author_role: role:mda
+add:
+  approvals:
+    - id: appr:e01-b
+      name: Development approval for configuration B
+      approved_alternative: alt:B
+      approver_role: role:mda
+      approver: you
+      rationale: B is the unique feasible winner and every readiness condition passes.

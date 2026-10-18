@@ -1,0 +1,20 @@
+# Both suppliers re-quote for 2028: A holds at 1.00, B rises to 1.32. U_B = 0.433333 < U_A = 0.466667,
+# so the recommendation flips to A, whose evidence is current and traceable.
+id: ep:e10
+parent: ep:e09
+as_of: 2028-02-01
+trigger: cost
+change_description: Suppliers re-quote for 2028; A holds at 1.00 MUSD and B rises to 1.32 MUSD.
+author_role: role:cost-analyst
+add:
+  evidence_items:
+    - {id: ev:cost-A-2, name: Supplier quote A 2028, evidence_kind: cost estimate,
+       source_ref: "Synthetic supplier quote, vehicle A, 2028", document_version: "2",
+       issued_on: 2028-01-20, valid_until: 2028-12-31, owner_role: role:cost-analyst}
+    - {id: ev:cost-B-4, name: Supplier quote B 2028, evidence_kind: cost estimate,
+       source_ref: "Synthetic supplier quote, vehicle B, 2028", document_version: "4",
+       issued_on: 2028-01-22, valid_until: 2028-12-31, owner_role: role:cost-analyst}
+assign:
+  - {target: obs:A.cost, slot: evidence, new_value: ev:cost-A-2}
+  - {target: obs:B.cost, slot: evidence, new_value: ev:cost-B-4}
+  - {target: obs:B.cost, slot: value, new_value: 1.32}

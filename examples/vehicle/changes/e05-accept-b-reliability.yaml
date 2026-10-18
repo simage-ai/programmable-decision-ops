@@ -1,0 +1,12 @@
+# The test engineer accepts the phase 2 report. B's reliability is 0.975, U_B = 0.48 > U_A, so B is
+# recommended again; no approval matches this state.
+id: ep:e05
+parent: ep:e04
+as_of: 2027-06-20
+trigger: evidence
+change_description: The test engineer accepts the phase 2 reliability report as applicable to B.
+author_role: role:test-engineer
+assign:
+  - {target: obs:B.reliability-2, slot: applicability, new_value: accepted}
+  - {target: obs:B.reliability-2, slot: applicability_rationale,
+     new_value: The phase 2 article matches the configuration B baseline.}

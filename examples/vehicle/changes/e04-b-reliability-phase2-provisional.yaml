@@ -1,0 +1,26 @@
+# A phase 2 reliability report for B arrives. Its observation is provisional (awaiting review) and the
+# phase 1 observation is rejected, so B's reliability is unknown: B is unresolved with
+# U_B in [0.34, 0.54], A (0.466667) is the only ranked feasible alternative, and coverage is unknown
+# because B could still win.
+id: ep:e04
+parent: ep:e03
+as_of: 2027-06-01
+trigger: evidence
+change_description: >-
+  A phase 2 reliability test report for B arrives and is attached provisionally; the phase 1
+  observation is rejected because the phase 2 build changed the drivetrain.
+author_role: role:test-engineer
+add:
+  evidence_items:
+    - {id: ev:reliability-B-2, name: Reliability test report B phase 2, evidence_kind: test report,
+       source_ref: "Synthetic reliability growth test, vehicle B, phase 2", document_version: "1",
+       issued_on: 2027-05-20, owner_role: role:test-engineer}
+  observations:
+    - {id: obs:B.reliability-2, alternative: alt:B, measure: meas:reliability, value: 0.975, unit: "1",
+       evidence: ev:reliability-B-2, applicability: provisional,
+       applicability_rationale: Proposed from the phase 2 report; awaiting the test engineer's review.,
+       owner_role: role:test-engineer}
+assign:
+  - {target: obs:B.reliability, slot: applicability, new_value: rejected}
+  - {target: obs:B.reliability, slot: applicability_rationale,
+     new_value: The phase 1 build predates the drivetrain change.}

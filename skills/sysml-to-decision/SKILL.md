@@ -28,8 +28,10 @@ inventing anything. Then the kernel runs the decision and explains its result.
 
 - The `pdo` command. In the repository it is `uv run pdo ...`; installed, plain `pdo ...`. Every
   command below takes `--json`. If your harness has the pdo MCP server connected, its
-  `pdo_import_sysml` tool runs the same import (`pdo.sysml.import_sysml`) and can replace step 3; the
-  other steps are the same.
+  `pdo_import_sysml` tool runs the same import (`pdo.sysml.import_sysml`) and can replace step 3. The
+  other steps have MCP equivalents too: `pdo_describe_schema` before hand-writing YAML, `pdo_validate`,
+  `pdo_run`, `pdo_explain` and `pdo_pending_actions` for step 8, and `pdo_record_human_action` with
+  `kind: applicability` when the person accepts a provisional observation (step 6).
 - The model in SysML v2 **textual notation** (`.sysml` files). XMI and API JSON exports are not read;
   ask for the textual files.
 - The person who owns the decision. With one user, that person holds every role.
@@ -45,10 +47,12 @@ inventing anything. Then the kernel runs the decision and explains its result.
   alternative (an analysis result applied to a configuration, a number read from a report), record it
   as an observation with `applicability: provisional` and an `applicability_rationale`, or ask the
   person to fix the model. The kernel treats provisional values as unknown until a person accepts them.
-  A text-only requirement you formalize gates feasibility only after the person confirms its measure,
-  comparator and threshold.
+  A text-only requirement you formalize enters with `mandatory: false` (reported, not gating) until the
+  person confirms its measure, comparator and threshold; then set `mandatory: true`.
 - **Keep provenance.** Never strip `source_element`, `source_model`, `source_model_version`,
   `mapping_rule` or the observation comments. They are the audit trail back to the model.
+- **Never write digests or stamps.** `covered_digest`, `state_digest` and `recorded_in_episode` are
+  written by the kernel; a state that contains them is rejected.
 - **The importer owns `sysml-*.yaml`.** Every import rewrites those files. Record ids, units and wiring
   in the mapping file, so a re-import reproduces them. Put the framing in your own files in the same
   directory.
@@ -199,12 +203,18 @@ evidence item, and the SysML element named in its comments.
 
 ### 9. When the model changes
 
-Import again with the same mapping into the same directory: the `sysml-*.yaml` files are rewritten and
-your framing files are left alone. Compare the new files with the previous import (in version control,
-or with `diff` against a copy) and tell the person what changed. Every changed object is a changed
-input, and the model file's digest changes too. Then validate and run. For a decision program (`program.yaml` with `baseline/` and `changes/`), write
-the difference as a change set (`assign`, `add`, `remove`) instead of editing the baseline. Expect
-approvals to stop matching: a changed evidence digest is a changed decision state.
+Import again with the same mapping: the `sysml-*.yaml` files are rewritten and your framing files are
+left alone. Recorded paths are relative to the mapping file's directory (or the models' common
+directory), so the same model gives the same digests wherever you run the import from. Compare the new
+files with the previous import (in version control, or with `diff` against a copy) and tell the person
+what changed. Every changed object is a changed input, and the model file's digest changes too.
+
+A plain state directory has no history, so nothing in it can go stale: a review recorded there is taken
+as covering the state as it is now. When decisions must be maintained over time (reviews that go stale
+and approvals that stop matching when inputs change), make it a program: `program.yaml` with the first
+import as `baseline/`, and every later difference written by hand as a change set in `changes/`
+(`assign`, `add`, `remove`; preview it with `pdo impact` or `pdo_apply_change` before writing it). Then
+`pdo program refresh` re-evaluates only what changed and verifies it against a full recomputation.
 
 ## Worked example: the vehicle trade study
 

@@ -17,6 +17,8 @@ pdo = "pdo.cli:app"
 [project.optional-dependencies]
 mcp = [
     "mcp>=2.3",
+    "linkml-runtime>=1.8",  # pdo_describe_schema reads the LinkML schema itself
+    "jsonschema>=4",        # Decision Package records are validated against the published JSON Schema
 ]
 figures = [
     "matplotlib>=3.8",
@@ -40,6 +42,8 @@ packages = ["src/pdo"]
 [tool.hatch.build.targets.wheel.force-include]
 "schema" = "pdo/schema"
 "examples" = "pdo/examples_data"
+"project/jsonschema" = "pdo/jsonschema"
+"skills" = "pdo/skills"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

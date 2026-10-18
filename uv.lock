@@ -1798,6 +1798,8 @@ figures = [
     { name = "matplotlib" },
 ]
 mcp = [
+    { name = "jsonschema" },
+    { name = "linkml-runtime" },
     { name = "mcp" },
 ]
 
@@ -1810,6 +1812,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "jsonschema", marker = "extra == 'mcp'", specifier = ">=4" },
+    { name = "linkml-runtime", marker = "extra == 'mcp'", specifier = ">=1.8" },
     { name = "matplotlib", marker = "extra == 'figures'", specifier = ">=3.8" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=2.3" },
     { name = "pydantic", specifier = ">=2" },

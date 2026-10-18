@@ -1,0 +1,38 @@
+# How vehicle.sysml maps onto the vehicle baseline's ids (examples/vehicle/baseline). The SysML model
+# supplies the configurations, their values, the requirements and the range analysis; this file records
+# only what the model does not say. Every entry is a person's statement, not an inference.
+#
+# Without this file the importer still works: ids come from SysML names (alt:configA, meas:tankCapacity,
+# req:minRange, ...), and unitCost keeps the model's own unit "1" (it is typed Real), not MUSD.
+
+alternatives:
+  from: vehicleConfiguration          # the variation whose variants are the alternatives
+  ids:
+    configA: {id: alt:A, is_incumbent: true}    # the design already in production
+    configB: alt:B
+    configC: alt:C
+
+measures:
+  # attribute: measure id, unit (only where the model has none) and the observation id suffix (obs:A.tank)
+  tankCapacity: {id: meas:tank-capacity, observation: tank}
+  fuelEconomy: {id: meas:fuel-economy, observation: mpg}
+  range: {id: meas:range}
+  unitCost: {id: meas:unit-cost, unit: MUSD, observation: cost}
+  reliability: {id: meas:reliability}
+
+requirements:
+  minRange: req:min-range
+  minReliability: req:min-reliability
+  maxUnitCost: req:max-cost
+
+evaluations:
+  # SysML says what the range analysis reads and produces, not how it computes. To make spec:range-model
+  # runnable, a person names the implementation (relative to the decision directory) and its version:
+  #   RangeModel: {id: spec:range-model, implementation: evaluators.py:range_model, implementation_version: "1.0"}
+  RangeModel: spec:range-model
+
+assumptions:
+  # Imported as unvalidated. Criticality, validation and the plausible range are a person's judgement:
+  #   RangeModel::terrain_factor: {id: asm:terrain-factor, critical: true, validation_status: validated,
+  #                                plausible_low: 0.80, plausible_high: 1.05}
+  RangeModel::terrain_factor: asm:terrain-factor

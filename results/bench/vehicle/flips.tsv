@@ -1,0 +1,22 @@
+parameter	counterpart	baseline	scan_low	scan_high	direction	flip_number	relative_change	method	crossing	previous_recommendation	new_recommendation	boundary_kind	verified
+asm:terrain-factor.value	NA	1.000000	0.800000	1.050000	below	0.833333	-0.166667	affine_exact	g/req:min-range/alt:B	alt:B	-	empty_set	true
+crit:cost.weight	crit:range	0.400000	0.000000	0.800000	above	0.490909	0.227273	closed_form	U/alt:B - U/alt:A	alt:B	alt:A	preference	true
+crit:cost.weight	crit:reliability	0.400000	0.000000	0.600000	above	0.525000	0.312500	closed_form	U/alt:B - U/alt:A	alt:B	alt:A	preference	true
+crit:range.weight	crit:reliability	0.400000	0.000000	0.600000	below	0.066667	-0.833333	closed_form	U/alt:B - U/alt:A	alt:B	alt:A	preference	true
+obs:A.cost.value	NA	1.000000	0.500000	1.500000	below	0.900000	-0.100000	affine_exact	U/alt:B - U/alt:A	alt:B	alt:A	preference	true
+obs:A.mpg.value	NA	8.000000	4.000000	12.000000	above	8.416667	0.052083	affine_exact	U/alt:B - U/alt:A	alt:B	alt:A	preference	true
+obs:A.reliability.value	NA	0.970000	0.485000	1.455000	above	0.986667	0.017182	affine_exact	U/alt:B - U/alt:A	alt:B	alt:A	preference	true
+obs:A.tank.value	NA	40.000000	20.000000	60.000000	above	42.083333	0.052083	affine_exact	U/alt:B - U/alt:A	alt:B	alt:A	preference	true
+obs:B.cost.value	NA	1.200000	0.600000	1.800000	above	1.300000	0.083333	affine_exact	U/alt:B - U/alt:A	alt:B	alt:A	preference	true
+obs:B.mpg.value	NA	8.000000	4.000000	12.000000	below	7.629630	-0.046296	affine_exact	U/alt:B - U/alt:A	alt:B	alt:A	preference	true
+obs:B.reliability.value	NA	0.980000	0.490000	1.470000	below	0.963333	-0.017007	affine_exact	U/alt:B - U/alt:A	alt:B	alt:A	preference	true
+obs:B.tank.value	NA	45.000000	22.500000	67.500000	below	42.916667	-0.046296	affine_exact	U/alt:B - U/alt:A	alt:B	alt:A	preference	true
+obs:C.cost.value	NA	0.950000	0.475000	1.425000	none	NA	NA	NA	NA	NA	NA	NA	NA
+obs:C.mpg.value	NA	8.000000	4.000000	12.000000	none	NA	NA	NA	NA	NA	NA	NA	NA
+obs:C.reliability.value	NA	0.940000	0.470000	1.410000	above	0.950000	0.010638	affine_exact	g/req:min-reliability/alt:C	alt:B	alt:C	feasibility	true
+obs:C.tank.value	NA	47.500000	23.750000	71.250000	none	NA	NA	NA	NA	NA	NA	NA	NA
+req:max-cost.threshold_value	NA	1.400000	0.700000	2.100000	below	1.000000	-0.285714	affine_exact	g/req:max-cost/alt:A	alt:A	-	empty_set	true
+req:max-cost.threshold_value	NA	1.400000	0.700000	2.100000	below	1.200000	-0.142857	affine_exact	g/req:max-cost/alt:B	alt:B	alt:A	feasibility	true
+req:min-range.threshold_value	NA	300.000000	150.000000	450.000000	above	360.000000	0.200000	affine_exact	g/req:min-range/alt:B	alt:B	-	empty_set	true
+req:min-reliability.threshold_value	NA	0.950000	0.475000	1.425000	above	0.980000	0.031579	affine_exact	g/req:min-reliability/alt:B	alt:B	-	empty_set	true
+req:min-reliability.threshold_value	NA	0.950000	0.475000	1.425000	below	0.940000	-0.010526	affine_exact	g/req:min-reliability/alt:C	alt:B	alt:C	feasibility	true

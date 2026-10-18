@@ -1,0 +1,95 @@
+id: https://w3id.org/pdo/schema/evaluation
+name: pdo_evaluation
+title: Evaluation specifications
+description: >-
+  Computations as first-class objects. An EvaluationSpecification names an implementation (a Python
+  callable or a linear combination), the inputs it is bound to, the measures it produces with their
+  units, and its parameters. The kernel runs it once per alternative it applies to, passing only the
+  bound inputs and parameters, so its dependencies are exactly what is declared here. Runs and results
+  are kernel output (see record.yaml); nobody authors them.
+default_prefix: pdo
+default_range: string
+imports:
+  - linkml:types
+  - core
+  - problem
+prefixes:
+  linkml: https://w3id.org/linkml/
+  pdo: https://w3id.org/pdo/schema/
+
+classes:
+  EvaluationSpecification:
+    is_a: NamedThing
+    description: >-
+      A computation producing one or more measures for each alternative it applies to. A python spec's
+      implementation is "path/to/module.py:function" (relative to the decision's directory) or
+      "package.module:function"; the function receives the bound inputs and parameters as keyword
+      arguments (by arg) and returns a number, or a dict keyed by output arg. A linear_combination
+      spec returns intercept + sum(coefficient_<arg> * input), with intercept and coefficients given
+      as parameters.
+    slots: [spec_kind, implementation, implementation_version, inputs, outputs, parameters, applies_to,
+      deterministic, cacheable, cost_units, environment, owner_role]
+    slot_usage:
+      spec_kind: {required: true}
+      outputs: {required: true}
+
+  InputBinding:
+    description: >-
+      One input of a spec: either a measure (the same alternative's value of it) or a reference to a
+      specific object such as an Assumption. The unit must match the bound source's unit exactly.
+    slots: [arg, measure, ref, unit]
+    slot_usage:
+      arg: {required: true}
+      unit: {required: true}
+
+  OutputDeclaration:
+    description: A measure the spec produces; the unit must match the measure's unit.
+    slots: [arg, measure, unit]
+    slot_usage:
+      arg: {required: true}
+      measure: {required: true}
+      unit: {required: true}
+
+slots:
+  spec_kind:
+    mixins: [hashable]
+    range: SpecKind
+  implementation:
+    mixins: [hashable]
+  implementation_version:
+    mixins: [hashable]
+  inputs:
+    mixins: [hashable]
+    range: InputBinding
+    multivalued: true
+    inlined_as_list: true
+  outputs:
+    mixins: [hashable]
+    range: OutputDeclaration
+    multivalued: true
+    inlined_as_list: true
+  ref:
+    mixins: [hashable]
+    range: uriorcurie
+  deterministic:
+    mixins: [hashable]
+    range: boolean
+    description: Default true. A non-deterministic evaluator is never reused from a previous run.
+  cacheable:
+    mixins: [hashable]
+    range: boolean
+    description: Default true.
+  cost_units:
+    mixins: [unhashable]
+    range: float
+    description: Relative cost of one run (default 1), used to weight recomputation savings.
+  environment:
+    mixins: [hashable]
+    multivalued: true
+    description: Declared runtime requirements (e.g. "numpy>=2"); part of the signature.
+
+enums:
+  SpecKind:
+    permissible_values:
+      python: {}
+      linear_combination: {}

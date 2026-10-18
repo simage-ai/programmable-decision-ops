@@ -1,0 +1,385 @@
+id: https://w3id.org/pdo/schema/record
+name: pdo_record
+title: Decision episode records
+description: >-
+  Kernel output: the machine-readable half of a Decision Package. A DecisionEpisodeRecord holds the
+  recommendation, feasibility, utilities, readiness, flip points, pending actions and the evaluation
+  runs behind them, each traceable to its inputs by signature. Assessments are also expressed as
+  Claims about Propositions (aligned with DAPPER's claims model), with a basis that keeps computed
+  results, agent interpretations and human judgements distinct. Nobody authors these.
+default_prefix: pdo
+default_range: string
+imports:
+  - linkml:types
+  - core
+  - problem
+  - governance
+  - state
+  - program
+prefixes:
+  linkml: https://w3id.org/linkml/
+  pdo: https://w3id.org/pdo/schema/
+  dapper: https://broadinstitute.github.io/dapper/ns#
+
+classes:
+  DecisionEpisodeRecord:
+    description: One evaluated decision episode.
+    slots: [episode, parent, source_path, question, as_of, state_digest, kernel_version, recommended, feasible,
+      infeasible, unresolved, outcomes, readiness, actionable, actionable_reason, matching_approval, flips,
+      parameter_scans, scenario_outcomes, robust, pending_actions, runs, propositions, claims, impact]
+
+  AlternativeOutcome:
+    description: How one alternative fared.
+    slots: [alternative, utility, utility_lower, utility_upper, feasibility, checks, criterion_values]
+
+  CheckOutcome:
+    description: One requirement check, in the common g <= 0 convention.
+    slots: [requirement, status, g, measured, comparator, threshold_value, unit]
+
+  CriterionValue:
+    slots: [criterion, measured, value_score, weight]
+
+  ReadinessAssessment:
+    slots: [readiness_state, conditions]
+
+  ConditionResult:
+    slots: [condition, status, required, reason]
+
+  PendingAction:
+    description: >-
+      Something a person must do before the decision is actionable, routed to the owning role. The id
+      is a content digest, so the same open action keeps its id across runs and can be deduplicated.
+    slots: [id, action_kind, target, role, reason, produced_by]
+
+  FlipPoint:
+    description: A value of one input at which the recommendation changes, all other inputs held fixed.
+    slots: [parameter, target, slot, baseline_number, flip_number, method, boundary_kind, new_recommendation,
+      previous_recommendation, direction, crossing, counterpart, verified]
+
+  ParameterScan:
+    description: >-
+      One numeric input scanned for flip points over [scan_low, scan_high], all other inputs held
+      fixed. A scan with no flip supports a claim about that range only.
+    slots: [parameter, target, slot, baseline_number, scan_low, scan_high, grid_points, flip_count]
+
+  ScenarioOutcome:
+    slots: [scenario, recommended, feasible, robust, infeasible, unresolved, outcomes]
+
+  EvaluationRun:
+    description: One node evaluation; the signature identifies its exact inputs and implementation.
+    slots: [node, node_kind, implementation, signature, run_key, value_digest, execution_status, input_nodes,
+      duration_ms, error]
+
+  ImpactSummary:
+    description: What a change touched, and what was rerun versus reused.
+    slots: [changed_nodes, impact_size, executed_count, reused_count, total_nodes]
+
+  Proposition:
+    description: Content that can be true or false, e.g. "alt:B satisfies req:min-range".
+    exact_mappings: [dapper:Proposition]
+    slots: [id, statement, about]
+
+  Claim:
+    description: >-
+      An assessment of a proposition, with the reasoning basis that produced it: computed (an
+      evaluator or check), semantic (an agent's interpretation), or human (a recorded judgement).
+    exact_mappings: [dapper:Claim]
+    slots: [id, proposition, status, basis, produced_by, supported_by]
+
+slots:
+  episode:
+    mixins: [hashable]
+  kernel_version:
+    mixins: [unhashable]
+  recommended:
+    mixins: [hashable]
+    range: Alternative
+    multivalued: true
+  feasible:
+    mixins: [hashable]
+    range: Alternative
+    multivalued: true
+  infeasible:
+    mixins: [hashable]
+    range: Alternative
+    multivalued: true
+  unresolved:
+    mixins: [hashable]
+    range: Alternative
+    multivalued: true
+  outcomes:
+    mixins: [hashable]
+    range: AlternativeOutcome
+    multivalued: true
+    inlined_as_list: true
+  utility:
+    mixins: [hashable]
+    range: float
+  utility_lower:
+    mixins: [hashable]
+    range: float
+  utility_upper:
+    mixins: [hashable]
+    range: float
+  feasibility:
+    mixins: [hashable]
+    range: AssessmentStatus
+  checks:
+    mixins: [hashable]
+    range: CheckOutcome
+    multivalued: true
+    inlined_as_list: true
+  criterion_values:
+    mixins: [hashable]
+    range: CriterionValue
+    multivalued: true
+    inlined_as_list: true
+  requirement:
+    mixins: [hashable]
+    range: Requirement
+  status:
+    mixins: [hashable]
+    range: AssessmentStatus
+  g:
+    mixins: [hashable]
+    range: float
+  criterion:
+    mixins: [hashable]
+    range: Criterion
+  measured:
+    mixins: [hashable]
+    range: float
+  value_score:
+    mixins: [hashable]
+    range: float
+  readiness:
+    mixins: [hashable]
+    range: ReadinessAssessment
+    inlined: true
+  readiness_state:
+    mixins: [hashable]
+    range: ReadinessState
+  conditions:
+    mixins: [hashable]
+    range: ConditionResult
+    multivalued: true
+    inlined_as_list: true
+  condition:
+    mixins: [hashable]
+    range: uriorcurie
+  reason:
+    mixins: [unhashable]
+  actionable:
+    mixins: [hashable]
+    range: boolean
+  actionable_reason:
+    mixins: [unhashable]
+  matching_approval:
+    mixins: [hashable]
+    range: uriorcurie
+  flips:
+    mixins: [hashable]
+    range: FlipPoint
+    multivalued: true
+    inlined_as_list: true
+  scenario_outcomes:
+    mixins: [hashable]
+    range: ScenarioOutcome
+    multivalued: true
+    inlined_as_list: true
+  pending_actions:
+    mixins: [hashable]
+    range: PendingAction
+    multivalued: true
+    inlined_as_list: true
+  action_kind:
+    mixins: [hashable]
+    range: ActionKind
+  role:
+    mixins: [hashable]
+    range: Role
+  parameter:
+    mixins: [hashable]
+  baseline_number:
+    mixins: [hashable]
+    range: float
+  flip_number:
+    mixins: [hashable]
+    range: float
+  method:
+    mixins: [hashable]
+    range: FlipMethod
+  boundary_kind:
+    mixins: [hashable]
+    range: BoundaryKind
+  new_recommendation:
+    mixins: [hashable]
+    range: Alternative
+    multivalued: true
+  scenario:
+    mixins: [hashable]
+    range: Scenario
+  robust:
+    mixins: [hashable]
+    range: boolean
+    description: >-
+      On a scenario outcome, the baseline recommendation is feasible and uniquely best in that
+      scenario; on a record, in every scenario of the declared set.
+  source_path:
+    mixins: [unhashable]
+    description: Where the evaluated state or program was read from (as given), so the record can be replayed.
+  parameter_scans:
+    mixins: [hashable]
+    range: ParameterScan
+    multivalued: true
+    inlined_as_list: true
+  scan_low:
+    mixins: [hashable]
+    range: float
+  scan_high:
+    mixins: [hashable]
+    range: float
+  grid_points:
+    mixins: [hashable]
+    range: integer
+  flip_count:
+    mixins: [hashable]
+    range: integer
+  previous_recommendation:
+    mixins: [hashable]
+    range: Alternative
+    multivalued: true
+    description: The recommendation on the baseline side of the flip point.
+  direction:
+    mixins: [hashable]
+    range: FlipDirection
+  crossing:
+    mixins: [hashable]
+    description: >-
+      The quantity whose zero is the boundary, e.g. "U/alt:B - U/alt:A" (a utility margin) or
+      "g/req:max-cost/alt:B" (a requirement check).
+  counterpart:
+    mixins: [hashable]
+    range: Criterion
+    description: For a weight flip, the criterion whose weight absorbs the shift (the other weights held fixed).
+  verified:
+    mixins: [hashable]
+    range: boolean
+    description: Re-running just below and just above the flip point gives the two recommendations reported.
+  runs:
+    mixins: [hashable]
+    range: EvaluationRun
+    multivalued: true
+    inlined_as_list: true
+  node:
+    mixins: [hashable]
+  node_kind:
+    mixins: [hashable]
+  signature:
+    mixins: [hashable]
+  run_key:
+    mixins: [hashable]
+  value_digest:
+    mixins: [hashable]
+  execution_status:
+    mixins: [unhashable]
+    range: ExecutionStatus
+  input_nodes:
+    mixins: [hashable]
+    multivalued: true
+  duration_ms:
+    mixins: [unhashable]
+    range: float
+  error:
+    mixins: [unhashable]
+  impact:
+    mixins: [hashable]
+    range: ImpactSummary
+    inlined: true
+  changed_nodes:
+    mixins: [hashable]
+    multivalued: true
+  impact_size:
+    mixins: [hashable]
+    range: integer
+  executed_count:
+    mixins: [unhashable]
+    range: integer
+  reused_count:
+    mixins: [unhashable]
+    range: integer
+  total_nodes:
+    mixins: [hashable]
+    range: integer
+  statement:
+    mixins: [hashable]
+  about:
+    mixins: [hashable]
+    range: uriorcurie
+    multivalued: true
+  proposition:
+    mixins: [hashable]
+    range: Proposition
+  basis:
+    mixins: [hashable]
+    range: ClaimBasis
+  produced_by:
+    mixins: [hashable]
+    description: The node (and so the evaluation run) or recorded action that produced the claim.
+  supported_by:
+    mixins: [hashable]
+    range: uriorcurie
+    multivalued: true
+  propositions:
+    mixins: [hashable]
+    range: Proposition
+    multivalued: true
+    inlined_as_list: true
+  claims:
+    mixins: [hashable]
+    range: Claim
+    multivalued: true
+    inlined_as_list: true
+
+enums:
+  ExecutionStatus:
+    permissible_values:
+      executed: {}
+      reused: {description: Outside the impact set; the previous result was kept.}
+      cutoff_reused: {description: "In the impact set, but every input value was unchanged."}
+      failed: {description: The evaluator raised or returned a non-finite value; the result is unknown.}
+  ActionKind:
+    permissible_values:
+      provide_value: {}
+      review_applicability: {}
+      validate_assumption: {}
+      complete_review: {}
+      treat_risk: {}
+      refresh_evidence: {}
+      state_source: {}
+      resolve_tie: {}
+      revise_alternatives: {}
+      approve: {}
+      fix_evaluator: {}
+      run_uncertainty_analysis: {}
+  FlipMethod:
+    permissible_values:
+      affine_exact: {}
+      bisection: {}
+      closed_form: {}
+  BoundaryKind:
+    permissible_values:
+      preference: {description: Another feasible alternative becomes preferred.}
+      feasibility: {description: An alternative becomes feasible or infeasible.}
+      empty_set: {description: No alternative remains feasible.}
+      unresolved: {description: The recommendation becomes unresolved.}
+  FlipDirection:
+    description: Whether the flip point lies above or below the baseline value.
+    permissible_values:
+      above: {}
+      below: {}
+  ClaimBasis:
+    permissible_values:
+      computed: {}
+      semantic: {}
+      human: {}

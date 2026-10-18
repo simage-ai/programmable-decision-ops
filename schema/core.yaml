@@ -1,0 +1,168 @@
+id: https://w3id.org/pdo/schema/core
+name: pdo_core
+title: Programmable decision core
+description: >-
+  Base classes, shared slots and enums for the programmable decision schema. Every slot
+  declares exactly one identity marker, as in DAPPER-ID-1: `hashable` slots constitute what an
+  object is and enter its content digest (so changing one invalidates every computation that
+  depends on it); `unhashable` slots are names, prose, provenance stamps and routing that never
+  change a computed result. `scripts/gen_identity.py` turns the markers into
+  src/pdo/identity_slots.py and fails on an unmarked slot.
+default_prefix: pdo
+default_range: string
+imports:
+  - linkml:types
+prefixes:
+  linkml: https://w3id.org/linkml/
+  pdo: https://w3id.org/pdo/schema/
+  dapper: https://broadinstitute.github.io/dapper/ns#
+  skos: http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  rdfs: http://www.w3.org/2000/01/rdf-schema#
+
+classes:
+  Any:
+    class_uri: linkml:Any
+    description: Any value; used only for change-set assignments.
+
+  NamedThing:
+    abstract: true
+    description: Anything with a stable logical identifier that aligns it across decision episodes.
+    slots: [id, name, description, comments]
+
+  Role:
+    is_a: NamedThing
+    description: >-
+      A responsibility in the decision program (decision owner, cost analyst, test engineer,
+      milestone decision authority). Objects that need a human carry an owner_role, so the kernel
+      can list pending actions by role; with one user every role is assigned to that user.
+    slots: [assignees]
+
+  SourceRef:
+    mixin: true
+    description: Where an object came from in an engineering model, kept when it is projected into the decision.
+    slots: [source_element, source_model, source_model_version, mapping_rule]
+
+  Parameter:
+    description: A named numeric parameter of an evaluator or readiness predicate.
+    slots: [arg, number, unit]
+    slot_usage:
+      arg: {required: true}
+      number: {required: true}
+
+slots:
+  # --- identity axis (DAPPER-ID-1 style); every other slot uses exactly one as a mixin ---
+  hashable:
+    description: >-
+      Marks a slot as constituting its object's identity. Changing its value changes the object's
+      digest and every computation downstream of it.
+  unhashable:
+    description: >-
+      Marks a slot as excluded from the digest: names, prose, provenance stamps and routing.
+      Changing it never changes a computed result.
+
+  id:
+    identifier: true
+    range: uriorcurie
+    required: true
+    slot_uri: dcterms:identifier
+    description: Logical identifier, authored with a type prefix (alt:, req:, meas:, obs:, ev:, crit:, rc:, ...).
+  name:
+    mixins: [unhashable]
+    slot_uri: rdfs:label
+  description:
+    mixins: [unhashable]
+    slot_uri: dcterms:description
+  comments:
+    mixins: [unhashable]
+    multivalued: true
+  assignees:
+    mixins: [unhashable]
+    multivalued: true
+    description: People who hold the role.
+  owner_role:
+    mixins: [unhashable]
+    range: Role
+    description: The role that must act when this object needs a human (review, acceptance, data).
+  source_element:
+    mixins: [unhashable]
+    description: Identifier of the source element (e.g. a SysML qualified name).
+  source_model:
+    mixins: [unhashable]
+  source_model_version:
+    mixins: [unhashable]
+  mapping_rule:
+    mixins: [unhashable]
+    description: The mapping rule that produced this object, and any lossy interpretation.
+  arg:
+    mixins: [hashable]
+    description: >-
+      Argument name: the keyword an evaluator receives for this input, output or parameter. Unlike a
+      display name it is part of the computation, so it is hashable.
+  number:
+    mixins: [hashable]
+    range: float
+  unit:
+    mixins: [hashable]
+    description: Unit string, matched exactly (no conversion). "1" means dimensionless.
+  parameters:
+    mixins: [hashable]
+    range: Parameter
+    multivalued: true
+    inlined_as_list: true
+
+enums:
+  AssessmentStatus:
+    description: Outcome of a test. Unknown means the inputs needed to decide were missing or not accepted.
+    permissible_values:
+      pass: {}
+      fail: {}
+      unknown: {}
+  Comparator:
+    permissible_values:
+      ge: {description: value >= threshold}
+      gt: {description: value > threshold}
+      le: {description: value <= threshold}
+      lt: {description: value < threshold}
+  Applicability:
+    description: Whether an observation's evidence applies to the alternative it is attached to.
+    permissible_values:
+      accepted: {}
+      provisional: {description: Proposed (e.g. by an agent) and not yet reviewed; treated as unknown.}
+      rejected: {}
+  ValidationStatus:
+    permissible_values:
+      validated: {}
+      unvalidated: {}
+      invalid: {}
+  ReviewStatus:
+    permissible_values:
+      pending: {}
+      pass: {}
+      fail: {}
+  TreatmentStatus:
+    permissible_values:
+      untreated: {}
+      mitigated: {}
+      accepted: {}
+      unacceptable: {}
+  ReadinessState:
+    permissible_values:
+      ready: {description: Every required condition passes.}
+      pending: {description: "No required condition fails, but at least one is unknown."}
+      blocked: {description: At least one required condition fails.}
+  TriggerKind:
+    description: What prompted a new decision episode.
+    permissible_values:
+      evidence: {}
+      requirement: {}
+      assumption: {}
+      cost: {}
+      model_version: {}
+      provenance: {}
+      review: {}
+      preference: {}
+      alternative: {}
+      time: {}
+      approval: {}
+      no_change: {}

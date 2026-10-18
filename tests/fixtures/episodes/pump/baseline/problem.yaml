@@ -1,0 +1,60 @@
+# Runtime is computed by spec:runtime (X 8 h, Y 10 h, Z 6 h at duty 1.0). Z has the best utility but
+# fails the runtime requirement, so Y is recommended.
+as_of: 2027-03-01
+question: Which pump should the unit field?
+
+roles:
+  - {id: role:owner, name: Decision owner}
+  - {id: role:approver, name: Approving authority}
+  - {id: role:analyst, name: Analyst}
+  - {id: role:reviewer, name: Independent reviewer}
+
+alternatives:
+  - {id: alt:X, name: Current pump, is_incumbent: true}
+  - {id: alt:Y, name: Diesel pump}
+  - {id: alt:Z, name: Electric pump}
+
+measures:
+  - {id: meas:flow, name: Flow, unit: L/min}
+  - {id: meas:cost, name: Unit cost, unit: kUSD}
+  - {id: meas:runtime, name: Runtime, unit: h}
+  - {id: meas:fuel, name: Tank, unit: L}
+  - {id: meas:burn, name: Burn rate, unit: L/h}
+
+objectives:
+  - {id: obj:output, name: Output}
+  - {id: obj:cost, name: Affordability}
+  - {id: obj:endurance, name: Endurance}
+
+requirements:
+  - {id: req:min-runtime, name: Minimum runtime, measure: meas:runtime, comparator: ge, threshold_value: 7,
+     unit: h, owner_role: role:analyst}
+  - {id: req:max-cost, name: Maximum cost, measure: meas:cost, comparator: le, threshold_value: 3.5,
+     unit: kUSD, owner_role: role:analyst}
+
+criteria:
+  - {id: crit:flow, name: Flow, objective: obj:output, measure: meas:flow, anchor_worst: 300, anchor_best: 600,
+     weight: 0.5}
+  - {id: crit:cost, name: Cost, objective: obj:cost, measure: meas:cost, anchor_worst: 4.0, anchor_best: 1.0,
+     weight: 0.3}
+  - {id: crit:runtime, name: Runtime, objective: obj:endurance, measure: meas:runtime, anchor_worst: 6,
+     anchor_best: 12, weight: 0.2}
+
+decision_rule: {id: rule:main, name: Weighted additive value, rule_kind: additive_mavt}
+
+assumptions:
+  - {id: asm:duty, name: Duty factor, value: 1.0, unit: "1", critical: true, validation_status: validated,
+     owner_role: role:analyst}
+
+evaluation_specifications:
+  - id: spec:runtime
+    name: Runtime model
+    spec_kind: python
+    implementation: evaluators.py:runtime_model
+    inputs:
+      - {arg: fuel_l, measure: meas:fuel, unit: L}
+      - {arg: burn_l_per_h, measure: meas:burn, unit: L/h}
+      - {arg: duty, ref: asm:duty, unit: "1"}
+    outputs:
+      - {arg: runtime_h, measure: meas:runtime, unit: h}
+    owner_role: role:analyst

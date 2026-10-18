@@ -1,0 +1,10 @@
+# The minimum range rises to 310 mi. A still passes (g = -10) and still wins, but the framing review
+# covers all requirements, so it is stale and readiness is pending; the A approval no longer matches.
+id: ep:e12
+parent: ep:e11
+as_of: 2028-06-01
+trigger: requirement
+change_description: The user representative raises the minimum operating range to 310 mi.
+author_role: role:systems-engineer
+assign:
+  - {target: req:min-range, slot: threshold_value, new_value: 310}

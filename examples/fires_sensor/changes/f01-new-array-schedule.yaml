@@ -1,0 +1,15 @@
+# Synthetic. A risk-reduction build retires the new array's long schedule tail: the estimate's mode moves
+# from 30 to 28 months and its high end from 54 to 38. The point decision is unchanged (alt:new-array),
+# but the joint chance of meeting every mandatory requirement rises from about 0.5 to about 0.95, so the
+# new array now clears the 0.9 chance constraint and the expected-value decision moves to it as well.
+id: ep:f01
+parent: ep:f00
+as_of: 2027-06-01
+trigger: evidence
+change_description: >-
+  Cost analyst issues the revised integration schedule estimate for option 2 after the risk-reduction build.
+author_role: role:cost-analyst
+assign:
+  - {target: obs:new-array.schedule, slot: value, new_value: 28}
+  - {target: obs:new-array.schedule, slot: uncertainty,
+     new_value: {family: triangular, low: 24, mode: 28, high: 38}}

@@ -1,0 +1,135 @@
+id: https://w3id.org/pdo/schema/state
+name: pdo_state
+title: Decision state
+description: >-
+  A decision state S_t: everything needed to reproduce one assessment. On disk it may be split across
+  several files that each hold part of it; the loader concatenates them. A state may be incomplete
+  while it is being authored (DecisionState); ExecutableDecisionState names what must exist before the
+  kernel can run it. Missing values are allowed and become unknowns, never invented passes or fails.
+default_prefix: pdo
+default_range: string
+imports:
+  - linkml:types
+  - core
+  - problem
+  - evidence
+  - evaluation
+  - governance
+prefixes:
+  linkml: https://w3id.org/linkml/
+  pdo: https://w3id.org/pdo/schema/
+
+classes:
+  DecisionState:
+    description: One decision state (or a part of one, while it is split across files).
+    slots: [as_of, question, roles, objectives, alternatives, measures, criteria, requirements, decision_rule,
+      scenarios, evidence_items, observations, assumptions, evaluation_specifications, readiness_policy,
+      readiness_conditions, bias_checks, reviews, risks, approvals]
+
+  ExecutableDecisionState:
+    is_a: DecisionState
+    description: A decision state complete enough to run.
+    slot_usage:
+      as_of: {required: true}
+      alternatives: {required: true}
+      measures: {required: true}
+      criteria: {required: true}
+      decision_rule: {required: true}
+      readiness_policy: {required: true}
+
+slots:
+  as_of:
+    mixins: [hashable]
+    range: date
+    description: The state's clock; evidence expiry and approval validity are judged against it.
+  question:
+    mixins: [unhashable]
+    description: The decision question in plain words.
+  roles:
+    mixins: [hashable]
+    range: Role
+    multivalued: true
+    inlined_as_list: true
+  objectives:
+    mixins: [hashable]
+    range: Objective
+    multivalued: true
+    inlined_as_list: true
+  alternatives:
+    mixins: [hashable]
+    range: Alternative
+    multivalued: true
+    inlined_as_list: true
+  measures:
+    mixins: [hashable]
+    range: Measure
+    multivalued: true
+    inlined_as_list: true
+  criteria:
+    mixins: [hashable]
+    range: Criterion
+    multivalued: true
+    inlined_as_list: true
+  requirements:
+    mixins: [hashable]
+    range: Requirement
+    multivalued: true
+    inlined_as_list: true
+  decision_rule:
+    mixins: [hashable]
+    range: DecisionRule
+    inlined: true
+  scenarios:
+    mixins: [hashable]
+    range: Scenario
+    multivalued: true
+    inlined_as_list: true
+  evidence_items:
+    mixins: [hashable]
+    range: Evidence
+    multivalued: true
+    inlined_as_list: true
+  observations:
+    mixins: [hashable]
+    range: Observation
+    multivalued: true
+    inlined_as_list: true
+  assumptions:
+    mixins: [hashable]
+    range: Assumption
+    multivalued: true
+    inlined_as_list: true
+  evaluation_specifications:
+    mixins: [hashable]
+    range: EvaluationSpecification
+    multivalued: true
+    inlined_as_list: true
+  readiness_policy:
+    mixins: [hashable]
+    range: ReadinessPolicy
+    inlined: true
+  readiness_conditions:
+    mixins: [hashable]
+    range: ReadinessCondition
+    multivalued: true
+    inlined_as_list: true
+  bias_checks:
+    mixins: [hashable]
+    range: BiasCheck
+    multivalued: true
+    inlined_as_list: true
+  reviews:
+    mixins: [hashable]
+    range: HumanReview
+    multivalued: true
+    inlined_as_list: true
+  risks:
+    mixins: [hashable]
+    range: Risk
+    multivalued: true
+    inlined_as_list: true
+  approvals:
+    mixins: [hashable]
+    range: HumanApproval
+    multivalued: true
+    inlined_as_list: true

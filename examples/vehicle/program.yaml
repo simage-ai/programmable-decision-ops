@@ -1,0 +1,12 @@
+# A decision program over the research brief's synthetic vehicle trade study. Episode ep:e00 (the
+# baseline/ files) is the point-in-time trade study; each file in changes/ is a later episode.
+# All numbers are synthetic, chosen to demonstrate the model, not vehicle performance estimates.
+id: prog:vehicle
+name: Light tactical vehicle configuration
+question: >-
+  Which vehicle configuration should the program carry into development, and does that choice still
+  hold as costs, test results and requirements change?
+decision_owner_role: role:program-manager
+baseline_episode: ep:e00
+baseline_dir: baseline
+changes_dir: changes

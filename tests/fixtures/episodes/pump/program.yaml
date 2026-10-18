@@ -1,0 +1,7 @@
+# A small decision program for the episode tests (tests/test_episodes.py copies it to a tmp dir and
+# writes change sets there). All numbers are synthetic.
+id: prog:pump
+name: Field pump selection
+question: Which pump should the unit field?
+decision_owner_role: role:owner
+baseline_episode: ep:p00

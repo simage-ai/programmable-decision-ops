@@ -1,0 +1,10 @@
+# Research-brief branch 2, off the baseline: the minimum range rises to 350 mi. A (320 mi) becomes
+# infeasible, B (360 mi) is still recommended, and the framing review is stale because it covers the
+# requirements.
+id: ep:b2
+parent: ep:e00
+trigger: requirement
+change_description: "Brief branch: the minimum operating range rises from 300 to 350 mi."
+author_role: role:systems-engineer
+assign:
+  - {target: req:min-range, slot: threshold_value, new_value: 350}

@@ -1,0 +1,55 @@
+# Synthetic evidence and the observations taken from it. Every observation carries an UncertaintySpec;
+# its point value is the distribution's mode (triangular) or mean (normal), which is what pdo run uses.
+# Detection range against the threat is not observed: spec:detection-range computes it from the
+# reference-projectile range and the threat RCS assumption.
+#
+# The spreads encode how mature each estimate is: the fielded radar's refresh rests on test data, the
+# insert on a prototype, the new array on simulation alone, with a long right tail on its schedule.
+evidence_items:
+  - {id: ev:range-refresh, name: "Range and track test, option 1", evidence_kind: test report,
+     source_ref: "Synthetic instrumented range test, option 1, 2026", document_version: "1",
+     issued_on: 2026-09-15, owner_role: role:test-engineer}
+  - {id: ev:range-new-array, name: "Performance prediction, option 2", evidence_kind: simulation output,
+     source_ref: "Synthetic modeling and simulation prediction, option 2, build 3", document_version: "3",
+     issued_on: 2026-11-20, owner_role: role:systems-engineer}
+  - {id: ev:range-insert, name: "Prototype test, option 3", evidence_kind: test report,
+     source_ref: "Synthetic prototype range test, option 3, 2026", document_version: "1",
+     issued_on: 2026-12-05, owner_role: role:test-engineer}
+  - {id: ev:estimate-refresh, name: "Cost and schedule estimate, option 1", evidence_kind: cost estimate,
+     source_ref: "Synthetic independent cost and schedule estimate, option 1, FY27", document_version: "1",
+     issued_on: 2027-01-10, valid_until: 2027-12-31, owner_role: role:cost-analyst}
+  - {id: ev:estimate-new-array, name: "Cost and schedule estimate, option 2", evidence_kind: cost estimate,
+     source_ref: "Synthetic independent cost and schedule estimate, option 2, FY27", document_version: "1",
+     issued_on: 2027-01-10, valid_until: 2027-12-31, owner_role: role:cost-analyst}
+  - {id: ev:estimate-insert, name: "Cost and schedule estimate, option 3", evidence_kind: cost estimate,
+     source_ref: "Synthetic independent cost and schedule estimate, option 3, FY27", document_version: "1",
+     issued_on: 2027-01-10, valid_until: 2027-12-31, owner_role: role:cost-analyst}
+
+observations:
+  # Option 1: processor and software refresh (incumbent).
+  - {id: obs:refresh.range, alternative: alt:refresh, measure: meas:reference-range, value: 22.0, unit: km,
+     evidence: ev:range-refresh, uncertainty: {family: normal, mean: 22.0, sd: 0.8}}
+  - {id: obs:refresh.p-track, alternative: alt:refresh, measure: meas:p-track, value: 0.90, unit: "1",
+     evidence: ev:range-refresh, uncertainty: {family: normal, mean: 0.90, sd: 0.012}}
+  - {id: obs:refresh.cost, alternative: alt:refresh, measure: meas:unit-cost, value: 5.0, unit: MUSD,
+     evidence: ev:estimate-refresh, uncertainty: {family: triangular, low: 4.6, mode: 5.0, high: 5.8}}
+  - {id: obs:refresh.schedule, alternative: alt:refresh, measure: meas:schedule, value: 12, unit: months,
+     evidence: ev:estimate-refresh, uncertainty: {family: triangular, low: 10, mode: 12, high: 16}}
+  # Option 2: new solid-state array.
+  - {id: obs:new-array.range, alternative: alt:new-array, measure: meas:reference-range, value: 31.0, unit: km,
+     evidence: ev:range-new-array, uncertainty: {family: normal, mean: 31.0, sd: 2.5}}
+  - {id: obs:new-array.p-track, alternative: alt:new-array, measure: meas:p-track, value: 0.96, unit: "1",
+     evidence: ev:range-new-array, uncertainty: {family: triangular, low: 0.92, mode: 0.96, high: 0.99}}
+  - {id: obs:new-array.cost, alternative: alt:new-array, measure: meas:unit-cost, value: 9.0, unit: MUSD,
+     evidence: ev:estimate-new-array, uncertainty: {family: triangular, low: 8.0, mode: 9.0, high: 12.5}}
+  - {id: obs:new-array.schedule, alternative: alt:new-array, measure: meas:schedule, value: 30, unit: months,
+     evidence: ev:estimate-new-array, uncertainty: {family: triangular, low: 24, mode: 30, high: 54}}
+  # Option 3: modular array insert.
+  - {id: obs:insert.range, alternative: alt:insert, measure: meas:reference-range, value: 26.0, unit: km,
+     evidence: ev:range-insert, uncertainty: {family: normal, mean: 26.0, sd: 1.2}}
+  - {id: obs:insert.p-track, alternative: alt:insert, measure: meas:p-track, value: 0.93, unit: "1",
+     evidence: ev:range-insert, uncertainty: {family: normal, mean: 0.93, sd: 0.015}}
+  - {id: obs:insert.cost, alternative: alt:insert, measure: meas:unit-cost, value: 7.5, unit: MUSD,
+     evidence: ev:estimate-insert, uncertainty: {family: triangular, low: 7.0, mode: 7.5, high: 9.0}}
+  - {id: obs:insert.schedule, alternative: alt:insert, measure: meas:schedule, value: 22, unit: months,
+     evidence: ev:estimate-insert, uncertainty: {family: uniform, low: 18, high: 26}}

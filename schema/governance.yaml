@@ -1,0 +1,183 @@
+id: https://w3id.org/pdo/schema/governance
+name: pdo_governance
+title: Readiness, reviews, risks and approvals
+description: >-
+  When a decision may be authorized. Readiness conditions are machine-evaluable tests with three
+  outcomes (pass, fail, unknown); the decision is ready when every required condition passes,
+  blocked when one fails, and pending otherwise, so a known violation stays distinct from missing
+  information. Bias checks are readiness conditions about decision framing or model output. Human
+  reviews and approvals are recorded actions; the kernel stamps each with the state it covered, so a
+  later change makes a review stale and an approval no longer match. Readiness and authorization are
+  separate: the kernel assesses the conditions; a person with the approving role decides.
+default_prefix: pdo
+default_range: string
+imports:
+  - linkml:types
+  - core
+  - problem
+prefixes:
+  linkml: https://w3id.org/linkml/
+  pdo: https://w3id.org/pdo/schema/
+
+classes:
+  ReadinessPolicy:
+    is_a: NamedThing
+    description: Who may approve and accept risk, and the risk score at which treatment is required.
+    slots: [approval_roles, risk_acceptance_roles, risk_score_threshold, approval_validity_days]
+
+  ReadinessCondition:
+    is_a: NamedThing
+    description: >-
+      A condition required before authorization, evaluated by a built-in predicate against the
+      current decision state. review_status conditions consume a recorded HumanReview.
+    slots: [predicate, required, review, parameters, owner_role]
+    slot_usage:
+      predicate: {required: true}
+
+  BiasCheck:
+    is_a: ReadinessCondition
+    description: >-
+      A readiness condition that tests for a bias: in decision framing (an omitted alternative, a
+      criterion counted twice) or in model output (a score resting on an unstated source).
+    slots: [bias_kind, bias_category]
+
+  HumanReview:
+    is_a: NamedThing
+    description: >-
+      A recorded review of a set of objects. The kernel stamps the digest of what it covered when the
+      review is recorded; if any covered object changes later, the review is stale and counts as pending.
+    slots: [review_kind, covers, review_status, reviewer, rationale, recorded_in_episode, covered_digest,
+      owner_role]
+    slot_usage:
+      review_status: {required: true}
+
+  Risk:
+    is_a: NamedThing
+    description: >-
+      A risk to the decision. Risks scoring at or above the policy threshold (likelihood x consequence)
+      must be mitigated, or accepted by a role the policy allows.
+    slots: [affects, likelihood, consequence, treatment_status, accepted_by_role, owner_role]
+    slot_usage:
+      likelihood: {required: true}
+      consequence: {required: true}
+
+  HumanApproval:
+    is_a: NamedThing
+    description: >-
+      A recorded authorization of one alternative. The kernel stamps the state digest it covered; the
+      decision is actionable only while the recommendation, readiness and that digest still match.
+    slots: [approved_alternative, approver_role, approver, rationale, valid_until, recorded_in_episode,
+      state_digest]
+    slot_usage:
+      approved_alternative: {required: true}
+      approver_role: {required: true}
+
+slots:
+  approval_roles:
+    mixins: [hashable]
+    range: Role
+    multivalued: true
+  risk_acceptance_roles:
+    mixins: [hashable]
+    range: Role
+    multivalued: true
+  risk_score_threshold:
+    mixins: [hashable]
+    range: integer
+    description: Risks with likelihood x consequence at or above this need treatment (default 12).
+  approval_validity_days:
+    mixins: [hashable]
+    range: integer
+  predicate:
+    mixins: [hashable]
+    range: ReadinessPredicate
+  required:
+    mixins: [hashable]
+    range: boolean
+    description: Default true. Conditions that are not required are reported but do not gate readiness.
+  review:
+    mixins: [hashable]
+    range: HumanReview
+  bias_kind:
+    mixins: [hashable]
+    range: BiasKind
+  bias_category:
+    mixins: [hashable]
+    range: BiasCategory
+  review_kind:
+    mixins: [unhashable]
+  covers:
+    mixins: [hashable]
+    range: uriorcurie
+    multivalued: true
+    description: >-
+      Ids of reviewed objects, or selectors "all:<collection>" (e.g. all:criteria, all:alternatives).
+  review_status:
+    mixins: [hashable]
+    range: ReviewStatus
+  reviewer:
+    mixins: [unhashable]
+  rationale:
+    mixins: [unhashable]
+  recorded_in_episode:
+    mixins: [unhashable]
+    description: Episode in which the action was recorded (stamped by the kernel).
+  covered_digest:
+    mixins: [hashable]
+    description: Digest of the covered objects when the review was recorded (stamped by the kernel).
+  affects:
+    mixins: [hashable]
+    range: uriorcurie
+    multivalued: true
+  likelihood:
+    mixins: [hashable]
+    range: integer
+    minimum_value: 1
+    maximum_value: 5
+  consequence:
+    mixins: [hashable]
+    range: integer
+    minimum_value: 1
+    maximum_value: 5
+  treatment_status:
+    mixins: [hashable]
+    range: TreatmentStatus
+  accepted_by_role:
+    mixins: [hashable]
+    range: Role
+  approved_alternative:
+    mixins: [hashable]
+    range: Alternative
+  approver_role:
+    mixins: [hashable]
+    range: Role
+  approver:
+    mixins: [unhashable]
+  state_digest:
+    mixins: [hashable]
+    description: Digest of the decision state the approval covered (stamped by the kernel).
+
+enums:
+  ReadinessPredicate:
+    permissible_values:
+      recommendation_exists: {description: At least one feasible alternative is recommended.}
+      unique_recommendation: {description: Exactly one alternative is recommended; a tie needs a person.}
+      coverage: {description: No unresolved alternative could still beat the recommendation.}
+      evidence_current: {description: Evidence behind the recommendation has not passed valid_until.}
+      evidence_traceable: {description: Evidence behind the recommendation names its source.}
+      assumptions_validated: {description: Critical assumptions are validated.}
+      risks_treated: {description: Risks at or above threshold are mitigated or accepted by an allowed role.}
+      review_status: {description: The referenced review passed and is not stale.}
+      omitted_options: {description: More than the incumbent is under consideration.}
+      distinct_measures: {description: No two criteria score the same measure (double counting).}
+  BiasKind:
+    permissible_values:
+      omitted_options: {}
+      double_counting: {}
+      single_source: {}
+      anchoring: {}
+      framing: {}
+  BiasCategory:
+    permissible_values:
+      decision_framing: {}
+      model_output: {}

@@ -1,0 +1,185 @@
+id: https://w3id.org/pdo/schema/problem
+name: pdo_problem
+title: Decision problem
+description: >-
+  What is being decided: the alternatives, the measures they are judged on, mandatory requirements
+  (hard constraints that a high score cannot compensate for), criteria with fixed value-function
+  anchors and weights (the preference model), the decision rule, and named scenarios for robustness
+  checks. Requirements decide feasibility; criteria rank the feasible alternatives.
+default_prefix: pdo
+default_range: string
+imports:
+  - linkml:types
+  - core
+prefixes:
+  linkml: https://w3id.org/linkml/
+  pdo: https://w3id.org/pdo/schema/
+
+classes:
+  Objective:
+    is_a: NamedThing
+    description: A goal the decision serves (performance, affordability, dependability).
+
+  Alternative:
+    is_a: NamedThing
+    mixins: [SourceRef]
+    description: A candidate the decision chooses among (a configuration, a source, a design).
+    slots: [is_incumbent]
+
+  Measure:
+    is_a: NamedThing
+    description: A quantity alternatives are measured on; every value of it carries this unit.
+    slots: [unit]
+    slot_usage:
+      unit: {required: true}
+
+  Criterion:
+    is_a: NamedThing
+    description: >-
+      A preference criterion: a value function v mapping a measure onto [0, 1] with fixed anchors,
+      and a weight. Linear by default, v = (y - anchor_worst) / (anchor_best - anchor_worst), so a
+      cost criterion has anchor_worst above anchor_best. Fixed anchors keep scores from moving when an
+      alternative is added. Weights express trade-offs over these scales and must sum to 1.
+    slots: [objective, measure, anchor_worst, anchor_best, points, clip, weight]
+    slot_usage:
+      measure: {required: true}
+      anchor_worst: {required: true}
+      anchor_best: {required: true}
+      weight: {required: true}
+
+  PiecewisePoint:
+    description: One point (x, v) of a piecewise-linear value function; points are sorted by x.
+    slots: [x, v]
+    slot_usage:
+      x: {required: true}
+      v: {required: true}
+
+  Requirement:
+    is_a: NamedThing
+    mixins: [SourceRef]
+    description: >-
+      A constraint on a measure. A mandatory requirement must be known to pass for an alternative to
+      be feasible; an unknown result leaves the alternative unresolved, never infeasible by default.
+    slots: [measure, comparator, threshold_value, unit, mandatory, applies_to, check_tolerance, owner_role]
+    slot_usage:
+      measure: {required: true}
+      comparator: {required: true}
+      threshold_value: {required: true}
+      unit: {required: true}
+
+  DecisionRule:
+    is_a: NamedThing
+    description: >-
+      How feasible alternatives are ranked. additive_mavt maximizes U(a) = sum_k w_k v_k(y_k(a)) and
+      returns the set of alternatives within tie_tolerance of the maximum.
+    slots: [rule_kind, tie_tolerance, samples, seed, chance_alpha]
+    slot_usage:
+      rule_kind: {required: true}
+
+  Scenario:
+    is_a: NamedThing
+    description: A named set of assignments to test the recommendation against (robustness over a scenario set).
+    slots: [assignments]
+
+  SlotAssignment:
+    description: Set one slot of one object, identified by id, to a new value.
+    slots: [target, slot, new_value]
+    slot_usage:
+      target: {required: true}
+      slot: {required: true}
+
+slots:
+  is_incumbent:
+    mixins: [hashable]
+    range: boolean
+    description: The design or source already in place; used by the omitted-options bias check.
+  objective:
+    mixins: [unhashable]
+    range: Objective
+  measure:
+    mixins: [hashable]
+    range: Measure
+  anchor_worst:
+    mixins: [hashable]
+    range: float
+  anchor_best:
+    mixins: [hashable]
+    range: float
+  points:
+    mixins: [hashable]
+    range: PiecewisePoint
+    multivalued: true
+    inlined_as_list: true
+    description: Optional piecewise-linear value function; overrides the linear form between the anchors.
+  x:
+    mixins: [hashable]
+    range: float
+  v:
+    mixins: [hashable]
+    range: float
+  clip:
+    mixins: [hashable]
+    range: boolean
+    description: Clip values to [0, 1] outside the anchors (default true).
+  weight:
+    mixins: [hashable]
+    range: float
+    minimum_value: 0
+    maximum_value: 1
+  comparator:
+    mixins: [hashable]
+    range: Comparator
+  threshold_value:
+    mixins: [hashable]
+    range: float
+  mandatory:
+    mixins: [hashable]
+    range: boolean
+    description: Mandatory requirements gate feasibility (default true).
+  applies_to:
+    mixins: [hashable]
+    range: Alternative
+    multivalued: true
+    description: Alternatives this applies to; empty means all.
+  check_tolerance:
+    mixins: [hashable]
+    range: float
+    description: A check passes when g <= check_tolerance (default 1.0e-9), so float noise cannot fail a boundary case.
+  rule_kind:
+    mixins: [hashable]
+    range: DecisionRuleKind
+  tie_tolerance:
+    mixins: [hashable]
+    range: float
+    description: Alternatives within this utility of the maximum are tied (default 1.0e-9).
+  samples:
+    mixins: [hashable]
+    range: integer
+    description: Monte Carlo samples for expected_mavt.
+  seed:
+    mixins: [hashable]
+    range: integer
+    description: Random seed for expected_mavt; recorded so runs replay exactly.
+  chance_alpha:
+    mixins: [hashable]
+    range: float
+    description: Joint chance constraint tolerance; feasible iff Pr(all mandatory checks pass) >= 1 - alpha.
+  assignments:
+    mixins: [hashable]
+    range: SlotAssignment
+    multivalued: true
+    inlined_as_list: true
+  target:
+    mixins: [hashable]
+    range: uriorcurie
+  slot:
+    mixins: [hashable]
+  new_value:
+    mixins: [hashable]
+    range: Any
+
+enums:
+  DecisionRuleKind:
+    permissible_values:
+      additive_mavt: {description: Weighted additive multi-attribute value model.}
+      expected_mavt: {description: Expected additive value over sampled uncertain inputs.}

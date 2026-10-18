@@ -1,0 +1,9 @@
+# Research-brief branch 3, off the baseline: the framing review is reopened. No engineering number
+# changes; B stays the provisional winner and readiness is pending.
+id: ep:b3
+parent: ep:e00
+trigger: review
+change_description: "Brief branch: the independent framing review is reopened and is pending."
+author_role: role:bias-reviewer
+assign:
+  - {target: rev:framing, slot: review_status, new_value: pending}

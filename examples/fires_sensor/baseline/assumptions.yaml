@@ -1,0 +1,14 @@
+assumptions:
+  - id: asm:threat-rcs-factor
+    name: Threat radar cross section relative to the reference projectile
+    description: >-
+      Synthetic. Detection range scales with its fourth root (the radar range equation), so a smaller
+      threat shortens every option's range by the same factor. The point value is the mode.
+    value: 1.0
+    unit: "1"
+    critical: true
+    validation_status: validated
+    plausible_low: 0.5
+    plausible_high: 1.5
+    uncertainty: {family: triangular, low: 0.7, mode: 1.0, high: 1.3}
+    owner_role: role:threat-analyst

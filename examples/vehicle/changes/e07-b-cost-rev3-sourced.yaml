@@ -1,0 +1,9 @@
+# The cost analyst records the quote's source. No decision number changes; readiness returns to ready.
+id: ep:e07
+parent: ep:e06
+as_of: 2027-08-15
+trigger: provenance
+change_description: The cost analyst records the source of supplier B's revision 3 quote.
+author_role: role:cost-analyst
+assign:
+  - {target: ev:cost-B-3, slot: source_ref, new_value: "Synthetic supplier quote, vehicle B, revision 3"}

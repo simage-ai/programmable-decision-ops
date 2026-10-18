@@ -1,0 +1,9 @@
+# Research-brief branch 1, off the baseline: B's cost rises to 1.32. U_B = 0.453333 < U_A = 0.466667,
+# so A becomes the recommendation (the exact pairwise boundary is 1.30).
+id: ep:b1
+parent: ep:e00
+trigger: cost
+change_description: "Brief branch: supplier B's unit cost rises from 1.20 to 1.32 MUSD."
+author_role: role:cost-analyst
+assign:
+  - {target: obs:B.cost, slot: value, new_value: 1.32}

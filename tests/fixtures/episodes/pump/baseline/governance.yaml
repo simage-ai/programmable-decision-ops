@@ -1,0 +1,27 @@
+readiness_policy:
+  id: policy:main
+  name: Readiness and authorization policy
+  approval_roles: [role:approver]
+  risk_acceptance_roles: [role:approver]
+  approval_validity_days: 180
+
+readiness_conditions:
+  - {id: rc:exists, predicate: recommendation_exists, owner_role: role:owner}
+  - {id: rc:unique, predicate: unique_recommendation, owner_role: role:owner}
+  - {id: rc:coverage, predicate: coverage, owner_role: role:analyst}
+  - {id: rc:current, predicate: evidence_current, owner_role: role:analyst}
+  - {id: rc:traceable, predicate: evidence_traceable, owner_role: role:analyst}
+  - {id: rc:assumptions, predicate: assumptions_validated, owner_role: role:analyst}
+  - {id: rc:risks, predicate: risks_treated, owner_role: role:owner}
+
+bias_checks:
+  - {id: bc:options, predicate: omitted_options, bias_kind: omitted_options, owner_role: role:owner}
+  - {id: bc:framing, predicate: review_status, review: rev:framing, bias_kind: framing, owner_role: role:reviewer}
+
+reviews:
+  - {id: rev:framing, name: Framing review, covers: [all:alternatives, all:criteria], review_status: pass,
+     owner_role: role:reviewer}
+
+risks:
+  - {id: risk:Z-battery, name: Battery supply, affects: [alt:Z], likelihood: 2, consequence: 3,
+     treatment_status: mitigated, owner_role: role:owner}

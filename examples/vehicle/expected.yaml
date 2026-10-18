@@ -1,0 +1,267 @@
+# Expected kernel output for every episode of the vehicle program, computed by hand from
+# docs/semantics.md and the baseline/ and changes/ files (never from the kernel), so the kernel can be
+# tested against it.
+#
+# Per episode:
+#   parent              the episode it was derived from (null for the baseline)
+#   outcome             benchmark outcome class of a full evaluation against the parent's
+#                       (docs/semantics.md "Benchmark outcome classes"); absent for the baseline
+#   recommended, feasible, infeasible, unresolved   alternative ids, sorted
+#   utilities           U per alternative, rounded to 6 decimals; null when U is unknown
+#   utility_bounds      [lower, upper] for every alternative whose U is unknown
+#   readiness           ready | pending | blocked
+#   failed_conditions   required readiness conditions and bias checks that fail
+#   unknown_conditions  required readiness conditions and bias checks that are unknown
+#   actionable          ready, a unique recommendation, and a matching current approval
+#
+# Arithmetic (fixed anchors): v_range = (r - 300)/100, v_cost = (1.40 - c)/0.60,
+# v_rel = (q - 0.94)/0.05, U = 0.4 v_range + 0.4 v_cost + 0.2 v_rel; range = tank x mpg x terrain
+# (A 320, B 360, C 380 mi). Baseline: U_A = 0.08 + 0.266667 + 0.12, U_B = 0.24 + 0.133333 + 0.16,
+# U_C = 0.32 + 0.30 + 0; C fails min reliability (g = 0.95 - 0.94 = +0.01).
+episodes:
+  ep:e00:
+    parent: null
+    recommended: [alt:B]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.533333, alt:C: 0.62}
+    readiness: ready
+    failed_conditions: []
+    unknown_conditions: []
+    actionable: false
+    note: Baseline trade study; C scores highest but fails min reliability; ready, but nobody has approved it.
+
+  ep:e01:
+    parent: ep:e00
+    outcome: readiness_only
+    recommended: [alt:B]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.533333, alt:C: 0.62}
+    readiness: ready
+    failed_conditions: []
+    unknown_conditions: []
+    actionable: true
+    note: The MDA approves B; only an approval was added, so its stamped digest is the current one.
+
+  ep:e02:
+    parent: ep:e01
+    outcome: recompute_same_winner
+    recommended: [alt:B]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.5, alt:C: 0.62}
+    readiness: ready
+    failed_conditions: []
+    unknown_conditions: []
+    actionable: false
+    note: B quote revision 2 at 1.25 (v_cost 0.25, U_B 0.50); B still wins, but the e01 approval no longer matches.
+
+  ep:e03:
+    parent: ep:e02
+    outcome: readiness_only
+    recommended: [alt:B]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.5, alt:C: 0.62}
+    readiness: ready
+    failed_conditions: []
+    unknown_conditions: []
+    actionable: true
+    note: The MDA re-approves B on the revision 2 state.
+
+  ep:e04:
+    parent: ep:e03
+    outcome: changed_winner
+    recommended: [alt:A]
+    feasible: [alt:A]
+    infeasible: [alt:C]
+    unresolved: [alt:B]
+    utilities: {alt:A: 0.466667, alt:B: null, alt:C: 0.62}
+    utility_bounds: {alt:B: [0.34, 0.54]}
+    readiness: pending
+    failed_conditions: []
+    unknown_conditions: [rc:coverage]
+    actionable: false
+    note: >-
+      Phase 1 reliability observation rejected, phase 2 provisional: B's reliability is unknown, so B is
+      unresolved (0.24 + 0.10 known, 0.20 unknown weight); A is the only ranked feasible alternative, and
+      B's upper bound 0.54 exceeds U_A, so coverage is unknown.
+
+  ep:e05:
+    parent: ep:e04
+    outcome: changed_winner
+    recommended: [alt:B]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.48, alt:C: 0.62}
+    readiness: ready
+    failed_conditions: []
+    unknown_conditions: []
+    actionable: false
+    note: Phase 2 report accepted (q 0.975, v_rel 0.7, U_B 0.48); B wins again, and no approval covers this state.
+
+  ep:e06:
+    parent: ep:e05
+    outcome: recompute_same_winner
+    recommended: [alt:B]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.5, alt:C: 0.62}
+    readiness: blocked
+    failed_conditions: [rc:evidence-traceable]
+    unknown_conditions: []
+    actionable: false
+    note: B quote revision 3 at 1.22 (U_B 0.50) cites ev:cost-B-3, which has no source_ref and supports the winner.
+
+  ep:e07:
+    parent: ep:e06
+    outcome: readiness_only
+    recommended: [alt:B]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.5, alt:C: 0.62}
+    readiness: ready
+    failed_conditions: []
+    unknown_conditions: []
+    actionable: false
+    note: The quote's source is recorded; no number changes, readiness returns to ready, nothing approves it yet.
+
+  ep:e08:
+    parent: ep:e07
+    outcome: readiness_only
+    recommended: [alt:B]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.5, alt:C: 0.62}
+    readiness: ready
+    failed_conditions: []
+    unknown_conditions: []
+    actionable: true
+    note: The MDA re-approves B on the sourced revision 3 state.
+
+  ep:e09:
+    parent: ep:e08
+    outcome: readiness_only
+    recommended: [alt:B]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.5, alt:C: 0.62}
+    readiness: pending
+    failed_conditions: []
+    unknown_conditions: [rc:evidence-current]
+    actionable: false
+    note: >-
+      Only the clock moves (2028-01-15), past ev:cost-B-3's valid_until 2027-12-31; the e08 approval still
+      matches the digest, but readiness is pending.
+
+  ep:e10:
+    parent: ep:e09
+    outcome: changed_winner
+    recommended: [alt:A]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.433333, alt:C: 0.62}
+    readiness: ready
+    failed_conditions: []
+    unknown_conditions: []
+    actionable: false
+    note: >-
+      2028 re-quotes (A 1.00, B 1.32, both valid to 2028-12-31) give U_B 0.433333 < U_A, so A wins; A's
+      evidence is current.
+
+  ep:e11:
+    parent: ep:e10
+    outcome: readiness_only
+    recommended: [alt:A]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.433333, alt:C: 0.62}
+    readiness: ready
+    failed_conditions: []
+    unknown_conditions: []
+    actionable: true
+    note: The MDA approves A.
+
+  ep:e12:
+    parent: ep:e11
+    outcome: recompute_same_winner
+    recommended: [alt:A]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.433333, alt:C: 0.62}
+    readiness: pending
+    failed_conditions: []
+    unknown_conditions: [bc:framing-review]
+    actionable: false
+    note: >-
+      Min range 310: A still passes (g = -10) and wins, but the framing review covers all requirements and
+      is now stale, and the A approval no longer matches.
+
+  ep:b1:
+    parent: ep:e00
+    outcome: changed_winner
+    recommended: [alt:A]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.453333, alt:C: 0.62}
+    readiness: ready
+    failed_conditions: []
+    unknown_conditions: []
+    actionable: false
+    note: Brief branch, B cost 1.32 (above the 1.30 boundary); A is preferred and ready, but not approved.
+
+  ep:b2:
+    parent: ep:e00
+    outcome: recompute_same_winner
+    recommended: [alt:B]
+    feasible: [alt:B]
+    infeasible: [alt:A, alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.533333, alt:C: 0.62}
+    readiness: pending
+    failed_conditions: []
+    unknown_conditions: [bc:framing-review]
+    actionable: false
+    note: Brief branch, min range 350; A fails range (g = +30), B still wins, the framing review is stale.
+
+  ep:b3:
+    parent: ep:e00
+    outcome: readiness_only
+    recommended: [alt:B]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.533333, alt:C: 0.62}
+    readiness: pending
+    failed_conditions: []
+    unknown_conditions: [bc:framing-review]
+    actionable: false
+    note: Brief branch, framing review pending; no number changes, B is the provisional winner.
+
+  ep:b4:
+    parent: ep:e00
+    outcome: empty_feasible_set
+    recommended: []
+    feasible: []
+    infeasible: [alt:A, alt:B, alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.533333, alt:C: 0.62}
+    readiness: blocked
+    failed_conditions: [rc:recommendation-exists, rc:unique-recommendation]
+    unknown_conditions: [bc:framing-review]
+    actionable: false
+    note: Brief branch, min range 370; A (g = +50) and B (g = +10) fail range, C fails reliability; no recommendation.

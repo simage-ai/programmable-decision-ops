@@ -1,0 +1,4 @@
+alternatives:
+  - {id: alt:A, name: Configuration A (current production derivative), is_incumbent: true}
+  - {id: alt:B, name: Configuration B (extended-range hybrid)}
+  - {id: alt:C, name: Configuration C (low-cost commercial platform)}

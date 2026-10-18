@@ -1,0 +1,8 @@
+# Only the clock moves. The approval still matches (the digest does not cover the clock), but B's
+# revision 3 quote is past its valid_until, so evidence currency is unknown and readiness is pending.
+id: ep:e09
+parent: ep:e08
+as_of: 2028-01-15
+trigger: time
+change_description: The clock passes 2027-12-31, the valid_until of supplier B's revision 3 quote.
+author_role: role:cost-analyst

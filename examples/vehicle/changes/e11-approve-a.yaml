@@ -1,0 +1,15 @@
+# The MDA approves A, the new unique winner.
+id: ep:e11
+parent: ep:e10
+as_of: 2028-03-01
+trigger: approval
+change_description: The MDA approves configuration A after the 2028 re-quote.
+author_role: role:mda
+add:
+  approvals:
+    - id: appr:e11-a
+      name: Development approval for configuration A
+      approved_alternative: alt:A
+      approver_role: role:mda
+      approver: you
+      rationale: A is the unique feasible winner at the 2028 quotes.

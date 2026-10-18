@@ -1,0 +1,21 @@
+evidence_items:
+  - {id: ev:sheet-X, name: Data sheet X, source_ref: "Synthetic data sheet X", owner_role: role:analyst}
+  - {id: ev:sheet-Y, name: Data sheet Y, source_ref: "Synthetic data sheet Y", owner_role: role:analyst}
+  - {id: ev:sheet-Z, name: Data sheet Z, source_ref: "Synthetic data sheet Z", owner_role: role:analyst}
+  - {id: ev:quote-X, name: Quote X, source_ref: "Synthetic quote X", valid_until: 2027-12-31, owner_role: role:analyst}
+  - {id: ev:quote-Y, name: Quote Y, source_ref: "Synthetic quote Y", valid_until: 2027-12-31, owner_role: role:analyst}
+  - {id: ev:quote-Z, name: Quote Z, source_ref: "Synthetic quote Z", valid_until: 2027-12-31, owner_role: role:analyst}
+
+observations:
+  - {id: obs:X.flow, alternative: alt:X, measure: meas:flow, value: 400, unit: L/min, evidence: ev:sheet-X}
+  - {id: obs:X.fuel, alternative: alt:X, measure: meas:fuel, value: 20, unit: L, evidence: ev:sheet-X}
+  - {id: obs:X.burn, alternative: alt:X, measure: meas:burn, value: 2.5, unit: L/h, evidence: ev:sheet-X}
+  - {id: obs:X.cost, alternative: alt:X, measure: meas:cost, value: 2.0, unit: kUSD, evidence: ev:quote-X}
+  - {id: obs:Y.flow, alternative: alt:Y, measure: meas:flow, value: 500, unit: L/min, evidence: ev:sheet-Y}
+  - {id: obs:Y.fuel, alternative: alt:Y, measure: meas:fuel, value: 30, unit: L, evidence: ev:sheet-Y}
+  - {id: obs:Y.burn, alternative: alt:Y, measure: meas:burn, value: 3.0, unit: L/h, evidence: ev:sheet-Y}
+  - {id: obs:Y.cost, alternative: alt:Y, measure: meas:cost, value: 3.0, unit: kUSD, evidence: ev:quote-Y}
+  - {id: obs:Z.flow, alternative: alt:Z, measure: meas:flow, value: 600, unit: L/min, evidence: ev:sheet-Z}
+  - {id: obs:Z.fuel, alternative: alt:Z, measure: meas:fuel, value: 18, unit: L, evidence: ev:sheet-Z}
+  - {id: obs:Z.burn, alternative: alt:Z, measure: meas:burn, value: 3.0, unit: L/h, evidence: ev:sheet-Z}
+  - {id: obs:Z.cost, alternative: alt:Z, measure: meas:cost, value: 2.5, unit: kUSD, evidence: ev:quote-Z}

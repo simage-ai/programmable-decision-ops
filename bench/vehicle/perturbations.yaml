@@ -1,0 +1,877 @@
+# Representation benchmark for the vehicle program: controlled perturbations, each applied as a change
+# set to the parent episode ep:e01 (the baseline trade study plus the MDA's approval of B, so the parent
+# is ready and actionable: recommended [alt:B], U_A 0.466667, U_B 0.533333, U_C 0.62, C infeasible).
+#
+# Every label was computed by hand from docs/semantics.md, never from the kernel:
+#   outcome               first matching benchmark outcome class, child against parent
+#   recommended           the child's recommended set
+#   readiness             the child's readiness (ready | pending | blocked)
+#   winner_changed        the recommended set differs from the parent's [alt:B]
+#   readiness_violation   the child's readiness is not ready
+#   approval_invalidated  appr:e01-b no longer matches in the child (any hashable change outside
+#                         approvals changes the state digest; the clock and unhashable slots do not)
+#
+# Value functions: v_range = (r - 300)/100, v_cost = (1.40 - c)/0.60, v_rel = (q - 0.94)/0.05;
+# U = 0.4 v_range + 0.4 v_cost + 0.2 v_rel. The framing review covers all:alternatives,
+# all:requirements and all:criteria, so changing or adding any of those makes it stale (pending).
+# Families and the dev/heldout split were fixed before any kernel run.
+suite: vehicle
+program: ../../examples/vehicle
+parent: ep:e01
+cases:
+  # --- cost ------------------------------------------------------------------------------------
+  - id: b-cost-1p32
+    family: cost
+    split: dev
+    description: >-
+      B's quote rises to 1.32 (v_cost 0.133333, U_B 0.453333 < U_A 0.466667); A is recommended and its
+      evidence is current, so the child is ready but unapproved.
+    change:
+      assign:
+        - {target: obs:B.cost, slot: value, new_value: 1.32}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:A]
+      readiness: ready
+      winner_changed: true
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: b-cost-1p25
+    family: cost
+    split: dev
+    description: B's quote rises to 1.25 (v_cost 0.25, U_B 0.50 > U_A); B still wins, the approval is stale.
+    change:
+      assign:
+        - {target: obs:B.cost, slot: value, new_value: 1.25}
+    expect:
+      outcome: recompute_same_winner
+      recommended: [alt:B]
+      readiness: ready
+      winner_changed: false
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: b-cost-1p30-tie
+    family: cost
+    split: dev
+    description: >-
+      B's quote at the exact pairwise boundary 1.30: U_B = 0.4 + (0.4/0.6)(0.10) = 0.466667 = U_A, a tie
+      within tie_tolerance, so both are recommended and unique_recommendation is unknown.
+    change:
+      assign:
+        - {target: obs:B.cost, slot: value, new_value: 1.30}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:A, alt:B]
+      readiness: pending
+      winner_changed: true
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: a-cost-0p85
+    family: cost
+    split: heldout
+    description: A's quote falls to 0.85 (v_cost 0.916667, U_A 0.566667 > U_B 0.533333); A is recommended.
+    change:
+      assign:
+        - {target: obs:A.cost, slot: value, new_value: 0.85}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:A]
+      readiness: ready
+      winner_changed: true
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: c-cost-0p80
+    family: cost
+    split: dev
+    description: >-
+      C's quote falls to 0.80 (v_cost 1.0, U_C 0.72); C still fails min reliability, so B still wins and
+      only C's numbers change.
+    change:
+      assign:
+        - {target: obs:C.cost, slot: value, new_value: 0.80}
+    expect:
+      outcome: recompute_same_winner
+      recommended: [alt:B]
+      readiness: ready
+      winner_changed: false
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: b-cost-1p45-over-cap
+    family: cost
+    split: dev
+    description: >-
+      B's quote rises to 1.45, over the 1.40 cap (g = +0.05): B is infeasible (v_cost clipped to 0,
+      U_B 0.40) and A is recommended.
+    change:
+      assign:
+        - {target: obs:B.cost, slot: value, new_value: 1.45}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:A]
+      readiness: ready
+      winner_changed: true
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: b-cost-1p40-at-cap
+    family: cost
+    split: heldout
+    description: >-
+      B's quote equals the 1.40 cap: g = 0 passes (le, within check_tolerance), B stays feasible, but
+      v_cost = 0 gives U_B 0.40 < U_A, so A is recommended.
+    change:
+      assign:
+        - {target: obs:B.cost, slot: value, new_value: 1.40}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:A]
+      readiness: ready
+      winner_changed: true
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  # --- requirement -----------------------------------------------------------------------------
+  - id: min-range-350
+    family: requirement
+    split: dev
+    description: >-
+      Min range 350: A fails (g = +30) and becomes infeasible, B passes (g = -10) and still wins; the
+      framing review covers requirements and is stale.
+    change:
+      assign:
+        - {target: req:min-range, slot: threshold_value, new_value: 350}
+    expect:
+      outcome: recompute_same_winner
+      recommended: [alt:B]
+      readiness: pending
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: min-range-370
+    family: requirement
+    split: dev
+    description: >-
+      Min range 370: A (g = +50) and B (g = +10) fail range and C fails reliability, so the feasible set
+      is empty; recommendation_exists and unique_recommendation fail.
+    change:
+      assign:
+        - {target: req:min-range, slot: threshold_value, new_value: 370}
+    expect:
+      outcome: empty_feasible_set
+      recommended: []
+      readiness: blocked
+      winner_changed: true
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: min-range-310
+    family: requirement
+    split: dev
+    description: Min range 310 changes every range g (A -10) but no status; B still wins, the review is stale.
+    change:
+      assign:
+        - {target: req:min-range, slot: threshold_value, new_value: 310}
+    expect:
+      outcome: recompute_same_winner
+      recommended: [alt:B]
+      readiness: pending
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: min-reliability-0p94
+    family: requirement
+    split: dev
+    description: >-
+      Min reliability lowered to 0.94: C's g becomes 0 and passes, C is feasible with U_C 0.62 and wins;
+      the review is stale.
+    change:
+      assign:
+        - {target: req:min-reliability, slot: threshold_value, new_value: 0.94}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:C]
+      readiness: pending
+      winner_changed: true
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: max-cost-1p15
+    family: requirement
+    split: heldout
+    description: >-
+      Max cost lowered to 1.15: B fails (g = +0.05) and A (g = -0.15) is recommended; the review is stale.
+    change:
+      assign:
+        - {target: req:max-cost, slot: threshold_value, new_value: 1.15}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:A]
+      readiness: pending
+      winner_changed: true
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: max-cost-1p30
+    family: requirement
+    split: dev
+    description: >-
+      Max cost lowered to 1.30: every cost g changes (B -0.10), nobody fails; B wins, the review is stale.
+    change:
+      assign:
+        - {target: req:max-cost, slot: threshold_value, new_value: 1.30}
+    expect:
+      outcome: recompute_same_winner
+      recommended: [alt:B]
+      readiness: pending
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: new-requirement-all-pass
+    family: requirement
+    split: dev
+    description: >-
+      A new mandatory requirement, fuel economy at least 7.5 mi/gal, which every alternative passes
+      (g = -0.5); new checks but the same winner, and all:requirements now resolves to a different set,
+      so the review is stale.
+    change:
+      add:
+        requirements:
+          - {id: req:min-fuel-economy, name: Minimum fuel economy, measure: meas:fuel-economy, comparator: ge,
+             threshold_value: 7.5, unit: mi/gal, owner_role: role:systems-engineer}
+    expect:
+      outcome: recompute_same_winner
+      recommended: [alt:B]
+      readiness: pending
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: new-requirement-unobserved-for-b
+    family: requirement
+    split: heldout
+    description: >-
+      A new ground-clearance requirement (at least 14 in) with values for A (16) and C (15) but none for
+      B: B's check is unknown, so B is unresolved with known U 0.533333 > U_A; A is recommended, and
+      coverage and the stale review are unknown.
+    change:
+      add:
+        measures:
+          - {id: meas:ground-clearance, name: Ground clearance, unit: in}
+        requirements:
+          - {id: req:min-ground-clearance, name: Minimum ground clearance, measure: meas:ground-clearance,
+             comparator: ge, threshold_value: 14, unit: in, owner_role: role:systems-engineer}
+        observations:
+          - {id: obs:A.clearance, alternative: alt:A, measure: meas:ground-clearance, value: 16, unit: in,
+             evidence: ev:design-A}
+          - {id: obs:C.clearance, alternative: alt:C, measure: meas:ground-clearance, value: 15, unit: in,
+             evidence: ev:design-C}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:A]
+      readiness: pending
+      winner_changed: true
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  # --- evidence --------------------------------------------------------------------------------
+  - id: b-reliability-0p96
+    family: evidence
+    split: dev
+    description: B's reliability 0.96 (passes, g = -0.01; v_rel 0.4, U_B 0.453333 < U_A); A is recommended.
+    change:
+      assign:
+        - {target: obs:B.reliability, slot: value, new_value: 0.96}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:A]
+      readiness: ready
+      winner_changed: true
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: b-reliability-0p97
+    family: evidence
+    split: dev
+    description: B's reliability 0.97 (v_rel 0.6, U_B 0.493333 > U_A); B still wins.
+    change:
+      assign:
+        - {target: obs:B.reliability, slot: value, new_value: 0.97}
+    expect:
+      outcome: recompute_same_winner
+      recommended: [alt:B]
+      readiness: ready
+      winner_changed: false
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: b-reliability-provisional
+    family: evidence
+    split: dev
+    description: >-
+      B's only reliability observation becomes provisional, so B's reliability is unknown: B is
+      unresolved with U_B in [0.373333, 0.573333], A is recommended, and coverage is unknown.
+    change:
+      assign:
+        - {target: obs:B.reliability, slot: applicability, new_value: provisional}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:A]
+      readiness: pending
+      winner_changed: true
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: b-reliability-conflicting-observation
+    family: evidence
+    split: heldout
+    description: >-
+      A second accepted reliability observation for B (0.96, from a new report) conflicts with 0.98, so
+      B's reliability is unknown: B is unresolved, A is recommended, and coverage is unknown.
+    change:
+      add:
+        evidence_items:
+          - {id: ev:reliability-B-2, name: Reliability test report B phase 2, evidence_kind: test report,
+             source_ref: "Synthetic reliability growth test, vehicle B, phase 2", document_version: "1",
+             owner_role: role:test-engineer}
+        observations:
+          - {id: obs:B.reliability-2, alternative: alt:B, measure: meas:reliability, value: 0.96, unit: "1",
+             evidence: ev:reliability-B-2}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:A]
+      readiness: pending
+      winner_changed: true
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: c-reliability-0p95
+    family: evidence
+    split: dev
+    description: >-
+      C's reliability 0.95 meets the threshold (g = 0), so C is feasible with U_C 0.66 and wins; no
+      reviewed object changed and C's evidence is current, so the child is ready.
+    change:
+      assign:
+        - {target: obs:C.reliability, slot: value, new_value: 0.95}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:C]
+      readiness: ready
+      winner_changed: true
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: a-reliability-rejected
+    family: evidence
+    split: dev
+    description: >-
+      A's reliability observation is rejected: A is unresolved with U_A in [0.346667, 0.546667]; B still
+      wins at 0.533333, but A's upper bound exceeds it, so coverage is unknown.
+    change:
+      assign:
+        - {target: obs:A.reliability, slot: applicability, new_value: rejected}
+    expect:
+      outcome: recompute_same_winner
+      recommended: [alt:B]
+      readiness: pending
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: b-reliability-report-version-bump
+    family: evidence
+    split: dev
+    description: B's reliability report is reissued as version 2 with the same values; only the approval lapses.
+    change:
+      assign:
+        - {target: ev:reliability-B, slot: document_version, new_value: "2"}
+    expect:
+      outcome: readiness_only
+      recommended: [alt:B]
+      readiness: ready
+      winner_changed: false
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: new-alternative-d-wins
+    family: evidence
+    split: heldout
+    description: >-
+      A fourth configuration D arrives with evidence: 50 gal x 8 mpg = 400 mi (v 1.0), 1.10 MUSD (v 0.5),
+      reliability 0.97 (v 0.6), so U_D = 0.72 and D wins; all:alternatives changed, so the review is stale.
+    change:
+      add:
+        alternatives:
+          - {id: alt:D, name: Configuration D (long-range diesel)}
+        evidence_items:
+          - {id: ev:design-D, name: Configuration sheet D, evidence_kind: specification,
+             source_ref: "Synthetic configuration sheet, vehicle D, rev 1", document_version: "1",
+             owner_role: role:systems-engineer}
+          - {id: ev:cost-D, name: Supplier quote D, evidence_kind: cost estimate,
+             source_ref: "Synthetic supplier quote, vehicle D, Q1 2027", document_version: "1",
+             valid_until: 2027-12-31, owner_role: role:cost-analyst}
+          - {id: ev:reliability-D, name: Reliability test report D, evidence_kind: test report,
+             source_ref: "Synthetic reliability growth test, vehicle D, phase 1", document_version: "1",
+             owner_role: role:test-engineer}
+        observations:
+          - {id: obs:D.tank, alternative: alt:D, measure: meas:tank-capacity, value: 50, unit: gal,
+             evidence: ev:design-D}
+          - {id: obs:D.mpg, alternative: alt:D, measure: meas:fuel-economy, value: 8.0, unit: mi/gal,
+             evidence: ev:design-D}
+          - {id: obs:D.cost, alternative: alt:D, measure: meas:unit-cost, value: 1.10, unit: MUSD,
+             evidence: ev:cost-D}
+          - {id: obs:D.reliability, alternative: alt:D, measure: meas:reliability, value: 0.97, unit: "1",
+             evidence: ev:reliability-D}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:D]
+      readiness: pending
+      winner_changed: true
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  # --- assumption ------------------------------------------------------------------------------
+  - id: terrain-0p95
+    family: assumption
+    split: dev
+    description: >-
+      Terrain factor 0.95: ranges 304 / 342 / 361 mi, all pass; U_A 0.402667, U_B 0.461333, U_C 0.544
+      (still infeasible), so B still wins.
+    change:
+      assign:
+        - {target: asm:terrain-factor, slot: value, new_value: 0.95}
+    expect:
+      outcome: recompute_same_winner
+      recommended: [alt:B]
+      readiness: ready
+      winner_changed: false
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: terrain-0p90
+    family: assumption
+    split: heldout
+    description: >-
+      Terrain factor 0.90: A's range 288 fails (g = +12) and A is infeasible; B (324 mi, U_B 0.389333)
+      still wins.
+    change:
+      assign:
+        - {target: asm:terrain-factor, slot: value, new_value: 0.90}
+    expect:
+      outcome: recompute_same_winner
+      recommended: [alt:B]
+      readiness: ready
+      winner_changed: false
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: terrain-0p80
+    family: assumption
+    split: dev
+    description: >-
+      Terrain factor 0.80: A 256 and B 288 mi fail range, C (304 mi) still fails reliability, so the
+      feasible set is empty and the decision is blocked.
+    change:
+      assign:
+        - {target: asm:terrain-factor, slot: value, new_value: 0.80}
+    expect:
+      outcome: empty_feasible_set
+      recommended: []
+      readiness: blocked
+      winner_changed: true
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: terrain-invalid
+    family: assumption
+    split: dev
+    description: The critical terrain assumption is judged invalid (value unchanged); assumptions_validated fails.
+    change:
+      assign:
+        - {target: asm:terrain-factor, slot: validation_status, new_value: invalid}
+    expect:
+      outcome: readiness_only
+      recommended: [alt:B]
+      readiness: blocked
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: terrain-unvalidated
+    family: assumption
+    split: heldout
+    description: The critical terrain assumption reverts to unvalidated; assumptions_validated is unknown.
+    change:
+      assign:
+        - {target: asm:terrain-factor, slot: validation_status, new_value: unvalidated}
+    expect:
+      outcome: readiness_only
+      recommended: [alt:B]
+      readiness: pending
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  # --- model_version ---------------------------------------------------------------------------
+  - id: range-model-version-bump
+    family: model_version
+    split: dev
+    description: >-
+      The range model's implementation_version moves to 1.1 with no change in output; only the approval
+      lapses.
+    change:
+      assign:
+        - {target: spec:range-model, slot: implementation_version, new_value: "1.1"}
+    expect:
+      outcome: readiness_only
+      recommended: [alt:B]
+      readiness: ready
+      winner_changed: false
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: range-model-replaced-skips-c
+    family: model_version
+    split: heldout
+    description: >-
+      The range model is replaced by version 2.0, declared only for A and B, so C's range has no producer
+      and is unknown (A and B keep 320 and 360 mi). C's range check is unknown but its reliability check
+      is a known fail, which dominates: C stays infeasible (not unresolved) with U_C unknown in
+      [0.30, 0.70], and coverage still passes.
+    change:
+      remove: [spec:range-model]
+      add:
+        evaluation_specifications:
+          - id: spec:range-model-2
+            name: Range model 2.0 (hybrid and production drivetrains)
+            description: Usable fuel times fuel economy, derated for terrain; validated for A and B only.
+            spec_kind: python
+            implementation: evaluators.py:range_model
+            implementation_version: "2.0"
+            applies_to: [alt:A, alt:B]
+            inputs:
+              - {arg: tank_gal, measure: meas:tank-capacity, unit: gal}
+              - {arg: mpg, measure: meas:fuel-economy, unit: mi/gal}
+              - {arg: terrain_factor, ref: asm:terrain-factor, unit: "1"}
+            outputs:
+              - {arg: range_mi, measure: meas:range, unit: mi}
+            cost_units: 100
+            owner_role: role:systems-engineer
+    expect:
+      outcome: recompute_same_winner
+      recommended: [alt:B]
+      readiness: ready
+      winner_changed: false
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  # --- preference ------------------------------------------------------------------------------
+  - id: weights-cost-0p55
+    family: preference
+    split: dev
+    description: >-
+      Weights range 0.40, cost 0.55, reliability 0.05 (past the w = 0.525 boundary): U_A 0.476667 >
+      U_B 0.463333, so A wins; the criteria changed, so the review is stale.
+    change:
+      assign:
+        - {target: crit:cost, slot: weight, new_value: 0.55}
+        - {target: crit:reliability, slot: weight, new_value: 0.05}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:A]
+      readiness: pending
+      winner_changed: true
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: weights-cost-0p45
+    family: preference
+    split: heldout
+    description: >-
+      Weights range 0.40, cost 0.45, reliability 0.15: U_A 0.47, U_B 0.51, so B still wins; the review is
+      stale.
+    change:
+      assign:
+        - {target: crit:cost, slot: weight, new_value: 0.45}
+        - {target: crit:reliability, slot: weight, new_value: 0.15}
+    expect:
+      outcome: recompute_same_winner
+      recommended: [alt:B]
+      readiness: pending
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: range-anchor-best-450
+    family: preference
+    split: dev
+    description: >-
+      The range value scale runs 300 to 450 mi: v_range A 0.133333, B 0.4, C 0.533333; U_A 0.44,
+      U_B 0.453333, so B still wins; the review is stale.
+    change:
+      assign:
+        - {target: crit:range, slot: anchor_best, new_value: 450}
+    expect:
+      outcome: recompute_same_winner
+      recommended: [alt:B]
+      readiness: pending
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: tie-tolerance-0p1
+    family: preference
+    split: dev
+    description: >-
+      tie_tolerance 0.1: U_A 0.466667 >= 0.533333 - 0.1, so A and B are tied and unique_recommendation is
+      unknown; the decision rule is not covered by the review.
+    change:
+      assign:
+        - {target: rule:main, slot: tie_tolerance, new_value: 0.1}
+    expect:
+      outcome: changed_winner
+      recommended: [alt:A, alt:B]
+      readiness: pending
+      winner_changed: true
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  # --- review (reviews, bias checks, risks) ----------------------------------------------------
+  - id: framing-review-pending
+    family: review
+    split: dev
+    description: The framing review is reopened (pending); no number changes and B stays the provisional winner.
+    change:
+      assign:
+        - {target: rev:framing, slot: review_status, new_value: pending}
+    expect:
+      outcome: readiness_only
+      recommended: [alt:B]
+      readiness: pending
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: framing-review-fail
+    family: review
+    split: dev
+    description: The framing review fails; the bias check fails and the decision is blocked.
+    change:
+      assign:
+        - {target: rev:framing, slot: review_status, new_value: fail}
+    expect:
+      outcome: readiness_only
+      recommended: [alt:B]
+      readiness: blocked
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: only-incumbent-remains
+    family: review
+    split: dev
+    description: >-
+      B and C are withdrawn with their observations (and the objects that reference them: B's risk, the
+      two scenarios that assign their observations, and the approval of B). Only the incumbent A
+      remains: it is recommended (U_A 0.466667), omitted_options fails, and the review is stale.
+    change:
+      remove: [alt:B, alt:C, obs:B.tank, obs:B.mpg, obs:B.cost, obs:B.reliability, obs:C.tank, obs:C.mpg,
+               obs:C.cost, obs:C.reliability, risk:b-supplier-capacity, sc:cost-growth,
+               sc:optimistic-reliability, appr:e01-b]
+    expect:
+      outcome: changed_winner
+      recommended: [alt:A]
+      readiness: blocked
+      winner_changed: true
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: untreated-high-risk
+    family: review
+    split: dev
+    description: >-
+      A new risk on B at likelihood 4 x consequence 3 = 12 (the threshold), untreated; risks_treated is
+      unknown.
+    change:
+      add:
+        risks:
+          - {id: risk:b-battery-thermal, name: Hybrid battery thermal margin in hot terrain, affects: [alt:B],
+             likelihood: 4, consequence: 3, owner_role: role:program-manager}
+    expect:
+      outcome: readiness_only
+      recommended: [alt:B]
+      readiness: pending
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: risk-accepted-by-unauthorized-role
+    family: review
+    split: heldout
+    description: >-
+      A new risk on B scoring 16 is accepted by the program manager, who is not in risk_acceptance_roles
+      (only the MDA is); risks_treated fails.
+    change:
+      add:
+        risks:
+          - {id: risk:b-integration-schedule, name: Hybrid integration schedule, affects: [alt:B], likelihood: 4,
+             consequence: 4, treatment_status: accepted, accepted_by_role: role:program-manager,
+             owner_role: role:program-manager}
+    expect:
+      outcome: readiness_only
+      recommended: [alt:B]
+      readiness: blocked
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  # --- provenance ------------------------------------------------------------------------------
+  - id: winner-cost-source-emptied
+    family: provenance
+    split: dev
+    description: B's cost evidence loses its source_ref; it supports the recommendation, so evidence_traceable fails.
+    change:
+      assign:
+        - {target: ev:cost-B, slot: source_ref, new_value: ""}
+    expect:
+      outcome: readiness_only
+      recommended: [alt:B]
+      readiness: blocked
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: loser-cost-source-emptied
+    family: provenance
+    split: heldout
+    description: >-
+      C's cost evidence loses its source_ref; C is not recommended, so it is not supporting evidence and
+      traceability still passes. The hashable change still lapses the approval.
+    change:
+      assign:
+        - {target: ev:cost-C, slot: source_ref, new_value: ""}
+    expect:
+      outcome: readiness_only
+      recommended: [alt:B]
+      readiness: ready
+      winner_changed: false
+      readiness_violation: false
+      approval_invalidated: true
+    labeled_by: hand arithmetic (labels agent)
+
+  # --- time ------------------------------------------------------------------------------------
+  - id: clock-within-validity
+    family: time
+    split: dev
+    description: >-
+      The clock moves to 2027-06-01, before every valid_until and within the approval's validity; the
+      digest does not cover the clock, so the approval still matches and the decision stays actionable.
+    change:
+      as_of: 2027-06-01
+    expect:
+      outcome: no_material_change
+      recommended: [alt:B]
+      readiness: ready
+      winner_changed: false
+      readiness_violation: false
+      approval_invalidated: false
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: clock-past-cost-expiry
+    family: time
+    split: heldout
+    description: >-
+      The clock moves to 2028-01-15, past B's quote valid_until 2027-12-31 (and still within 365 days of
+      the approval); evidence_current is unknown, while the approval's digest still matches.
+    change:
+      as_of: 2028-01-15
+    expect:
+      outcome: readiness_only
+      recommended: [alt:B]
+      readiness: pending
+      winner_changed: false
+      readiness_violation: true
+      approval_invalidated: false
+    labeled_by: hand arithmetic (labels agent)
+
+  # --- no_change -------------------------------------------------------------------------------
+  - id: prose-only-edit
+    family: no_change
+    split: dev
+    description: Only a description and a name are edited (unhashable slots); nothing is recomputed or invalidated.
+    change:
+      assign:
+        - {target: alt:B, slot: description, new_value: Extended-range hybrid on the production chassis.}
+        - {target: req:min-range, slot: name, new_value: Minimum operating range (threshold route)}
+    expect:
+      outcome: no_material_change
+      recommended: [alt:B]
+      readiness: ready
+      winner_changed: false
+      readiness_violation: false
+      approval_invalidated: false
+    labeled_by: hand arithmetic (labels agent)
+
+  - id: threshold-300-as-float
+    family: no_change
+    split: heldout
+    description: The min-range threshold is rewritten as 300.0, the same number; the state digest does not change.
+    change:
+      assign:
+        - {target: req:min-range, slot: threshold_value, new_value: 300.0}
+    expect:
+      outcome: no_material_change
+      recommended: [alt:B]
+      readiness: ready
+      winner_changed: false
+      readiness_violation: false
+      approval_invalidated: false
+    labeled_by: hand arithmetic (labels agent)

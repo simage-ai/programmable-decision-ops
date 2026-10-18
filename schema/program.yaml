@@ -1,0 +1,73 @@
+id: https://w3id.org/pdo/schema/program
+name: pdo_program
+title: Decision programs and episodes
+description: >-
+  A long-horizon decision program: a baseline decision state (episode zero) and change sets, each of
+  which produces a new episode from its parent. Episodes are never rewritten; a change is a new file.
+  The kernel aligns objects across episodes by their logical ids, re-evaluates only what a change can
+  affect, and records what was rerun and what was reused.
+default_prefix: pdo
+default_range: string
+imports:
+  - linkml:types
+  - core
+  - problem
+  - state
+prefixes:
+  linkml: https://w3id.org/linkml/
+  pdo: https://w3id.org/pdo/schema/
+
+classes:
+  DecisionProgram:
+    is_a: NamedThing
+    description: A decision maintained over time, from a baseline state through successive change sets.
+    slots: [question, decision_owner_role, baseline_episode, baseline_dir, changes_dir]
+    slot_usage:
+      baseline_episode: {required: true}
+
+  ChangeSet:
+    description: >-
+      One episode's change from its parent: assignments to existing objects (assign), new objects (add,
+      a partial decision state), and removals by id. A change set is kept only if the resulting state
+      validates. Human actions (reviews, approvals) are recorded by adding or assigning them here.
+    slots: [id, parent, as_of, trigger, change_description, author_role, assign, add, remove]
+    slot_usage:
+      parent: {required: true}
+
+slots:
+  decision_owner_role:
+    mixins: [unhashable]
+    range: Role
+  baseline_episode:
+    mixins: [unhashable]
+    range: uriorcurie
+  baseline_dir:
+    mixins: [unhashable]
+    description: Directory of the baseline state's files, relative to program.yaml (default baseline/).
+  changes_dir:
+    mixins: [unhashable]
+    description: Directory of change-set files, relative to program.yaml (default changes/).
+  parent:
+    mixins: [hashable]
+    range: uriorcurie
+  trigger:
+    mixins: [unhashable]
+    range: TriggerKind
+  change_description:
+    mixins: [unhashable]
+  author_role:
+    mixins: [unhashable]
+    range: Role
+  assign:
+    mixins: [hashable]
+    range: SlotAssignment
+    multivalued: true
+    inlined_as_list: true
+  add:
+    mixins: [hashable]
+    range: DecisionState
+    inlined: true
+  remove:
+    mixins: [hashable]
+    range: uriorcurie
+    multivalued: true

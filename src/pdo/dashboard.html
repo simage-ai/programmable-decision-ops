@@ -3,8 +3,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-/* Layout: an engineering console. An episode strip runs across the top; summary tiles; the decision
-   table beside the dependency graph; readiness and actions; then the program's history and analyses. */
+/* Two views of one decision program. Decision (for decision makers and reviewers, the default): a timeline
+   of episodes beside the selected episode's outputs in the kernel's own terms (ids, values and formulas):
+   the verdict record, the change set and the outputs it changed, U and F, readiness, flip points, and an
+   explain tree from the decision down to the schema objects. Engineering: the console of the compiled
+   graph, every node's status and recomputation, raw tables and analyses. */
 :root {
   --paper: #f5f6f7; --panel: #ffffff; --ink: #151a20; --ink-2: #4a5561; --muted: #828c97; --rule: #dce1e6;
   --accent: #2f5274; --accent-soft: #e3ebf3;
@@ -151,6 +154,138 @@ svg text { fill: var(--ink); }
 .empty { color: var(--muted); font-size: 0.82rem; }
 footer { font: 0.74rem var(--f-mono); color: var(--muted); }
 @media (prefers-reduced-motion: no-preference) { .node rect, .edge { transition: opacity .15s, stroke .15s; } }
+
+/* views */
+.views { display: flex; gap: 2px; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+.views button { font: 600 0.95rem var(--f-display); background: none; border: none; border-bottom: 2px solid transparent;
+                color: var(--ink-2); padding: 8px 14px; margin-bottom: -1px; cursor: pointer; }
+.views button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.eqn { font: 0.76rem var(--f-mono); color: var(--ink-2); }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; margin: 0; font-size: 0.86rem; }
+.kv dt { font: 0.78rem var(--f-mono); color: var(--muted); padding-top: 1px; }
+.kv dd { margin: 0; font-family: var(--f-mono); font-size: 0.82rem; overflow-wrap: anywhere; }
+.ops tr.same td { color: var(--muted); }
+.ops tr.changed td { background: var(--accent-soft); }
+
+/* decision view: the timeline beside the story */
+.decision { display: grid; grid-template-columns: minmax(270px, 340px) minmax(0, 1fr); gap: 20px; align-items: start; }
+.timeline-col { position: sticky; top: max(12px, env(safe-area-inset-top, 0px)); max-height: calc(100vh - 24px);
+                overflow: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 4px 2px 0; }
+.story { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (max-width: 980px) {
+  .decision { grid-template-columns: minmax(0, 1fr); }
+  .timeline-col { position: static; max-height: 380px; }
+}
+.timeline { list-style: none; margin: 0; padding: 0 0 0 16px; position: relative; display: flex; flex-direction: column; gap: 2px; }
+.timeline::before { content: ""; position: absolute; left: 5px; top: 10px; bottom: 10px; width: 2px; background: var(--rule); }
+.tl-item { position: relative; }
+.tl-marker { position: absolute; left: -16px; top: 13px; width: 12px; height: 12px; border-radius: 50%;
+             box-shadow: 0 0 0 3px var(--paper); }
+.tl-entry { display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; background: none; color: var(--ink);
+            border: 1px solid transparent; border-radius: 8px; padding: 7px 9px; cursor: pointer; font: inherit; }
+.tl-entry:hover { background: var(--panel); border-color: var(--rule); }
+.tl-entry[aria-current="true"] { background: var(--panel); border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.tl-when { font: 0.72rem var(--f-mono); color: var(--muted); }
+.tl-title { font-size: 0.84rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+            overflow: hidden; }
+.tl-effects { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font: 500 0.7rem var(--f-mono); padding: 1px 7px; border-radius: 999px;
+        border: 1px solid var(--rule); color: var(--ink-2); background: var(--panel); white-space: nowrap; }
+.chip.flip { border-color: var(--accent); color: var(--ink); font-weight: 600; }
+.tl-branch { margin: 2px 0 6px 4px; }
+.tl-branch > summary { font: 500 0.72rem var(--f-mono); color: var(--ink-2); padding: 4px 8px; border-radius: 6px; }
+.tl-branch > summary:hover { background: var(--panel); }
+.tl-branch .timeline::before { background: repeating-linear-gradient(var(--rule) 0 4px, transparent 4px 8px); }
+
+/* the story */
+.verdict { background: var(--panel); border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: 8px;
+           padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.verdict h2 { font-size: 1.65rem; line-height: 1.15; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.verdict h2 .who { font: 500 1rem var(--f-body); color: var(--ink-2); }
+.verdict .status { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 0.95rem; }
+.lead { font-size: 0.95rem; line-height: 1.55; max-width: 82ch; margin: 0; }
+.bullets { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; font-size: 0.9rem; max-width: 90ch; }
+.quote { border-left: 3px solid var(--rule); margin: 0; padding: 2px 0 2px 12px; font-size: 0.95rem; max-width: 82ch; }
+.matrix { font-size: 0.86rem; }
+.matrix th.alt-col { text-transform: none; letter-spacing: 0; font: 600 0.86rem var(--f-body); color: var(--ink); min-width: 120px; }
+.matrix th.alt-col .small { font-weight: 400; display: block; white-space: normal; }
+.matrix .rec { background: var(--accent-soft); }
+.matrix .excluded { color: var(--muted); }
+.matrix tr.total td { font-weight: 600; border-top: 2px solid var(--rule); }
+.bar { display: block; height: 6px; border-radius: 3px; background: var(--rule); margin-top: 5px; position: relative; overflow: hidden;
+       max-width: 140px; }
+.bar > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+.g-ok { color: var(--good); font-weight: 600; } .g-no { color: var(--bad); font-weight: 600; }
+.g-maybe { color: color-mix(in srgb, var(--warn) 70%, var(--ink)); font-weight: 600; }
+details > summary { cursor: pointer; }
+.sources td { font-size: 0.8rem; }
+
+/* structured objects: every reference is a typed schema object (class + id) that opens the explain tree */
+.obj { display: inline-flex; align-items: stretch; border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; padding: 0;
+       font: 0.72rem var(--f-mono); background: var(--panel); color: var(--ink); cursor: pointer; vertical-align: 1px;
+       max-width: 100%; text-align: left; }
+.obj .cls { background: var(--accent-soft); color: var(--accent); padding: 1px 5px; font-weight: 500; white-space: nowrap; }
+.obj .oid { padding: 1px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.obj.node .cls { background: var(--paper); color: var(--ink-2); }
+.obj:hover { border-color: var(--accent); }
+.obj:focus-visible, .cellbtn:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.struct { font: 0.76rem var(--f-mono); color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ops { font-size: 0.8rem; } .ops td { vertical-align: middle; } .ops td.slot, .ops td.val { font-family: var(--f-mono); }
+.btn { font: 600 0.82rem var(--f-body); border: 1px solid var(--accent); color: var(--accent); background: var(--panel);
+       border-radius: 6px; padding: 5px 11px; cursor: pointer; }
+.btn:hover { background: var(--accent-soft); }
+.cellbtn { all: unset; cursor: pointer; display: block; border-radius: 4px; }
+.cellbtn:hover { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); }
+.tl-name { font: 600 0.82rem var(--f-display); color: var(--ink); }
+.tl-effects .pill { white-space: normal; }
+.verdict .actions-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* the "why" panel: an explain tree that starts at the answer and opens into what each line was computed from */
+.scrim { position: fixed; inset: 0; background: color-mix(in srgb, var(--ink) 35%, transparent); z-index: 20; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(820px, 100vw); background: var(--panel); z-index: 21;
+          border-left: 1px solid var(--rule); box-shadow: -8px 0 32px rgba(0,0,0,.18); display: flex; flex-direction: column;
+          padding-top: env(safe-area-inset-top, 0px); padding-right: env(safe-area-inset-right, 0px);
+          padding-bottom: env(safe-area-inset-bottom, 0px); }
+.drawer-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 20px;
+               border-bottom: 1px solid var(--rule); }
+.drawer-head h2 { font-size: 1.25rem; }
+.drawer-body { flex: 1; min-height: 0; overflow: auto; padding: 12px 16px 56px; }
+.tree { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.tree .tree { margin-left: 15px; padding-left: 12px; border-left: 1px solid var(--rule); }
+.tree > li.root { margin-bottom: 14px; }
+.trow { display: flex; align-items: flex-start; gap: 4px; padding: 4px 6px; border-radius: 6px; }
+.trow.sel { background: var(--accent-soft); }
+.twisty { all: unset; box-sizing: border-box; cursor: pointer; width: 20px; height: 22px; flex: 0 0 20px; text-align: center;
+          color: var(--muted); font-size: 0.72rem; line-height: 22px; border-radius: 4px; }
+.twisty:hover { color: var(--ink); background: var(--paper); }
+.twisty:focus-visible { outline: 2px solid var(--accent); }
+.twisty.leaf { cursor: default; visibility: hidden; }
+.tline { font-size: 0.93rem; line-height: 1.5; min-width: 0; flex: 1; }
+.tline { font-family: var(--f-mono); font-size: 0.82rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+li.root > .trow .tline { font: 500 0.95rem var(--f-mono); }
+.tline .nid { color: var(--ink); }
+.tline .nval { font-weight: 600; color: var(--ink); }
+.tline .eq { color: var(--ink-2); }
+.tline .muted { color: var(--muted); font-size: 0.78rem; flex-basis: 100%; }
+.tline.rec { display: block; }
+.tline .src { display: block; font-size: 0.8rem; color: var(--ink-2); }
+.rec { font: 0.82rem/1.5 var(--f-mono); }
+.rec .cls { font: 500 0.72rem var(--f-mono); color: var(--accent); background: var(--accent-soft); border-radius: 4px;
+            padding: 0 5px; margin-right: 4px; }
+.rec .k { color: var(--muted); }
+.ran-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; vertical-align: 2px;
+           margin-left: 6px; }
+.info { all: unset; cursor: pointer; color: var(--muted); font-size: 0.85rem; padding: 0 6px; border-radius: 4px; }
+.info:hover, .info[aria-expanded="true"] { color: var(--accent); }
+.info:focus-visible { outline: 2px solid var(--accent); }
+.infobox { margin: 2px 0 6px 30px; padding: 8px 10px; background: var(--paper); border: 1px solid var(--rule); border-radius: 6px;
+           font-size: 0.8rem; color: var(--ink-2); display: flex; flex-direction: column; gap: 6px; }
+.infobox dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 10px; margin: 0; }
+.infobox dt { font-family: var(--f-mono); color: var(--accent); }
+.infobox dt.inert { color: var(--muted); }
+.infobox dd { margin: 0; overflow-wrap: anywhere; font-family: var(--f-mono); }
+.infobox dd .d { display: block; font-family: var(--f-body); color: var(--muted); font-size: 0.74rem; }
+.g-ok, .g-no, .g-maybe { display: inline-block; width: 1.1em; }
 </style>
 
 <div class="wrap" id="app">
@@ -161,81 +296,127 @@ footer { font: 0.74rem var(--f-mono); color: var(--muted); }
     <div class="meta" id="meta"></div>
   </header>
 
-  <nav class="strip" aria-label="Episodes" id="strip"></nav>
+  <div class="views" role="tablist" aria-label="Views">
+    <button type="button" role="tab" id="tab-decision" aria-controls="view-decision" aria-selected="true">Decision</button>
+    <button type="button" role="tab" id="tab-engineering" aria-controls="view-engineering" aria-selected="false">Engineering</button>
+  </div>
 
-  <section class="tiles" id="tiles" aria-label="Summary"></section>
+  <div class="decision" id="view-decision" role="tabpanel" aria-labelledby="tab-decision">
+    <aside class="timeline-col" id="timeline-col" aria-label="Timeline">
+      <div class="eyebrow">Episodes</div>
+      <ol class="timeline" id="timeline"></ol>
+    </aside>
+    <div class="story">
+      <section class="verdict" id="verdict" aria-live="polite"></section>
+      <section class="panel" aria-labelledby="changed-title">
+        <h2 id="changed-title">ChangeSet</h2>
+        <div id="changed" class="story-block"></div>
+      </section>
+      <section class="panel" aria-labelledby="h-why">
+        <div class="panel-head"><h2 id="h-why">U and F</h2><span class="eqn" id="matrix-note"></span></div>
+        <div class="scroll"><table class="matrix" id="matrix"></table></div>
+        <div class="scroll"><table class="matrix" id="musts"></table></div>
+      </section>
+      <section class="panel" aria-labelledby="h-act"><h2 id="h-act">Readiness</h2><div id="act"></div></section>
+      <section class="panel" aria-labelledby="h-robust"><h2 id="h-robust">Flip points</h2><div id="robust"></div></section>
+      <section class="panel" aria-labelledby="h-history" id="history-panel">
+        <div class="panel-head"><h2 id="h-history">U by episode</h2><span class="small" id="history-note">main line · band: readiness</span></div>
+        <div class="legend" id="history-legend"></div>
+        <svg class="chart" id="history" role="img" aria-label="Score of each alternative by episode"></svg>
+      </section>
+      <section class="panel">
+        <details id="sources-box"><summary><h2 style="display:inline" id="sources-title">Observations</h2></summary>
+          <div class="scroll" style="margin-top:10px"><table class="sources" id="sources"></table></div>
+        </details>
+      </section>
+    </div>
+  </div>
 
-  <section class="panel" aria-labelledby="h-graph">
-    <div class="panel-head">
-      <h2 id="h-graph">Dependency graph</h2>
-      <div class="toolbar">
-        <button class="toggle" id="t-inputs" aria-pressed="false" type="button">Show inputs</button>
-        <button class="toggle" id="t-impact" aria-pressed="false" type="button">Highlight what this episode recomputed</button>
+  <div id="view-engineering" role="tabpanel" aria-labelledby="tab-engineering" class="stack" hidden>
+    <nav class="strip" aria-label="Episodes" id="strip"></nav>
+
+    <section class="tiles" id="tiles" aria-label="Summary"></section>
+
+    <section class="panel" aria-labelledby="h-graph">
+      <div class="panel-head">
+        <h2 id="h-graph">Dependency graph</h2>
+        <div class="toolbar">
+          <button class="toggle" id="t-inputs" aria-pressed="false" type="button">Show inputs</button>
+          <button class="toggle" id="t-impact" aria-pressed="false" type="button">Highlight what this episode recomputed</button>
+        </div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="graph-box" id="graph-box"><svg id="graph" role="img" aria-label="Dependency graph of the decision"></svg></div>
+      <div class="detail" id="detail"><span class="empty">Select a node to see its value, its inputs and how this episode computed it.</span></div>
+    </section>
+
+    <div class="grid-main">
+      <section class="panel" aria-labelledby="h-table">
+        <div class="panel-head"><h2 id="h-table">Decision table</h2><span class="small" id="table-note"></span></div>
+        <div class="scroll"><table id="table"></table></div>
+        <p class="note">Margins are in the g ≤ 0 convention: a check passes when g is at or below 0, so a negative g is room
+          to spare and a positive g is the shortfall.</p>
+      </section>
+      <div class="stack">
+        <section class="panel" aria-labelledby="h-ready">
+          <div class="panel-head"><h2 id="h-ready">Readiness conditions</h2><span id="ready-pill"></span></div>
+          <ul class="list" id="conditions"></ul>
+        </section>
+        <section class="panel" aria-labelledby="h-actions">
+          <div class="panel-head"><h2 id="h-actions">Pending actions by role</h2></div>
+          <div id="actions"></div>
+        </section>
       </div>
     </div>
-    <div class="legend" id="legend"></div>
-    <div class="graph-box" id="graph-box"><svg id="graph" role="img" aria-label="Dependency graph of the decision"></svg></div>
-    <div class="detail" id="detail"><span class="empty">Select a node to see its value, its inputs and how this episode computed it.</span></div>
-  </section>
 
-  <div class="grid-main">
-    <section class="panel" aria-labelledby="h-table">
-      <div class="panel-head"><h2 id="h-table">Decision table</h2><span class="small" id="table-note"></span></div>
-      <div class="scroll"><table id="table"></table></div>
-      <p class="note">Margins are in the g ≤ 0 convention: a check passes when g is at or below 0, so a negative g is room
-        to spare and a positive g is the shortfall.</p>
+    <section class="panel" aria-labelledby="h-work" id="work-panel">
+      <div class="panel-head"><h2 id="h-work">Refresh work by episode</h2><span class="small" id="work-note"></span></div>
+      <svg class="chart" id="work" role="img" aria-label="Computed nodes executed and reused per episode"></svg>
     </section>
-    <div class="stack">
-      <section class="panel" aria-labelledby="h-ready">
-        <div class="panel-head"><h2 id="h-ready">Readiness conditions</h2><span id="ready-pill"></span></div>
-        <ul class="list" id="conditions"></ul>
-      </section>
-      <section class="panel" aria-labelledby="h-actions">
-        <div class="panel-head"><h2 id="h-actions">Pending actions by role</h2></div>
-        <div id="actions"></div>
-      </section>
-    </div>
-  </div>
 
-  <section class="panel" aria-labelledby="h-history" id="history-panel">
-    <div class="panel-head"><h2 id="h-history">Utility across the program</h2><span class="small" id="history-note">main line of episodes; band: readiness</span></div>
-    <div class="legend" id="history-legend"></div>
-    <svg class="chart" id="history" role="img" aria-label="Utility of each alternative by episode"></svg>
-  </section>
-
-  <section class="panel" aria-labelledby="h-work" id="work-panel">
-    <div class="panel-head"><h2 id="h-work">Refresh work by episode</h2><span class="small" id="work-note"></span></div>
-    <svg class="chart" id="work" role="img" aria-label="Computed nodes executed and reused per episode"></svg>
-  </section>
-
-  <div class="grid-2">
-    <section class="panel" aria-labelledby="h-flips">
-      <div class="panel-head"><h2 id="h-flips">What flips the decision</h2></div>
-      <div class="scroll"><table id="flips"></table></div>
-    </section>
-    <section class="panel" aria-labelledby="h-tornado">
-      <div class="panel-head"><h2 id="h-tornado">Tornado of the decision margin</h2></div>
-      <svg class="chart" id="tornado" role="img" aria-label="Decision margin at the low and high end of each input"></svg>
-      <p class="note" id="tornado-note"></p>
-    </section>
-  </div>
-
-  <section class="panel" aria-labelledby="h-unc" id="unc-panel" hidden>
-    <div class="panel-head"><h2 id="h-unc">Decision under uncertainty</h2><span class="small" id="unc-note"></span></div>
-    <div class="scroll"><table id="unc"></table></div>
-  </section>
-
-  <section class="panel" aria-labelledby="h-voi" id="voi-panel" hidden>
-    <div class="panel-head"><h2 id="h-voi">Sensitivity and value of information</h2><span class="small" id="voi-note"></span></div>
     <div class="grid-2">
-      <div><h3 class="eyebrow">Sobol total index of the margin</h3><svg class="chart" id="sobol" role="img" aria-label="Sobol total indices"></svg></div>
-      <div><h3 class="eyebrow">Value of resolving each input (EVPPI)</h3><svg class="chart" id="voi" role="img" aria-label="Expected value of partial perfect information"></svg></div>
+      <section class="panel" aria-labelledby="h-flips">
+        <div class="panel-head"><h2 id="h-flips">What flips the decision</h2></div>
+        <div class="scroll"><table id="flips"></table></div>
+      </section>
+      <section class="panel" aria-labelledby="h-tornado">
+        <div class="panel-head"><h2 id="h-tornado">Tornado of the decision margin</h2></div>
+        <svg class="chart" id="tornado" role="img" aria-label="Decision margin at the low and high end of each input"></svg>
+        <p class="note" id="tornado-note"></p>
+      </section>
     </div>
-  </section>
+
+    <section class="panel" aria-labelledby="h-unc" id="unc-panel" hidden>
+      <div class="panel-head"><h2 id="h-unc">Decision under uncertainty</h2><span class="small" id="unc-note"></span></div>
+      <div class="scroll"><table id="unc"></table></div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-voi" id="voi-panel" hidden>
+      <div class="panel-head"><h2 id="h-voi">Sensitivity and value of information</h2><span class="small" id="voi-note"></span></div>
+      <div class="grid-2">
+        <div><h3 class="eyebrow">Sobol total index of the margin</h3><svg class="chart" id="sobol" role="img" aria-label="Sobol total indices"></svg></div>
+        <div><h3 class="eyebrow">Value of resolving each input (EVPPI)</h3><svg class="chart" id="voi" role="img" aria-label="Expected value of partial perfect information"></svg></div>
+      </div>
+    </section>
+  </div>
 
   <footer id="footer"></footer>
 </div>
 <div class="tip" id="tip" hidden></div>
+<div class="scrim" id="calc-scrim" hidden></div>
+<section class="drawer" id="calc" role="dialog" aria-modal="true" aria-labelledby="calc-title" hidden>
+  <div class="drawer-head">
+    <div>
+      <div class="eyebrow" id="calc-eyebrow"></div>
+      <h2 id="calc-title">Why</h2>
+    </div>
+    <button class="btn" id="calc-close" type="button">Close</button>
+  </div>
+  <div class="drawer-body">
+    <p class="eqn" id="calc-hint" style="margin:0 0 12px">▸ inputs · ⓘ raw record · <span class="ran-dot" aria-hidden="true"></span> re-ran in this episode</p>
+    <ul class="tree" id="calc-tree"></ul>
+  </div>
+</section>
 
 <script>
 const DATA = /*__PDO_DATA__*/null;
@@ -278,6 +459,8 @@ const DATA = /*__PDO_DATA__*/null;
   // Under expected_mavt the declared rule decides on expected utility; the point-value choice is context.
   const expectedRule = DATA.meta.rule_kind === "expected_mavt";
   const choice = (e) => (expectedRule && e.uncertainty ? (e.uncertainty.recommended || []) : e.recommended);
+  const uncOf = (e, a) => ((e.uncertainty && e.uncertainty.alternatives) || []).find((r) => r.alternative === a) || {};
+  const chanceGlyph = (r) => ({ pass: "✓", fail: "✕" })[r.chance] || "?";
   const statusColor = (s) => ({ pass: "var(--good)", fail: "var(--bad)", unknown: "var(--warn)" })[s] || "var(--muted)";
 
   /* tooltip */
@@ -308,8 +491,13 @@ const DATA = /*__PDO_DATA__*/null;
 
   /* state */
   const mainLine = DATA.meta.main_line || [episodes[0].id];
-  const fromHash = () => { const h = (location.hash || "").slice(1); return episodes.find((e) => short(e.id) === h || e.id === h); };
-  let current = (fromHash() || byId[mainLine[mainLine.length - 1]] || episodes[0]).id;
+  // The hash is "#e06" (an episode) or "#e06.engineering" (that episode in the engineering view).
+  const fromHash = () => {
+    const [h, v] = (location.hash || "").slice(1).split(".");
+    return { ep: episodes.find((e) => short(e.id) === h || e.id === h), view: v === "engineering" ? v : null };
+  };
+  let current = (fromHash().ep || byId[mainLine[mainLine.length - 1]] || episodes[0]).id;
+  let view = fromHash().view || "decision";
   let showInputs = false, showImpact = false, selectedNode = null;
 
   /* episode strip */
@@ -325,7 +513,7 @@ const DATA = /*__PDO_DATA__*/null;
       for (const e of eps) {
         const b = el("button", { class: "ep", type: "button", "aria-pressed": String(e.id === current), title: e.description || "" });
         const id = el("span", { class: "id" });
-        id.append(el("span", { class: "dot", style: `background:${statusColor(READY[e.readiness])}`, "aria-hidden": "true" }), document.createTextNode(short(e.id)));
+        id.append(el("span", { class: "dot", style: `background:${statusColor(READY[e.readiness])}`, "aria-hidden": "true" }), document.createTextNode(epName(e)));
         if (e.actionable) id.append(el("span", { class: "small", title: "actionable" }, "· approved"));
         b.append(id, el("span", { class: "when" }, `${e.as_of} · ${e.trigger}`),
                  el("span", { class: "what" }, (choice(e).map(short).join(", ") || "none") + " · " + e.readiness));
@@ -563,7 +751,8 @@ const DATA = /*__PDO_DATA__*/null;
     const ticks = niceTicks(lo, hi);
     axisY(svg, ml, W - mr, y, ticks, (t) => t.toFixed(2));
     const lab = sv("g", { class: "axis" });
-    eps.forEach((e, i) => lab.append(sv("text", { x: x(i), y: H - mb + 16, "text-anchor": "middle" }, short(e.id))));
+    eps.forEach((e, i) => lab.append(sv("text", { x: x(i), y: H - mb + 16, "text-anchor": "middle" }, String(i))));
+    lab.append(sv("text", { x: ml - 6, y: H - mb + 16, "text-anchor": "end" }, "Episode"));
     svg.append(lab);
     const band = sv("g");
     eps.forEach((e, i) => {
@@ -592,7 +781,7 @@ const DATA = /*__PDO_DATA__*/null;
       const r = svg.getBoundingClientRect(); const px = (evt.clientX - r.left) * W / r.width;
       const i = Math.max(0, Math.min(eps.length - 1, Math.round((px - ml) / ((W - ml - mr) / (eps.length - 1)))));
       const e = eps[i];
-      showTip(evt, `${short(e.id)} · ${e.as_of}`, [
+      showTip(evt, `${epName(e)} · ${e.as_of}`, [
         ...alts.map((a) => { const t = e.table.find((q) => q.alternative === a); return { color: altColor(a), value: t && t.utility !== null ? fmt(t.utility) : "unknown", label: short(a) + (e.recommended.includes(a) ? " (recommended)" : "") }; }),
         { value: e.readiness, label: e.actionable ? "· approved" : "" }, { value: e.description || "", label: "" }]);
     });
@@ -742,21 +931,678 @@ const DATA = /*__PDO_DATA__*/null;
     }
   }
 
+  /* --- decision view: words for reviewers ---------------------------------------------------------- */
+  const roleName = (r) => (r ? DATA.roles[r] || short(r) : "someone");
+  const objName = (id) => (id && DATA.objects[id] && DATA.objects[id] !== id ? DATA.objects[id] : short(id));
+  const measureOf = Object.fromEntries(DATA.measures.map((m) => [m.id, m]));
+  const altList = (xs) => (xs || []).map(short).join(" and ");
+  const score = (x) => (x === null || x === undefined ? "unknown" : x.toFixed(2));
+  const parentOf = (e) => (e.parent ? byId[e.parent] : null);
+  const rowOf = (e, a) => e.table.find((r) => r.alternative === a);
+  const withUnit = (x, unit) => (x === null || x === undefined) ? "unknown"
+    : unit === "%" ? `${fmt(100 * x, 3)}%` : `${fmt(x, 4)}${unit && unit !== "1" ? " " + unit : ""}`;
+  const CMP = { ge: "≥", le: "≤", gt: ">", lt: "<", eq: "=" };
+  function obsLabel(e, oid) {
+    const row = (e.evidence || []).find((r) => r.observation === oid);
+    if (!row) return objName(oid);
+    const m = measureOf[row.measure];
+    return `${short(row.alternative)}'s ${(m ? m.name : short(row.measure)).toLowerCase()}`;
+  }
+  function unitOf(e, target) {
+    const row = (e.evidence || []).find((r) => r.observation === target);
+    if (row) return row.unit;
+    return e.requirements[target] ? e.requirements[target].unit : null;
+  }
+  const needs = (e, q) => { const r = e.requirements[q]; return r ? `${CMP[r.comparator] || r.comparator} ${withUnit(r.threshold, r.unit)}` : ""; };
+  function margin(e, row, q) {  // a requirement check in words (g <= 0 passes; -g is the room to spare)
+    const r = e.requirements[q], g = row.g[q], st = row.checks[q];
+    const y = r ? row.measures[r.measure] : undefined;
+    if (st === "unknown" || g === null || g === undefined) return { st: "unknown", text: "unknown" };
+    const val = withUnit(y, r && r.unit);
+    return st === "pass" ? { st, text: `${val} · ${withUnit(-g, r && r.unit)} to spare` }
+      : { st, text: `${val} · ${withUnit(g, r && r.unit)} short` };
+  }
+
+  // Episode names: the main line is numbered from the baseline (Episode 0); a branch keeps its id.
+  const mainIndex = Object.fromEntries(mainLine.map((id, i) => [id, i]));
+  const epName = (e) => (e.id in mainIndex ? `Episode ${mainIndex[e.id]}${mainIndex[e.id] === 0 ? " (baseline)" : ""}` : `Branch ${short(e.id)}`);
+  const raw = (e, nid) => (e && e.nodes[nid] ? DATA.values[e.nodes[nid].h] : undefined);
+  const objOf = (e, oid) => (e && e.objects && e.objects[oid] ? DATA.object_pool[e.objects[oid]] : null);
+  const nodeFor = (oid) => (L.nodes[oid] ? oid : L.nodes[oid + "#vf"] ? oid + "#vf" : null);
+  // A schema object as a chip: its class and id. Clicking it opens the explain tree at that object.
+  function objChip(e, oid, text) {
+    const o = objOf(e, oid);
+    const b = el("button", { class: "obj", type: "button", title: `${o ? o.class : "object"} ${oid}: explain it` });
+    b.dataset.node = nodeFor(oid) || "";
+    b.append(el("span", { class: "cls" }, o ? o.class : "Object"), el("span", { class: "oid" }, text || oid));
+    if (nodeFor(oid)) b.addEventListener("click", (ev) => { ev.stopPropagation(); openCalc(nodeFor(oid)); });
+    return b;
+  }
+  // A computed node as a chip: its kind and id.
+  function nodeChip(nid, text) {
+    const n = L.nodes[nid];
+    const b = el("button", { class: "obj node", type: "button", title: `${n ? n.kind : "node"} ${nid}: explain it` });
+    b.dataset.node = nid;
+    b.append(el("span", { class: "cls" }, n && n.kind !== nid ? n.kind : "node"), el("span", { class: "oid" }, text || nid));
+    b.addEventListener("click", (ev) => { ev.stopPropagation(); openCalc(nid); });
+    return b;
+  }
+  // Readiness as the kernel states it: the state and the condition that holds it there (or the approval that
+  // makes it actionable).
+  function statusPill(e) {
+    if (e.readiness === "ready") return pill("pass", e.actionable ? `actionable · ${e.approval}` : "ready");
+    const ids = e.conditions.filter((c) => c.status === (e.readiness === "blocked" ? "fail" : "unknown")).map((c) => c.condition);
+    return pill(READY[e.readiness], `${e.readiness} · ${ids[0] || "?"}${ids.length > 1 ? ` +${ids.length - 1}` : ""}`);
+  }
+  const list = (xs) => `[${(xs || []).join(", ")}]`;
+  function recChip(e, prev) {  // decision.recommended, or its change from the parent
+    const rec = choice(e), flipped = prev && prev.join() !== rec.join();
+    const chip = el("span", { class: "chip" + (flipped ? " flip" : "") });
+    if (rec.length === 1) chip.append(el("span", { class: "dot", style: `background:${altColor(rec[0])}` }));
+    chip.append(document.createTextNode(flipped ? `${list(prev)} → ${list(rec)}` : list(rec)));
+    return chip;
+  }
+
+  function timelineItem(e, branch) {
+    const li = el("li", { class: "tl-item" });
+    li.append(el("span", { class: "tl-marker", style: `background:${statusColor(READY[e.readiness])}`, "aria-hidden": "true" }));
+    const p = parentOf(e);
+    const b = el("button", { class: "tl-entry", type: "button", "aria-current": String(e.id === current) });
+    const name = el("span", { class: "tl-name" }, epName(e));
+    name.append(el("span", { class: "tl-when", style: "margin-left:6px" }, e.id));
+    b.append(name, el("span", { class: "tl-when" }, `${e.as_of} · ${e.trigger}${branch && p ? ` · parent ${p.id}` : ""}`));
+    if (e.description || !p) b.append(el("span", { class: "tl-title" }, e.description || "baseline"));
+    const fx = el("span", { class: "tl-effects" });
+    fx.append(recChip(e, p ? choice(p) : null), statusPill(e));
+    b.append(fx);
+    b.addEventListener("click", () => select(e.id));
+    li.append(b);
+    return li;
+  }
+  function renderTimeline() {
+    const ol = clear($("timeline"));
+    const branchesFrom = {};  // main-line episode -> the off-line episodes that fork from it
+    for (const e of episodes) {
+      if (mainLine.includes(e.id)) continue;
+      let fork = e.parent;
+      while (fork && !mainLine.includes(fork)) fork = byId[fork] ? byId[fork].parent : null;
+      (branchesFrom[fork] = branchesFrom[fork] || []).push(e);
+    }
+    for (const id of mainLine) {
+      const e = byId[id];
+      if (!e) continue;
+      const li = timelineItem(e, false);
+      const branch = branchesFrom[id];
+      if (branch && branch.length) {
+        const det = el("details", { class: "tl-branch" });
+        det.open = branch.some((b) => b.id === current);
+        det.append(el("summary", {}, `branches from ${id} · ${branch.length}`));
+        const inner = el("ol", { class: "timeline" });
+        for (const b of branch) inner.append(timelineItem(b, true));
+        det.append(inner);
+        li.append(det);
+      }
+      ol.append(li);
+    }
+    const col = $("timeline-col"), entry = col.querySelector('[aria-current="true"]');
+    if (entry && !col.hidden) {
+      const r = entry.getBoundingClientRect(), c = col.getBoundingClientRect();
+      if (r.top < c.top || r.bottom > c.bottom) col.scrollTop += r.top - c.top - 48;
+    }
+  }
+
+  function kv(rows) {  // a two-column record: field, value (text or nodes)
+    const dl = el("dl", { class: "kv" });
+    for (const [k, v] of rows) {
+      const dd = el("dd");
+      if (v instanceof Node) dd.append(v); else if (Array.isArray(v)) dd.append(...v); else dd.textContent = v;
+      dl.append(el("dt", {}, k), dd);
+    }
+    return dl;
+  }
+  function renderVerdict(e) {
+    const v = clear($("verdict"));
+    const rec = choice(e), branch = !mainLine.includes(e.id);
+    v.append(el("div", { class: "eyebrow" }, `${epName(e)} · ${e.id} · as_of ${e.as_of} · trigger ${e.trigger}${branch ? " · branch" : ""}`));
+    const h = el("h2");
+    h.append(el("span", { class: "mono", style: "font-weight:500;color:var(--ink-2)" }, expectedRule && e.uncertainty ? "decision (E[U]) →" : "decision →"));
+    if (rec.length) {
+      rec.forEach((a) => h.append(el("span", { class: "dot", style: `background:${altColor(a)};width:14px;height:14px`, "aria-hidden": "true" }),
+                                  document.createTextNode(a)));
+      if (rec.length === 1) h.append(el("span", { class: "who" }, altName(rec[0])));
+    } else h.append(document.createTextNode("[]"));
+    v.append(h);
+    const us = alts.map((a) => { const r = rowOf(e, a); return `${short(a)} ${r && r.utility !== null ? score(r.utility) : r ? `${score(r.utility_bounds[0])}–${score(r.utility_bounds[1])}` : "?"}`; }).join(" · ");
+    const open = e.conditions.filter((c) => c.status !== "pass");
+    const rows = [];
+    if (expectedRule && e.uncertainty) {
+      const u = e.uncertainty, ua = (a) => uncOf(e, a);
+      rows.push(["E[U]", `${alts.map((a) => `${short(a)} ${fmt(ua(a).expected_utility)}`).join(" · ")} · n=${u.rule.samples}, seed ${u.rule.seed}`],
+                ["Pr(feasible)", `${alts.map((a) => `${short(a)} ${fmt(ua(a).p_feasible, 3)} ${chanceGlyph(ua(a))}`).join(" · ")} · chance: Pr ≥ ${fmt(1 - u.rule.chance_alpha)}`],
+                ["decision (point values)", list(e.recommended)]);
+    }
+    rows.push([expectedRule && e.uncertainty ? "U (point values)" : "U", us], ["feasible", list(e.feasible)]);
+    if (e.infeasible.length) rows.push(["infeasible", list(e.infeasible)]);
+    if (e.unresolved.length) rows.push(["unresolved", list(e.unresolved)]);
+    rows.push(["readiness", [pill(READY[e.readiness], e.readiness), document.createTextNode(open.length ? ` ${open.map((c) => `${c.condition}: ${c.status}`).join(" · ")}` : "")]]);
+    rows.push(["actionable", `${e.actionable}${e.actionable_reason ? ` · ${e.actionable_reason}` : ""}`]);
+    rows.push(["approval", e.approval ? objChip(e, e.approval) : "null"]);
+    v.append(kv(rows));
+    const row = el("div", { class: "actions-row" });
+    const go = el("button", { class: "btn", type: "button" }, "explain(decision) ▸");
+    go.addEventListener("click", () => openCalc("decision"));
+    row.append(go);
+    v.append(row);
+  }
+
+  function renderChanged(e) {
+    const box = clear($("changed"));
+    const p = parentOf(e);
+    if (!p) {
+      const counts = {};
+      for (const key of Object.values(e.objects || {})) { const c = DATA.object_pool[key].class; counts[c] = (counts[c] || 0) + 1; }
+      box.append(kv([["ChangeSet", "none (baseline)"], ["DecisionState", Object.entries(counts).sort().map(([c, n]) => `${n} ${c}`).join(" · ")]]));
+      return;
+    }
+    const cs = e.change_set || {};
+    const authorRole = e.author_role ? objChip(e, e.author_role) : "—";
+    box.append(kv([["id", cs.id || e.id], ["parent", `${cs.parent || p.id} (${epName(p)})`], ["as_of", e.as_of], ["trigger", e.trigger],
+                   ["author_role", authorRole]]));
+    if (e.description) box.append(el("blockquote", { class: "quote" }, e.description));
+    // the operations, applied remove → add → assign
+    const t = el("table", { class: "ops" });
+    const hr = el("tr");
+    ["op", "object", "slot", "before", "after"].forEach((h) => hr.append(el("th", {}, h)));
+    const thead = el("thead"); thead.append(hr); t.append(thead);
+    const tb = el("tbody");
+    const show = (x) => (x === null || x === undefined ? "—" : typeof x === "object" ? (x.section ? `§ ${x.section} ${x.document_path || ""}` : JSON.stringify(x)) : String(x));
+    for (const c of e.changes) {
+      const tr = el("tr");
+      const o = el("td"); o.append(objChip(c.op === "remove" ? p : e, c.target));
+      tr.append(el("td", { class: "mono" }, c.op === "set" ? "assign" : c.op), o, el("td", { class: "slot" }, c.op === "set" ? c.slot : c.kind || ""));
+      tr.append(el("td", { class: "val" }, c.op === "set" ? show(c.before) : ""),
+                el("td", { class: "val" }, c.op === "set" ? show(c.after) : c.op === "add" && c.value !== null && c.value !== undefined ? withUnit(c.value, c.unit) : ""));
+      tb.append(tr);
+    }
+    t.append(tb);
+    const sc = el("div", { class: "scroll" }); sc.append(t); box.append(sc);
+    // what the kernel computed differently from the parent
+    const d = el("table", { class: "ops diff" });
+    const dh = el("tr");
+    ["output", p.id, e.id].forEach((h) => dh.append(el("th", {}, h)));
+    const dhead = el("thead"); dhead.append(dh); d.append(dhead);
+    const db = el("tbody");
+    const u = (x, a) => { const r = rowOf(x, a); return r ? (r.utility !== null ? score(r.utility) : `${score(r.utility_bounds[0])}–${score(r.utility_bounds[1])}`) : "—"; };
+    const outs = [[expectedRule && e.uncertainty ? "decision (E[U])" : "decision.recommended", list(choice(p)), list(choice(e))], ["feasible", list(p.feasible), list(e.feasible)],
+                  ...alts.map((a) => [`U/${a}`, u(p, a), u(e, a)]), ["readiness", p.readiness, e.readiness],
+                  ["actionable", String(p.actionable), String(e.actionable)], ["approval", p.approval || "null", e.approval || "null"]];
+    for (const [k, a, b] of outs) {
+      const tr = el("tr", { class: a === b ? "same" : "changed" });
+      tr.append(el("td", { class: "slot" }, k), el("td", { class: "val" }, a), el("td", { class: "val" }, b));
+      db.append(tr);
+    }
+    d.append(db);
+    const sd = el("div", { class: "scroll" }); sd.append(d); box.append(sd);
+  }
+
+  function renderWhy(e) {
+    const rec = choice(e);
+    const cell = (td, nid, ...content) => {  // a cell that opens the node that computed it
+      const b = el("button", { class: "cellbtn", type: "button", title: `explain(${nid})` });
+      b.append(...content);
+      b.addEventListener("click", () => openCalc(nid));
+      td.append(b);
+      return td;
+    };
+    const colHead = (a) => {
+      const th = el("th", { class: "alt-col" + (rec.includes(a) ? " rec" : "") });
+      const s = el("span", { class: "alt" }); s.append(el("span", { class: "dot", style: `background:${altColor(a)}` }), objChip(e, a));
+      th.append(s, el("span", { class: "small" }, altName(a)));
+      return th;
+    };
+    const t = clear($("matrix")), head = el("tr");
+    head.append(el("th", {}, "criterion"), el("th", { class: "r" }, "w"));
+    alts.forEach((a) => head.append(colHead(a)));
+    const thead = el("thead"); thead.append(head); t.append(thead);
+    const tb = el("tbody");
+    for (const c of DATA.criteria) {
+      const tr = el("tr");
+      const name = el("td"); name.append(objChip(e, c.id), el("div", { class: "small mono" }, c.measure));
+      tr.append(name, el("td", { class: "r mono" }, fmt(e.weights[c.id], 3)));
+      for (const a of alts) {
+        const r = rowOf(e, a), v = r ? r.values[c.id] : null, m = measureOf[c.measure];
+        const td = el("td", { class: (rec.includes(a) ? "rec " : "") + (r && r.feasibility === "fail" ? "excluded" : "") });
+        const bar = el("span", { class: "bar" });
+        if (v !== null && v !== undefined) bar.append(el("span", { style: `width:${Math.max(0, Math.min(1, v)) * 100}%;background:${altColor(a)}` }));
+        const text = el("span", { class: "mono" }, `y ${r ? withUnit(r.measures[c.measure], m && m.unit) : "—"} · v ${v === null || v === undefined ? "?" : score(v)}`);
+        if (r && e.nodes[`v/${c.id}/${a}`]) cell(td, `v/${c.id}/${a}`, text, bar); else td.append(text, bar);
+        tr.append(td);
+      }
+      tb.append(tr);
+    }
+    const total = el("tr", { class: "total" });
+    total.append(el("td", { class: "mono" }, "U = Σ w·v"), el("td", { class: "r mono" }, "1"));
+    for (const a of alts) {
+      const r = rowOf(e, a);
+      const td = el("td", { class: (rec.includes(a) ? "rec " : "") + (r && r.feasibility === "fail" ? "excluded" : "") });
+      const txt = !r ? "—" : r.utility !== null ? score(r.utility) : `${score(r.utility_bounds[0])}–${score(r.utility_bounds[1])}`;
+      if (r && e.nodes[`U/${a}`]) cell(td, `U/${a}`, el("span", { class: "mono" }, txt)); else td.textContent = txt;
+      total.append(td);
+    }
+    tb.append(total);
+    const feas = el("tr");
+    feas.append(el("td", { class: "mono" }, "F"), el("td"));
+    for (const a of alts) {
+      const r = rowOf(e, a), td = el("td", { class: rec.includes(a) ? "rec" : "" });
+      if (r && e.nodes[`F/${a}`]) cell(td, `F/${a}`, pill(r.feasibility, r.feasibility)); else td.textContent = "—";
+      feas.append(td);
+    }
+    tb.append(feas);
+    t.append(tb);
+    const mt = clear($("musts")), mh = el("tr");
+    mh.append(el("th", {}, "requirement"), el("th", {}, "test"));
+    alts.forEach((a) => mh.append(colHead(a)));
+    const mhead = el("thead"); mhead.append(mh); mt.append(mhead);
+    const mb = el("tbody");
+    for (const [q, req] of Object.entries(e.requirements)) {
+      if (!req.mandatory) continue;
+      const tr = el("tr");
+      const qn = el("td"); qn.append(objChip(e, q));
+      tr.append(qn, el("td", { class: "mono" }, `y ${CMP[req.comparator] || req.comparator} ${withUnit(req.threshold, req.unit)}`));
+      for (const a of alts) {
+        const r = rowOf(e, a), td = el("td", { class: rec.includes(a) ? "rec" : "" });
+        if (!r || !(q in r.checks)) { td.textContent = "—"; tr.append(td); continue; }
+        const st = r.checks[q], g = r.g[q];
+        cell(td, `g/${q}/${a}`, el("span", { class: { pass: "g-ok", fail: "g-no", unknown: "g-maybe" }[st], "aria-hidden": "true" }, { pass: "✓", fail: "✕", unknown: "?" }[st]),
+             el("span", { class: "mono" }, `g ${g === null || g === undefined ? "?" : fmt(g, 3)}`));
+        tr.append(td);
+      }
+      mb.append(tr);
+    }
+    mt.append(mb);
+    $("matrix-note").textContent = "v = (y − worst) / (best − worst) · U = Σ w·v · g ≤ 0 passes · F = pass iff every mandatory g passes"
+      + (expectedRule ? " · values at point estimates; decision on E[U]" : "");
+  }
+
+  function renderAct(e) {
+    const box = clear($("act"));
+    const t = el("table", { class: "ops" });
+    const hr = el("tr");
+    ["condition", "status", "reason"].forEach((h) => hr.append(el("th", {}, h)));
+    const thead = el("thead"); thead.append(hr); t.append(thead);
+    const tb = el("tbody");
+    const sorted = [...e.conditions].sort((a, b) => (a.status === "pass") - (b.status === "pass"));
+    for (const c of sorted) {
+      const tr = el("tr", { class: c.status === "pass" ? "same" : "" });
+      const id = el("td"); id.append(objChip(e, c.condition));
+      const st = el("td"); st.append(pill(c.status, c.status + (c.required === false ? " (advisory)" : "")));
+      tr.append(id, st, el("td", { class: "small" }, c.reason || ""));
+      tb.append(tr);
+    }
+    t.append(tb);
+    const sc = el("div", { class: "scroll" }); sc.append(t); box.append(sc);
+    const pt = el("table", { class: "ops" });
+    const ph = el("tr");
+    ["PendingAction.kind", "target", "role"].forEach((h) => ph.append(el("th", {}, h)));
+    const phead = el("thead"); phead.append(ph); pt.append(phead);
+    const pb = el("tbody");
+    for (const a of e.pending) {
+      const tr = el("tr");
+      const tg = el("td"); tg.append(objChip(e, a.target));
+      const rl = el("td"); if (a.role) rl.append(objChip(e, a.role)); else rl.textContent = "—";
+      tr.append(el("td", { class: "mono" }, a.kind), tg, rl);
+      pb.append(tr);
+    }
+    if (!e.pending.length) { const tr = el("tr"); tr.append(el("td", { class: "mono small", colspan: "3" }, "[]")); pb.append(tr); }
+    pt.append(pb);
+    const sp = el("div", { class: "scroll", style: "margin-top:8px" }); sp.append(pt); box.append(sp);
+  }
+
+  function renderRobust(e) {
+    const box = clear($("robust"));
+    const flips = (e.flips || []).filter((f) => f.verified !== false && f.flip_number !== null && f.baseline_number !== null);
+    if (!e.flips) { box.append(el("p", { class: "empty" }, "not analysed")); return; }
+    const rel = (f) => Math.abs(f.flip_number - f.baseline_number) / Math.max(Math.abs(f.baseline_number), 1e-9);
+    const sorted = [...flips].sort((a, b) => rel(a) - rel(b));
+    if (expectedRule) box.append(el("div", { class: "eqn" }, `point-value ranking · decision.recommended (point) = ${list(e.recommended)}`));
+    const table = (rows) => {
+      const t = el("table", { class: "ops" });
+      const hr = el("tr");
+      ["parameter", "now", "flip at", "Δ", "→ recommended"].forEach((h, i) => hr.append(el("th", { class: i > 0 && i < 4 ? "r" : "" }, h)));
+      const thead = el("thead"); thead.append(hr); t.append(thead);
+      const tb = el("tbody");
+      for (const f of rows) {
+        const tr = el("tr");
+        const oid = f.parameter.slice(0, f.parameter.lastIndexOf("."));
+        const pc = el("td"); pc.append(objChip(e, oid, f.parameter + (f.counterpart ? ` ⇄ ${f.counterpart}` : "")));
+        tr.append(pc, el("td", { class: "r mono" }, withUnit(f.baseline_number, f.unit)), el("td", { class: "r mono" }, withUnit(f.flip_number, f.unit)),
+                  el("td", { class: "r mono" }, `${f.flip_number > f.baseline_number ? "+" : "−"}${Math.round(100 * rel(f))}%`),
+                  el("td", { class: "mono" }, list(f.new_recommendation)));
+        tb.append(tr);
+      }
+      t.append(tb);
+      const sc = el("div", { class: "scroll" }); sc.append(t);
+      return sc;
+    };
+    if (!sorted.length) box.append(el("div", { class: "eqn" }, "flips: [] within the scanned range"));
+    else box.append(table(sorted.slice(0, 6)));
+    if (sorted.length > 6) {
+      const det = el("details");
+      det.append(el("summary", { class: "small" }, `${sorted.length - 6} more`), table(sorted.slice(6)));
+      box.append(det);
+    }
+    const voi = e.sensitivity && e.sensitivity.value_of_information;
+    if (voi && voi.parameters && voi.parameters.length) {
+      const t = el("table", { class: "ops", style: "margin-top:8px" });
+      const hr = el("tr");
+      ["EVPPI parameter", "EVPPI", "90% interval", "evidence"].forEach((h) => hr.append(el("th", {}, h)));
+      const thead = el("thead"); thead.append(hr); t.append(thead);
+      const tb = el("tbody");
+      for (const r of voi.parameters.slice(0, 3)) {
+        const tr = el("tr");
+        const pc = el("td"); pc.append(objChip(e, r.parameter.slice(0, r.parameter.lastIndexOf(".")), r.parameter));
+        const ev = el("td"); if (r.evidence) ev.append(objChip(e, r.evidence)); else ev.textContent = "—";
+        tr.append(pc, el("td", { class: "mono" }, fmt(r.evppi, 3)), el("td", { class: "mono" }, r.interval ? `[${fmt(r.interval[0], 2)}, ${fmt(r.interval[1], 2)}]` : "—"), ev);
+        tb.append(tr);
+      }
+      t.append(tb);
+      const sc = el("div", { class: "scroll" }); sc.append(t); box.append(sc);
+    }
+  }
+
+  function renderSources(e) {
+    const rows = e.evidence || [];
+    $("sources-title").textContent = `Observations · ${rows.length} · ${rows.filter((r) => r.located).length} located`;
+    const t = clear($("sources")), head = el("tr");
+    ["observation", "value", "applicability", "evidence", "locator"].forEach((h) => head.append(el("th", {}, h)));
+    const thead = el("thead"); thead.append(head); t.append(thead);
+    const tb = el("tbody");
+    for (const r of rows) {
+      const tr = el("tr");
+      const o = el("td"); o.append(objChip(e, r.observation));
+      const ev = el("td"); ev.append(objChip(e, r.evidence));
+      tr.append(o, el("td", { class: "r mono" }, withUnit(r.value, r.unit)),
+                el("td", { class: "mono" }, r.applicability + (r.located && !r.current ? " · locator stale" : "")), ev,
+                el("td", { class: "small" }, r.located ? r.source : "—"));
+      tb.append(tr);
+    }
+    t.append(tb);
+  }
+
+  /* --- the "why" panel: an explain tree --------------------------------------------------------------- */
+  // Each line is a node the kernel computed (or a schema object it read). Opening a line shows what it was
+  // computed from. Runs are folded into the measure they produce; weights are shown inside the score's sum.
+  let calcOpen = false, calcSel = null, lastFocus = null, expanded = new Set(), infoOpen = new Set();
+  const isRec = (nid) => L.nodes[nid] && L.nodes[nid].kind === "source";
+  function edgesOf(e) {
+    const ins = {};
+    for (const [a, b] of L.edges) if (e.nodes[a] && e.nodes[b]) (ins[b] = ins[b] || []).push(a);
+    return ins;
+  }
+  function children(e, nid) {
+    const ins = edgesOf(e)[nid] || [], n = L.nodes[nid], R = (i) => raw(e, i) || {};
+    if (!n) return [];
+    switch (n.kind) {
+      case "decision": {  // the recommended first, then the other feasible by score, then each excluded one with its reason
+        const rec = e.recommended, feasible = (a) => R(`F/${a}`).status === "pass";
+        const order = [...alts].sort((a, b) => (rec.includes(b) - rec.includes(a)) || (feasible(b) - feasible(a))
+          || ((R(`U/${b}`).U ?? -1) - (R(`U/${a}`).U ?? -1)));
+        const out = [];
+        for (const a of order) {
+          if (e.nodes[`U/${a}`]) out.push(`U/${a}`);
+          if (e.nodes[`F/${a}`] && !feasible(a)) out.push(`F/${a}`);
+        }
+        return out;
+      }
+      case "utility": return ins.filter((i) => i.startsWith("v/"));
+      case "value": return [ins.find((i) => i.startsWith("y/")), ins.find((i) => i.endsWith("#vf"))].filter(Boolean);
+      case "measure": {
+        const run = ins.find((i) => L.nodes[i] && L.nodes[i].kind === "run");
+        if (run) return (edgesOf(e)[run] || []).filter((i) => !(isRec(i) && R(i).class === "EvaluationSpecification")).concat(
+          (edgesOf(e)[run] || []).filter((i) => isRec(i) && R(i).class === "EvaluationSpecification"));
+        return ins.filter((i) => R(i).class === "Observation");
+      }
+      case "check": return [ins.find((i) => i.startsWith("y/")), ins.find((i) => R(i).class === "Requirement")].filter(Boolean);
+      case "feasible": return [...ins].sort((a, b) => (R(a).status === "pass") - (R(b).status === "pass"));
+      case "actionable": return ["readiness", ...ins.filter((i) => R(i).class === "HumanApproval")].filter((x) => e.nodes[x]);
+      case "readiness": return [...ins].sort((a, b) => (R(a).status === "pass") - (R(b).status === "pass"));
+      case "condition": {
+        const c = R(n.subject);
+        return [n.subject, ...(c.review && e.nodes[c.review] ? [c.review] : [])];
+      }
+      case "source": {
+        const o = objOf(e, n.subject || nid);
+        return o && o.class === "Observation" && e.nodes[o.evidence] ? [o.evidence] : [];
+      }
+    }
+    return [];
+  }
+  const fx = (x, d = 3) => (x === null || x === undefined ? "?" : typeof x === "number" ? Number(x.toPrecision(d)).toString() : String(x));
+  function line(e, nid) {  // node id, value, and the formula that produced it
+    const n = L.nodes[nid], x = raw(e, nid) || {}, ins = edgesOf(e)[nid] || [], R = (i) => raw(e, i) || {};
+    const span = el("span", { class: "tline" });
+    const id = (t) => span.append(el("span", { class: "nid" }, t));
+    const val = (t) => span.append(el("span", { class: "nval" }, t));
+    const eq = (t) => span.append(el("span", { class: "eq" }, t));
+    const muted = (t) => span.append(el("span", { class: "muted" }, t));
+    const glyph = (st) => span.append(el("span", { class: { pass: "g-ok", fail: "g-no", unknown: "g-maybe" }[st] || "", "aria-hidden": "true" },
+                                          { pass: "✓", fail: "✕", unknown: "?" }[st] || ""));
+    const uOf = (a) => { const u = R(`U/${a}`); return u.U !== null && u.U !== undefined ? score(u.U) : `${score(u.lower)}–${score(u.upper)}`; };
+    switch (n.kind) {
+      case "decision":
+        id("decision"); val(`→ ${list(e.recommended)}`); eq("argmax U over F = pass");
+        muted(alts.map((a) => `${short(a)} ${uOf(a)}${(x.infeasible || []).includes(a) ? " (F fail)" : (x.unresolved || []).includes(a) ? " (F ?)" : ""}`).join(" · "));
+        if (expectedRule && e.uncertainty) {
+          const u = e.uncertainty;
+          muted(`${u.rule.id} expected_mavt → ${list(u.recommended)} = argmax E[U] over Pr(feasible) ≥ ${fmt(1 - u.rule.chance_alpha)} · `
+            + alts.map((a) => `${short(a)} ${fmt(uncOf(e, a).expected_utility)} (Pr ${fmt(uncOf(e, a).p_feasible, 3)} ${chanceGlyph(uncOf(e, a))})`).join(" · "));
+        }
+        break;
+      case "utility": {
+        const terms = ins.filter((i) => i.startsWith("v/")).map((v) => `${fx(R(v.split("/")[1] + "#w").weight, 2)}×${fx(R(v).v, 2)}`);
+        id(nid); val(uOf(n.alternative)); eq(`= Σ w·v = ${terms.join(" + ")}`);
+        break;
+      }
+      case "value": {
+        const c = R(n.subject + "#vf"), y = R(ins.find((i) => i.startsWith("y/"))).y;
+        id(nid); val(x.v !== null && x.v !== undefined ? score(x.v) : "?");
+        if (y !== null && y !== undefined) eq(c.points && c.points.length ? `= piecewise(y = ${fx(y, 4)})`
+          : `= (y − ${fx(c.anchor_worst, 4)}) / (${fx(c.anchor_best, 4)} − ${fx(c.anchor_worst, 4)}), y = ${fx(y, 4)}`);
+        break;
+      }
+      case "measure": {
+        const m = measureOf[nid.split("/")[2]] || {};
+        id(nid); val(x.y !== null && x.y !== undefined ? withUnit(x.y, m.unit) : "?");
+        const run = ins.find((i) => L.nodes[i] && L.nodes[i].kind === "run");
+        if (run) {
+          const rins = edgesOf(e)[run] || [], sp = R(rins.find((i) => R(i).class === "EvaluationSpecification"));
+          const args = (sp.inputs || []).map((b) => `${b.arg}=${fx(b.measure ? R(rins.find((i) => i.endsWith("/" + b.measure))).y : R(b.ref).value, 4)}`);
+          eq(`= ${(sp.implementation || "").split(":").pop()}(${args.join(", ")})`);
+        } else {
+          const obs = ins.filter((i) => R(i).class === "Observation");
+          eq(`= ${obs.map((o) => `${o}.value`).join(" | ") || "—"}`);
+          if (x.y === null || x.y === undefined) muted(x.why || "");
+        }
+        break;
+      }
+      case "check": {
+        const q = R(ins.find((i) => R(i).class === "Requirement"));
+        const ge = q.comparator === "ge" || q.comparator === "gt";
+        glyph(x.status); id(nid); val(x.g !== null && x.g !== undefined ? fx(x.g, 3) : "?");
+        eq(`= ${ge ? `${fx(q.threshold_value, 4)} − y` : `y − ${fx(q.threshold_value, 4)}`} · pass iff ≤ ${fx(q.check_tolerance || 0, 3)}`);
+        break;
+      }
+      case "feasible":
+        glyph(x.status); id(nid); val(x.status);
+        if ((x.failed || []).length) muted(`failed ${list(x.failed)}`);
+        if ((x.unknown || []).length) muted(`unknown ${list(x.unknown)}`);
+        break;
+      case "actionable":
+        id("actionable"); val(String(x.actionable)); eq("= ready ∧ approval matches state_digest ∧ current"); if (x.reason) muted(x.reason);
+        break;
+      case "readiness":
+        glyph(READY[x.state]); id("readiness"); val(x.state);
+        if ((x.failed || []).length) muted(`failed ${list(x.failed)}`);
+        if ((x.unknown || []).length) muted(`unknown ${list(x.unknown)}`);
+        break;
+      case "condition":
+        glyph(x.status); id(nid); val(x.status); eq(R(n.subject).predicate || ""); if (x.status !== "pass" && x.reason) muted(x.reason);
+        break;
+      case "source": return record(e, nid);
+      default: id(nid); val(e.nodes[nid].v);
+    }
+    if (e.nodes[nid].e === "executed" && e.parent) {
+      const dot = el("span", { class: "ran-dot", title: "re-ran in this episode" }), at = span.querySelector(".nid");
+      if (at) at.append(dot); else span.append(dot);
+    }
+    return span;
+  }
+  // A schema object as one line: its class, id and the slots that feed the calculation.
+  function record(e, nid) {
+    const n = L.nodes[nid], o = objOf(e, n.subject || nid) || {};
+    const sch = DATA.schema[o.class] || { hashable: [] };
+    const span = el("span", { class: "tline rec" });
+    span.append(el("span", { class: "cls" }, o.class || "object"), document.createTextNode(`${o.id || nid} { `));
+    const keep = Object.entries(o).filter(([k]) => k !== "class" && k !== "id" && sch.hashable.includes(k));
+    keep.forEach(([k, v], i) => {
+      span.append(el("span", { class: "k" }, `${k}: `), document.createTextNode(Array.isArray(v) ? `[${v.length}]` : typeof v === "object" ? "{…}" : String(v)));
+      if (i < keep.length - 1) span.append(document.createTextNode(", "));
+    });
+    span.append(document.createTextNode(" }"));
+    if (o.class === "Observation") {
+      const row = (e.evidence || []).find((r) => r.observation === o.id);
+      if (row && row.located) span.append(el("span", { class: "src" }, `from ${row.source}`));
+    }
+    return span;
+  }
+  function infoBox(e, nid) {
+    const n = L.nodes[nid], box = el("div", { class: "infobox" });
+    if (isRec(nid)) {
+      const o = objOf(e, n.subject || nid) || {}, sch = DATA.schema[o.class] || { description: "", slots: {}, hashable: [] };
+      if (sch.description) box.append(el("div", {}, `${o.class}: ${sch.description}`));
+      const dl = el("dl");
+      for (const [k, v] of Object.entries(o)) {
+        if (k === "class") continue;
+        const dd = el("dd", {}, typeof v === "object" ? JSON.stringify(v) : String(v));
+        if (sch.slots[k]) dd.append(el("span", { class: "d" }, sch.slots[k]));
+        dl.append(el("dt", { class: sch.hashable.includes(k) || k === "id" ? "" : "inert" }, k), dd);
+      }
+      box.append(dl, el("div", { class: "small" }, "Blue slots feed the calculation; grey ones are provenance or prose."));
+    } else {
+      const st = e.nodes[nid];
+      box.append(el("div", {}, `Node ${nid} · ${n.kind}${n.fn && n.fn !== n.kind ? ` (${n.fn})` : ""} · ${EXEC[st.e] || st.e} · value digest ${st.h ? st.h.slice(0, 12) : "?"}`));
+      box.append(el("pre", { class: "raw", style: "margin:0;white-space:pre-wrap;font:0.74rem/1.45 var(--f-mono)" }, JSON.stringify(raw(e, nid), null, 2)));
+    }
+    return box;
+  }
+  function branch(e, nid, path, depth) {
+    const key = path.concat(nid).join(">");
+    const li = el("li", depth === 0 ? { class: "root" } : {});
+    const kids = depth < 12 ? children(e, nid) : [];
+    const open = expanded.has(key);
+    const row = el("div", { class: "trow" + (nid === calcSel ? " sel" : "") });
+    row.dataset.node = nid;
+    const tw = el("button", { class: "twisty" + (kids.length ? "" : " leaf"), type: "button", "aria-expanded": String(open),
+                              "aria-label": open ? "Close" : "Open" }, kids.length ? (open ? "▾" : "▸") : "");
+    if (kids.length) tw.addEventListener("click", () => { if (expanded.has(key)) expanded.delete(key); else expanded.add(key); renderCalc(); });
+    const info = el("button", { class: "info", type: "button", title: "What this is, and its raw structure", "aria-expanded": String(infoOpen.has(key)) }, "ⓘ");
+    info.addEventListener("click", () => { if (infoOpen.has(key)) infoOpen.delete(key); else infoOpen.add(key); renderCalc(); });
+    row.append(tw, line(e, nid), info);
+    li.append(row);
+    if (infoOpen.has(key)) li.append(infoBox(e, nid));
+    if (open && kids.length) {
+      const ul = el("ul", { class: "tree" });
+      for (const k of kids) ul.append(branch(e, k, path.concat(nid), depth + 1));
+      li.append(ul);
+    }
+    return li;
+  }
+  const ROOTS = ["decision", "actionable"];
+  function pathTo(e, target) {  // the first path from a root down to `target`, through the tree's own children
+    const seen = new Set();
+    function walk(nid, path) {
+      if (nid === target) return path.concat(nid);
+      if (seen.has(nid) || path.length > 12) return null;
+      seen.add(nid);
+      for (const k of children(e, nid)) { const p = walk(k, path.concat(nid)); if (p) return p; }
+      return null;
+    }
+    for (const r of ROOTS) { seen.clear(); const p = walk(r, []); if (p) return p; }
+    return null;
+  }
+  function renderCalc() {
+    const e = byId[current];
+    $("calc-eyebrow").textContent = `${epName(e)} · ${e.id} · ${e.as_of}`;
+    $("calc-title").textContent = `explain(${calcSel || "decision"})`;
+    const tree = clear($("calc-tree"));
+    const roots = ROOTS.filter((r) => e.nodes[r]);
+    if (calcSel && !pathTo(e, calcSel) && e.nodes[calcSel]) roots.unshift(calcSel);  // an object off both paths
+    for (const r of roots) tree.append(branch(e, r, [], 0));
+  }
+  function openCalc(nid) {
+    if (!calcOpen) { lastFocus = document.activeElement; expanded = new Set(); infoOpen = new Set(); }
+    calcOpen = true;
+    const e = byId[current];
+    calcSel = nid && nid !== "decision" ? nid : null;
+    expanded.add("decision");
+    const path = calcSel ? pathTo(e, calcSel) : null;
+    if (path) for (let i = 1; i < path.length; i++) expanded.add(path.slice(0, i).join(">"));
+    $("calc").hidden = false; $("calc-scrim").hidden = false;
+    document.body.style.overflow = "hidden";
+    renderCalc();
+    const target = calcSel && $("calc-tree").querySelector(`.trow.sel`);
+    if (target) target.scrollIntoView({ block: "center" });
+    $("calc-close").focus();
+  }
+  function closeCalc() {
+    calcOpen = false;
+    $("calc").hidden = true; $("calc-scrim").hidden = true;
+    document.body.style.overflow = "";
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  $("calc-close").addEventListener("click", closeCalc);
+  $("calc-scrim").addEventListener("click", closeCalc);
+  document.addEventListener("keydown", (k) => { if (k.key === "Escape" && calcOpen) closeCalc(); });
+
+  function setView(v) {
+    view = v;
+    $("tab-decision").setAttribute("aria-selected", String(v === "decision"));
+    $("tab-engineering").setAttribute("aria-selected", String(v === "engineering"));
+    $("view-decision").hidden = v !== "decision";
+    $("view-engineering").hidden = v !== "engineering";
+    updateHash();
+    render();
+  }
+  function updateHash() {
+    try { history.replaceState(null, "", "#" + short(current) + (view === "engineering" ? ".engineering" : "")); } catch (err) { /* sandboxed */ }
+  }
   function select(id) {
     current = id; selectedNode = null;
-    try { history.replaceState(null, "", "#" + short(id)); } catch (err) { /* sandboxed */ }
+    updateHash();
     render();
   }
   function render() {
     const e = byId[current];
-    renderStrip(); renderTiles(e); renderTable(e); renderGraph(e); renderReadiness(e); renderHistory(); renderWork();
-    renderFlips(e); renderTornado(e); renderUncertainty(e);
-    clear($("detail")).append(el("span", { class: "empty" }, "Select a node to see its value, its inputs and how this episode computed it."));
+    if (calcOpen) renderCalc();
+    if (view === "decision") {
+      renderTimeline(); renderVerdict(e); renderChanged(e); renderWhy(e); renderAct(e); renderRobust(e); renderHistory(); renderSources(e);
+    } else {
+      // the graph measures its labels, so it is drawn only while visible
+      renderStrip(); renderTiles(e); renderTable(e); renderGraph(e); renderReadiness(e); renderWork();
+      renderFlips(e); renderTornado(e); renderUncertainty(e);
+      clear($("detail")).append(el("span", { class: "empty" }, "Select a node to see its value, its inputs and how this episode computed it."));
+    }
   }
+  $("tab-decision").addEventListener("click", () => setView("decision"));
+  $("tab-engineering").addEventListener("click", () => setView("engineering"));
   $("t-inputs").addEventListener("click", () => { showInputs = !showInputs; $("t-inputs").setAttribute("aria-pressed", String(showInputs)); renderGraph(byId[current]); });
   $("t-impact").addEventListener("click", () => { showImpact = !showImpact; $("t-impact").setAttribute("aria-pressed", String(showImpact)); renderGraph(byId[current]); });
-  window.addEventListener("hashchange", () => { const e = fromHash(); if (e && e.id !== current) select(e.id); });
-  renderLegend(); renderVoi(); render();
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => renderGraph(byId[current]));
+  window.addEventListener("hashchange", () => {
+    const h = fromHash();
+    if (h.view && h.view !== view) { if (h.ep) current = h.ep.id; setView(h.view); }
+    else if (h.ep && h.ep.id !== current) select(h.ep.id);
+  });
+  renderLegend(); renderVoi(); setView(view);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (view === "engineering") renderGraph(byId[current]); });
 })();
 </script>

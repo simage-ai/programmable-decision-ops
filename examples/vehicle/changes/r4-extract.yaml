@@ -29,3 +29,6 @@ assign:
     quote_suffix: ''
     char_start: 214
     char_end: 285
+- target: obs:C.reliability
+  slot: applicability_rationale
+  new_value: Accepted by role:test-engineer from section 3.3 of docs/reliability-test-report-rev3.docx.

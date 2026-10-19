@@ -461,24 +461,39 @@ def revise(state: m.DecisionState, base_dir: str | Path, document: str, new_file
         warnings.append("document_version, source_ref and issued_on are left as they were; update them in a change "
                         "set if they describe the version")
     change = {"trigger": "evidence", "assign": assign}
-    report = {"document": {"from": old_path, "to": rel, "digest": new_index.digest},
+    report = {"document": {"from": old_path, "to": rel, "digest": new_index.digest}, "title": new_index.title,
               "evidence": sorted(ids), "sections": sections, "reanchored": reanchored, "flagged": flagged,
               "warnings": warnings}
     return change, report
 
 
-def describe_revision(report: dict) -> str:
-    """One paragraph for the change set's change_description."""
-    flagged = [f["observation"] for f in report["flagged"] if f["applies"]]
-    changed = [s["path"] for s in report["sections"] or [] if s["status"] != "unchanged"]
+def describe_revision(report: dict, state: m.DecisionState | None = None) -> str:
+    """The change set's change_description: what the new version changed, and what goes back for review, in
+    words a reviewer reads on the timeline."""
+    objects = index(state) if state is not None else {}
+
+    def value_label(oid: str) -> str:
+        o = objects.get(oid)
+        if not isinstance(o, m.Observation):
+            return oid
+        measure = objects.get(o.measure)
+        return f"{o.alternative.split(':', 1)[-1]}'s {(measure.name if measure else o.measure).lower()}"
+
+    doc = report["document"]
+    title = report.get("title") or doc["to"]
+    changed = [s["path"].split(" > ")[-1] for s in report["sections"] or [] if s["status"] in ("changed", "removed")]
+    added = [s["path"].split(" > ")[-1] for s in report["sections"] or [] if s["status"] == "added"]
+    flagged = [value_label(f["observation"]) for f in report["flagged"] if f["applies"]]
     n = len(report["reanchored"])
-    text = f"New version of {report['document']['from']} ({report['document']['to']})."
-    if changed:
-        text += f" Sections changed, added, moved or removed: {'; '.join(changed)}."
-    text += (f" {n} locator{'s' if n != 1 else ''} moved to the new version because {'their' if n != 1 else 'its'}"
-             " section text is unchanged; ")
+    text = f"New version of {title} ({doc['to']})"
+    if changed or added:
+        text += ": " + "; ".join(([f"changed {', '.join(changed)}"] if changed else [])
+                                 + ([f"added {', '.join(added)}"] if added else []))
+    text += f". {n} value{'s' if n != 1 else ''} carried over (their sections are unchanged)"
     if flagged:
-        text += f"{', '.join(flagged)} {'need' if len(flagged) > 1 else 'needs'} review."
+        many = len(flagged) > 1
+        text += (f"; {' and '.join(flagged)} {'need' if many else 'needs'} review because "
+                 f"{'their' if many else 'its'} section changed.")
     else:
-        text += "nothing needs review."
+        text += "; nothing needs review."
     return text

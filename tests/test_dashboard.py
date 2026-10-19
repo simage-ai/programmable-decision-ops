@@ -53,7 +53,9 @@ def test_program_export_covers_every_episode(program):
 
 def test_node_states_carry_status_value_and_execution(program):
     e00 = program["episodes"][0]
-    assert e00["nodes"]["U/alt:B"] == {"s": "value", "v": "U = 0.5333", "e": "executed"}
+    u = e00["nodes"]["U/alt:B"]
+    assert {k: u[k] for k in ("s", "v", "e")} == {"s": "value", "v": "U = 0.5333", "e": "executed"}
+    assert len(u["h"]) == 32  # its value digest
     assert e00["nodes"]["F/alt:C"]["s"] == "fail" and "min-reliability" in e00["nodes"]["F/alt:C"]["v"]
     assert e00["nodes"]["decision"]["v"] == "B"
     e01 = next(e for e in program["episodes"] if e["id"] == "ep:e01")
@@ -167,3 +169,71 @@ def test_mcp_tool_writes_the_dashboard(tmp_path, state_dir):
     (tmp_path / "taken" / "index.html").write_text("mine")
     refused = tools.dashboard(state_dir, tmp_path / "taken", flips=False, sensitivity=False)
     assert refused["ok"] is False and "not written by pdo dashboard" in refused["error"] and refused["hint"]
+
+
+def test_reviewer_data_explains_each_episode(program):
+    by_id = {e["id"]: e for e in program["episodes"]}
+    e10 = by_id["ep:e10"]
+    assert {"op": "set", "target": "obs:B.cost", "slot": "value", "before": 1.22, "after": 1.32,
+            "provenance": False} in e10["changes"]
+    assert any(c["op"] == "add" and c["kind"] == "Evidence" for c in e10["changes"])
+    assert e10["author_role"] == "role:cost-analyst" and e10["weights"]["crit:cost"] == 0.4
+    assert by_id["ep:e12"]["requirements"]["req:min-range"]["threshold"] == 310  # framing as of each episode
+    b = next(r for r in by_id["ep:e00"]["table"] if r["alternative"] == "alt:B")
+    assert b["values"]["crit:range"] == pytest.approx(0.6) and b["checks"]["req:min-reliability"] == "pass"
+    r1 = by_id["ep:r1"]
+    assert all(c["provenance"] for c in r1["changes"])  # a revision touches provenance only
+    c_rel = next(r for r in r1["evidence"] if r["observation"] == "obs:C.reliability")
+    assert c_rel["located"] and c_rel["current"] is False and "§ 3.3" in c_rel["source"]
+    assert by_id["ep:e00"]["changes"] == [] and "Re-approval" in program["objects"]["appr:e08-b"]
+
+
+def test_flips_carry_words(state):
+    flips = {f["parameter"]: f for f in state["episodes"][0]["flips"]}
+    assert flips["obs:B.cost.value"]["label"] == "B's unit acquisition cost"
+    assert flips["obs:B.cost.value"]["unit"] == "MUSD"
+    weight = next(f for f in state["episodes"][0]["flips"] if f["parameter"] == "crit:cost.weight")
+    assert weight["label"] == "the weight on cost" and weight["unit"] == "%" and weight["counterpart_label"]
+
+
+def test_template_has_both_views():
+    text = TEMPLATE.read_text(encoding="utf-8")
+    for anchor in ('id="view-decision"', 'id="view-engineering"', 'id="timeline"', 'id="verdict"', 'id="changed"',
+                   'id="matrix"', 'id="musts"', 'id="act"', 'id="robust"', 'id="sources"', 'id="graph"'):
+        assert anchor in text, anchor
+    assert 'role="tablist"' in text and ".engineering" in text  # the hash keeps the view
+
+
+def test_raw_values_and_objects_are_content_addressed(program):
+    e00 = program["episodes"][0]
+    node = e00["nodes"]["U/alt:B"]
+    assert program["values"][node["h"]]["U"] == pytest.approx(0.533333, abs=1e-6)
+    obs = program["object_pool"][e00["objects"]["obs:B.cost"]]
+    assert obs == {"class": "Observation", "id": "obs:B.cost", "alternative": "alt:B", "measure": "meas:unit-cost",
+                   "value": 1.2, "unit": "MUSD", "evidence": "ev:cost-B"}
+    # an object that never changes is stored once, however many episodes hold it
+    keys = {e["objects"]["req:max-cost"] for e in program["episodes"]}
+    assert len(keys) == 1
+    obs_schema = program["schema"]["Observation"]
+    assert "value" in obs_schema["hashable"] and "locator" not in obs_schema["hashable"]
+    assert obs_schema["slots"]["locator"].startswith("The passage")
+    e10 = next(e for e in program["episodes"] if e["id"] == "ep:e10")
+    assert e10["change_set"]["parent"] == "ep:e09" and e10["change_set"]["assign"][2]["new_value"] == 1.32
+    assert program["layout"]["nodes"]["U/alt:B"]["fn"] == "utility"
+
+
+def test_template_has_the_explain_tree():
+    text = TEMPLATE.read_text(encoding="utf-8")
+    for anchor in ('id="calc"', 'id="calc-tree"', "function children", "function record", "function pathTo",
+                   "function openCalc", "function objChip", "function statusPill", "const epName"):
+        assert anchor in text, anchor
+
+
+def test_decision_view_speaks_in_kernel_terms():
+    """The Decision view shows ids, values and formulas; it has no generated sentences."""
+    text = TEMPLATE.read_text(encoding="utf-8")
+    for canned in ("Recommend ${", "Why ${epName", "would be recommended instead", "Ready for a decision",
+                   "The recommendation is unchanged", "scores ${", "waiting on ${"):
+        assert canned not in text, canned
+    for formula in ("Σ w·v", "decision.recommended", "explain(", "PendingAction.kind"):
+        assert formula in text, formula

@@ -18,9 +18,12 @@ from pathlib import Path
 from typing import Any
 
 from pdo import __version__
+from pdo import model as m
 from pdo.actions import pending_actions
+from pdo.canonical import digest
 from pdo.graph import Graph
-from pdo.load import index, items
+from pdo.identity_slots import HASHABLE
+from pdo.load import index, items, iter_objects
 from pdo.report import run_summary
 from pdo.run import RunResult
 
@@ -189,7 +192,7 @@ def layout(graphs: list[Graph]) -> dict:
             return (node.alternative or "~", KIND_ORDER.get(node.kind, 0), nid)
         for row, nid in enumerate(sorted(nids, key=key)):
             node = nodes[nid]
-            out[nid] = {"col": col, "row": row, "kind": node.kind, "label": _label(nid, node),
+            out[nid] = {"col": col, "row": row, "kind": node.kind, "label": _label(nid, node), "fn": node.fn,
                         "alternative": node.alternative, "subject": node.subject}
     run_cols = [c for nid, c in col_of.items() if nodes[nid].kind == "run"]
     names = [_column_name({nodes[n].kind for n in columns.get(c, [])}, c, run_cols) if c in columns else ""
@@ -199,15 +202,115 @@ def layout(graphs: list[Graph]) -> dict:
 
 
 def _decision_table(result: RunResult) -> list[dict]:
+    """Per alternative: utility, feasibility, measured values, and for the reviewer view each criterion's value
+    score (v) and each requirement's margin (g) and status."""
+    criteria = [c.id for c in items(result.graph.state.criteria)]
     rows = []
     for alt in run_summary(result)["alternatives"]:
+        a = alt["alternative"]
+        values = {c: result.value(f"v/{c}/{a}").get("v") for c in criteria if f"v/{c}/{a}" in result.results}
         rows.append({k: alt[k] for k in ("alternative", "utility", "utility_bounds", "feasibility", "failed",
                                          "unknown", "measures")}
-                    | {"g": {req: c.get("g") for req, c in alt["checks"].items()}})
+                    | {"g": {req: c.get("g") for req, c in alt["checks"].items()},
+                       "checks": {req: c.get("status") for req, c in alt["checks"].items()}, "values": values})
     return rows
 
 
-def _episode(ev, units: dict[str, str], analyses: dict) -> dict:
+def _framing(state) -> dict:
+    """What this episode's numbers are judged against (weights and thresholds can change between episodes)."""
+    return {"weights": {c.id: c.weight for c in items(state.criteria)},
+            "requirements": {r.id: {"comparator": r.comparator, "threshold": r.threshold_value, "unit": r.unit,
+                                    "measure": r.measure, "mandatory": r.mandatory is not False}
+                             for r in items(state.requirements)}}
+
+
+PROVENANCE_SLOTS = {"locator", "document_digest", "document_path"}
+
+
+def _change_ops(change, parent_state) -> list[dict]:
+    """The change set in reviewer terms: each assignment with the value it replaces, each object added or
+    removed. Provenance slots (locators, document versions) are marked, so the page can summarize them."""
+    if change is None:
+        return []
+    before = index(parent_state) if parent_state is not None else {}
+    ops = []
+    for a in items(change.assign):
+        obj = before.get(a.target)
+        old = getattr(obj, a.slot, None) if obj is not None else None
+        ops.append({"op": "set", "target": a.target, "slot": a.slot,
+                    "before": old.model_dump(exclude_none=True) if hasattr(old, "model_dump") else old,
+                    "after": a.new_value, "provenance": a.slot in PROVENANCE_SLOTS})
+    if change.add is not None:
+        for _, obj in iter_objects(change.add):
+            ops.append({"op": "add", "target": obj.id, "kind": type(obj).__name__,
+                        "value": getattr(obj, "value", None), "unit": getattr(obj, "unit", None)})
+    for oid in items(change.remove):
+        ops.append({"op": "remove", "target": oid, "kind": type(before.get(oid)).__name__ if oid in before else None})
+    return ops
+
+
+def _evidence_rows(state) -> list[dict]:
+    """Every observation with its value and where it came from (the document passage when located)."""
+    from pdo.provenance import cite, sources
+
+    obs = {o.id: o for o in items(state.observations)}
+    out = []
+    for row in sources(state, sorted(obs)):
+        o = obs[row["observation"]]
+        out.append({"observation": o.id, "alternative": o.alternative, "measure": o.measure, "value": o.value,
+                    "unit": o.unit, "applicability": o.applicability or "accepted", "evidence": o.evidence,
+                    "located": "quote" in row, "current": row.get("current", True), "source": cite(row)})
+    return out
+
+
+def _param_label(state, parameter: str) -> dict:
+    """A flip parameter ("obs:B.cost.value", "crit:cost.weight") in words, with its unit."""
+    oid, _, slot = parameter.rpartition(".")
+    obj = index(state).get(oid)
+    if obj is None:
+        return {"label": parameter, "unit": None}
+    objects = index(state)
+    if isinstance(obj, m.Observation):
+        measure = objects.get(obj.measure)
+        return {"label": f"{_short(obj.alternative)}'s {(measure.name if measure else obj.measure).lower()}",
+                "unit": obj.unit}
+    if isinstance(obj, m.Requirement):
+        return {"label": f"the {obj.name.lower() if obj.name else oid} threshold", "unit": obj.unit}
+    if isinstance(obj, m.Criterion) and slot == "weight":
+        return {"label": f"the weight on {(obj.name or oid).lower()}", "unit": "%"}
+    if isinstance(obj, m.Criterion):
+        return {"label": f"the {slot.replace('_', ' ')} of {(obj.name or oid).lower()}", "unit": None}
+    return {"label": (getattr(obj, "name", None) or oid).lower() if slot == "value" else
+            f"{(getattr(obj, 'name', None) or oid).lower()} ({slot.replace('_', ' ')})",
+            "unit": getattr(obj, "unit", None)}
+
+
+def _pool_objects(state, pool: dict) -> dict[str, str]:
+    """Every schema object of a state, by id, as a key into `pool` (its full content, class included). Objects
+    that do not change between episodes are stored once."""
+    out = {}
+    for _, obj in iter_objects(state):
+        dump = {"class": type(obj).__name__, **obj.model_dump(mode="json", exclude_none=True)}
+        key = digest(dump)[:16]
+        pool.setdefault(key, _clean(dump))
+        out[obj.id] = key
+    return out
+
+
+def _schema(classes: set[str]) -> dict:
+    """What each schema class and slot means (from the LinkML descriptions), for the page's raw views."""
+    out = {}
+    for name in sorted(classes):
+        cls = getattr(m, name, None)
+        if cls is None or not hasattr(cls, "model_fields"):
+            continue
+        slots = {k: " ".join(f.description.split()) for k, f in cls.model_fields.items() if f.description}
+        out[name] = {"description": " ".join((cls.__doc__ or "").split()), "slots": slots,
+                     "hashable": sorted(HASHABLE.get(name, ()))}  # the slots that are part of the computation
+    return out
+
+
+def _episode(ev, units: dict[str, str], analyses: dict, parent_state=None, pools: dict | None = None) -> dict:
     result = ev.run
     graph = result.graph
     summary = run_summary(result)
@@ -225,7 +328,20 @@ def _episode(ev, units: dict[str, str], analyses: dict) -> dict:
         "impact": sorted(ev.impact) if ev.impact is not None else None, "verified": ev.verified,
         "cost": {"executed": len(result.executed),
                  "computed": sum(1 for n in graph.nodes.values() if n.fn != "source"), "total": len(graph.nodes)},
+        "author_role": change.author_role if change else None, "changes": _change_ops(change, parent_state),
+        "change_set": _clean(change.model_dump(mode="json", exclude_none=True)) if change else None,
+        "evidence": _evidence_rows(ev.state), **_framing(ev.state),
     }
+    if pools is not None:  # raw values and objects, content-addressed: each distinct one is stored once
+        for nid, node_state in episode["nodes"].items():
+            res = result.results[nid]
+            node_state["h"] = res.vdig
+            pools["values"].setdefault(res.vdig, _clean(res.value))
+        episode["objects"] = _pool_objects(ev.state, pools["objects"])
+    for f in analyses.get("flips") or []:
+        f.update(_param_label(ev.state, f["parameter"]))
+        if f.get("counterpart"):
+            f["counterpart_label"] = _param_label(ev.state, f"{f['counterpart']}.weight")["label"]
     episode.update(analyses)
     return episode
 
@@ -286,10 +402,13 @@ def build(path: str | Path, *, flips: bool = True, sensitivity: bool = True, unc
     state0 = evaluations[0].state
     units = {m_.id: m_.unit for m_ in items(state0.measures)}
     episodes = []
+    states = {ev.episode: ev.state for ev in evaluations}
+    pools: dict[str, dict] = {"values": {}, "objects": {}}
     for ev in evaluations:
         full = ev.episode == baseline  # global indices and value of information for the baseline only
         analyses = _analyses(ev.run, flips, sensitivity, uncertainty, samples, full_sensitivity=full)
-        episodes.append(_episode(ev, units, analyses))
+        episodes.append(_episode(ev, units, analyses, states.get(ev.parent), pools))
+    classes = {o["class"] for o in pools["objects"].values()} | {"ChangeSet", "SourceLocator", "DecisionState"}
     names = {a.id: a.name or a.id for a in items(state0.alternatives)}
     objects = index(state0)
     roles = {r.id: r.name or r.id for r in items(state0.roles)}
@@ -303,9 +422,12 @@ def build(path: str | Path, *, flips: bool = True, sensitivity: bool = True, unc
                           "threshold": r.threshold_value, "unit": r.unit} for r in items(state0.requirements)],
         "criteria": [{"id": c.id, "name": c.name or c.id, "measure": c.measure, "weight": c.weight}
                      for c in items(state0.criteria)],
-        "objects": {oid: getattr(o, "name", None) or oid for oid, o in objects.items()},
+        "objects": {oid: getattr(o, "name", None) or oid for ev in evaluations
+                    for oid, o in index(ev.state).items()} | {oid: getattr(o, "name", None) or oid
+                                                             for oid, o in objects.items()},
         "layout": layout([ev.run.graph for ev in evaluations]),
         "episodes": episodes,
+        "values": pools["values"], "object_pool": pools["objects"], "schema": _schema(classes),
     }
 
 

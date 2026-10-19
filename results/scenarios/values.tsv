@@ -1,0 +1,10 @@
+key	value	unit	description	scenario
+PDO_ONBOARD_AGENT_STEPS	3	steps	Of those, an agent's proposal: values with quotes from the reports (the vehicle decision built from its PDF, Word report and SysML model by following pdo onboard)	onboarding
+PDO_ONBOARD_LOCATED_VALUES	9	values	Values taken from the reports, each with a computed locator (the vehicle decision built from its PDF, Word report and SysML model by following pdo onboard)	onboarding
+PDO_ONBOARD_OBJECTS	64	objects	Objects in the resulting decision state (the vehicle decision built from its PDF, Word report and SysML model by following pdo onboard)	onboarding
+PDO_ONBOARD_PERSON_STEPS	7	steps	Of those, a person's statement or judgement (the vehicle decision built from its PDF, Word report and SysML model by following pdo onboard)	onboarding
+PDO_ONBOARD_STEPS	16	steps	Steps from raw inputs to an actionable, studied decision (the vehicle decision built from its PDF, Word report and SysML model by following pdo onboard)	onboarding
+PDO_UNC_FIRES_CHANCE_LEVEL	0.9	1	Required probability of meeting every requirement (1 - alpha; examples/fires_sensor, pdo uncertainty, 1000 samples, seed 20270301)	uncertainty
+PDO_UNC_FIRES_DECISION	alt:insert	alternative	Recommendation under expected_mavt with the chance constraint (examples/fires_sensor, pdo uncertainty, 1000 samples, seed 20270301)	uncertainty
+PDO_UNC_FIRES_POINT_DECISION	alt:new-array	alternative	Recommendation from the point values alone (examples/fires_sensor, pdo uncertainty, 1000 samples, seed 20270301)	uncertainty
+PDO_UNC_FIRES_P_FEASIBLE_NEW_ARRAY	0.529	1	Probability the point-value winner meets every requirement (examples/fires_sensor, pdo uncertainty, 1000 samples, seed 20270301)	uncertainty

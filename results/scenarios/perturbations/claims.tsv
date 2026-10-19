@@ -1,0 +1,7 @@
+claim	expected	observed	holds
+the kernel's labels agree with the independent hand labels	45 of 45	45 of 45	true
+impact: every case equals full recomputation	45 of 45	45 of 45	true
+cutoff: every case equals full recomputation	45 of 45	45 of 45	true
+ablation delta_only gets some cases wrong	< 45	3 of 45	true
+ablation one_hop gets some cases wrong	< 45	8 of 45	true
+ablation no_readiness gets some cases wrong	< 45	3 of 45	true

@@ -1,0 +1,5 @@
+claim	expected	observed	holds
+every flag matches the independent label	23 of 23	23 of 23	true
+every value whose quoted passage changed is flagged (recall)	12 of 12	12 of 12	true
+a revision changes no value, so no approval is invalidated	23 of 23	23 of 23	true
+section digests cut the review load against whole-document review	> 75%	80.6%	true

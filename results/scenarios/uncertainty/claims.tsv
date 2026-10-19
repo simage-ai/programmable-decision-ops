@@ -1,0 +1,6 @@
+claim	expected	observed	holds
+the point-value ranking recommends the new array	[alt:new-array]	[alt:new-array]	true
+under expected_mavt the rule recommends the insert	[alt:insert]	[alt:insert]	true
+the new array has the highest E[U] but fails the chance constraint	Pr(feasible) < 0.9	0.529	true
+seeded: a second run draws the same samples	7grOf7c0rfWkjVFBIGsXTho6eTKfNV8a	7grOf7c0rfWkjVFBIGsXTho6eTKfNV8a	true
+value of information names the evidence to collect next	obs:new-array.schedule.value	obs:new-array.schedule.value	true

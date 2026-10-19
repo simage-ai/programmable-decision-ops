@@ -15,7 +15,9 @@ pdo.uncertainty.
 Write tools never edit an existing file. apply_change and record_human_action preview by default; with
 write=True each adds one new change-set file to the program's changes directory, a child of the newest
 episode unless told otherwise, and keeps it only if the program loads back and the new episode
-validates. package and import_sysml write only when given `out`.
+validates. package and import_sysml write only when given `out`. The one file a tool rewrites is
+documents.yaml, which docs_extract owns: in a plain state directory, or in a program's baseline before any
+episode is built on it, located values are written there (the way pdo sysml import owns sysml-*.yaml).
 """
 
 from __future__ import annotations
@@ -1102,6 +1104,60 @@ def _proposals(proposals: dict | str) -> dict:
     return data
 
 
+DOCUMENTS_FILE = "documents.yaml"  # owned by docs_extract in a state directory or an unbuilt-on baseline
+
+
+def _program_dirs(path: Path) -> tuple[Path, Path]:
+    """A program's baseline and changes directories, read from program.yaml without loading the program
+    (whose baseline may still be under construction)."""
+    from pdo.load import read_yaml
+
+    meta = read_yaml(path / "program.yaml")
+    return path / (meta.get("baseline_dir") or "baseline"), path / (meta.get("changes_dir") or "changes")
+
+
+def _write_documents(directory: Path, base_dir: Path, change: dict) -> Path:
+    """Write the objects a docs_extract change adds (and the slots it assigns on them) into the state
+    directory's documents.yaml, and restore the file unless the state loads back with it."""
+    from pdo.load import load_dir, read_yaml
+
+    file = directory / DOCUMENTS_FILE
+    origin = str(file.relative_to(base_dir))
+    loaded = load_dir(directory, base_dir)
+    elsewhere = sorted({f"{a['target']} ({loaded.origins.get(a['target'], '?')})" for a in change.get("assign") or []
+                        if loaded.origins.get(a["target"]) != origin})
+    if elsewhere:
+        raise ToolError(f"this would change objects defined outside {origin}: {', '.join(elsewhere)}",
+                        f"pdo docs extract writes only {origin}. For values the SysML import wrote, set the measure's "
+                        "observation: false in the mapping and import again, then extract them as new observations; "
+                        "register documents as new evidence_items in the proposals so their digests live here too.")
+    before = file.read_text(encoding="utf-8") if file.exists() else None
+    data = read_yaml(file) if before is not None else {}
+    for slot, objects in (change.get("add") or {}).items():
+        data.setdefault(slot, []).extend(plain(objects))
+    by_id = {o["id"]: o for slot in ("evidence_items", "observations") for o in data.get(slot) or []}
+    for a in change.get("assign") or []:
+        by_id[a["target"]][a["slot"]] = plain(a["new_value"])
+    header = ("# Written by pdo docs extract: located values and the documents they come from. Each locator was\n"
+              "# computed from its document, never typed. Rewritten on every extraction into this directory.\n")
+    body = yaml.safe_dump({k: data[k] for k in ("evidence_items", "observations") if data.get(k)}, sort_keys=False,
+                          allow_unicode=True, width=110)
+    file.write_text(header + body, encoding="utf-8")
+    try:
+        reloaded = load_dir(directory, base_dir)
+        problems = [str(i) for i in check_state(reloaded.state, reloaded.origins) if i.severity == "error"]
+        if problems:
+            raise LoadError("; ".join(problems))
+    except (LoadError, ValueError) as exc:
+        if before is None:
+            file.unlink(missing_ok=True)
+        else:
+            file.write_text(before, encoding="utf-8")
+        raise ToolError(f"the extracted values did not load back, so nothing was written: {_message(exc)}",
+                        LOAD_HINT) from None
+    return file
+
+
 def _document_change(program: Program, data: dict, role: str | None, parent: str | None, episode_id: str | None,
                      as_of: str | None) -> tuple[dict, str]:
     data = {**data, "parent": parent}
@@ -1117,21 +1173,41 @@ def _document_change(program: Program, data: dict, role: str | None, parent: str
 
 @tool(CHANGE_HINT)
 def docs_extract(path: str | Path, proposals: dict | str, write: bool = False, role: str | None = None,
-                 parent: str | None = None, episode_id: str | None = None, as_of: str | None = None) -> dict:
+                 parent: str | None = None, episode_id: str | None = None, as_of: str | None = None,
+                 baseline: bool = False) -> dict:
     """Turn proposed values with quotes into a change set: each quote is located in its evidence's document
     (a quote not in it is refused), new values are provisional unless proposals say accept: true, and an
     existing observation id updates that observation's value and locator. For a program, previews the new
-    episode and with write=True adds it; for a plain state, returns the change without writing."""
+    episode and with write=True adds it. With baseline=True (only while no episode is built on the baseline,
+    as when constructing a decision), and for a plain state directory, write=True writes the values into the
+    directory's documents.yaml instead."""
     from pdo.provenance import extract
 
     props = _proposals(proposals)
     role = role or props.get("author_role")
     p = _path(path)
-    if not is_program(p):
+    if baseline or not is_program(p):
+        if baseline and not is_program(p):
+            raise ToolError(f"{p} is not a program directory, so it has no baseline",
+                            "Omit baseline for a plain state directory; it is written the same way.")
+        directory = p
+        if baseline:
+            directory, changes = _program_dirs(p)
+            built = sorted(f.name for f in changes.glob("*.yaml")) if changes.is_dir() else []
+            if built:
+                raise ToolError(f"episodes are built on the baseline ({', '.join(built[:3])}"
+                                f"{', ...' if len(built) > 3 else ''}), so it can no longer change",
+                                "Omit baseline: the values are recorded as a new episode.")
         loaded = load_state(p)
         change, rows = extract(loaded.state, loaded.base_dir, props, role)
-        return _ok(written=False, change=change, rows=rows,
-                   note="A plain state has no episodes: add these objects to its files, or use a program.")
+        if not write:
+            return _ok(written=False, change=change, rows=rows,
+                       note=f"Preview: write=True (--write) writes these into {DOCUMENTS_FILE}.")
+        if not directory.is_dir():
+            raise ToolError(f"{p} is a single state file", "Pass a state directory (or a program with baseline): "
+                            f"located values are written into its {DOCUMENTS_FILE}.")
+        file = _write_documents(directory, loaded.base_dir, change)
+        return _ok(written=True, file=_relative(file, loaded.base_dir), change=change, rows=rows)
     program = _program(p)
     base = _episode(program, parent or program.newest())
     change, rows = extract(program.materialize(base), program.base_dir, props, role)
@@ -1172,6 +1248,44 @@ def docs_revise(path: str | Path, document: str, new_file: str | Path, write: bo
                       "Written by pdo docs revise: locators move only where the cited section's text is unchanged.\n"
                       "Episodes are never rewritten: to change this, write a new change set.")
     return _ok(written=write, file=_relative(file, program.path), revision=report, change=model, **preview)
+
+
+# --- onboarding -----------------------------------------------------------------------------------
+
+ONBOARD_HINT = ("pdo_init scaffolds a program directory; pdo_onboard reads one and names the next step. "
+                "skills/decision-onboarding/SKILL.md is the procedure.")
+
+
+@tool(ONBOARD_HINT)
+def init(path: str | Path, question: str | None = None, owner: str | None = None, name: str | None = None,
+         docs: list[str] | None = None, models: list[str] | None = None) -> dict:
+    """Scaffold a decision program (inputs/docs, inputs/models, baseline/, changes/, program.yaml, README) and copy
+    the reports and SysML models into it. Writes only what the person stated: the question, the owner's role.
+    Returns the first onboarding step."""
+    from pdo.onboard import init_program
+
+    return _ok(**init_program(_path(path), name=name, question=question, owner=owner, docs=docs or [],
+                              models=models or []))
+
+
+@tool(ONBOARD_HINT)
+def onboard(path: str | Path) -> dict:
+    """Where a decision stands in the three onboarding funnels (construct the decision graph, run it, study it),
+    every step's state, and the single next step: who acts, what to do, the command and the tool."""
+    from pdo.onboard import status
+
+    return _ok(**status(_path(path)))
+
+
+@tool(PATH_HINT.format(cwd="the server's working directory"))
+def study(path: str | Path, out: str | Path | None = None, samples: int | None = None,
+          seed: int | None = None) -> dict:
+    """Study the newest episode and write reports/: the Decision Package (flips, scenarios, readiness, the run
+    record), sensitivity (tornado; Sobol indices and value of information when inputs declare distributions),
+    uncertainty under expected_mavt, and study.md with the headline findings."""
+    from pdo.study import study as run_study
+
+    return _ok(**run_study(_path(path), out=out, samples=samples, seed=seed, figures=False))
 
 
 # --- examples -------------------------------------------------------------------------------------

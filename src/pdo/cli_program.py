@@ -17,10 +17,13 @@ from pathlib import Path
 
 import typer
 
-KindOpt = typer.Option(..., "--kind", help="approval | review")
-TargetOpt = typer.Option(..., "--target", help="The alternative approved, or the review recorded.")
+KindOpt = typer.Option(..., "--kind", help="approval | review | applicability | risk_treatment | assumption_validation")
+TargetOpt = typer.Option(..., "--target", help="The alternative approved, or the review, observation, risk or "
+                                                "assumption acted on.")
 RoleOpt = typer.Option(..., "--role", help="The role acting (approver_role for an approval).")
-StatusOpt = typer.Option(None, "--status", help="Review status: pass | fail | pending (default pass).")
+StatusOpt = typer.Option(None, "--status", help="Review: pass | fail | pending (default pass); applicability: accepted "
+                                                "| provisional | rejected; risk_treatment: untreated | mitigated | "
+                                                "accepted | unacceptable; assumption_validation: validated | ...")
 IdOpt = typer.Option(None, "--id", help="Episode id of the new change set (default: the next in sequence).")
 ParentOpt = typer.Option(None, "--parent", help="Parent episode (default: the newest episode).")
 
@@ -70,13 +73,27 @@ def register(app: typer.Typer) -> None:
     def record(path: Path = PathArg, kind: str = KindOpt, target: str = TargetOpt, role: str = RoleOpt,
                status: str = StatusOpt, episode: str = IdOpt, parent: str = ParentOpt,
                as_json: bool = JsonOpt) -> None:
-        """Record a human approval or review as a new change set, a child of the newest episode.
+        """Record a person's action as a new change set, a child of the newest episode.
 
         approval: --role approves alternative --target. review: --role records existing review --target
-        as --status (default pass), which also redoes a stale review. The change set is validated before
-        it is written to changes/, and the kernel stamps the action with its digest.
+        as --status (default pass), which also redoes a stale review. applicability, risk_treatment and
+        assumption_validation set the observation's, risk's or assumption's status. The change set is
+        validated before it is written to changes/, and the kernel stamps approvals and reviews.
         """
         program = _load(path, as_json, fail)
+        if kind not in ("approval", "review"):
+            from pdo import tools
+
+            r = tools.record_human_action(path, kind, target, role, status, write=True, parent=parent)
+            if not r.get("ok"):
+                fail(r["error"] + (f"\nhint: {r['hint']}" if not as_json else ""), as_json)
+            after = r.get("after") or {}
+            text = (f"wrote {r['file']}: {r['episode']} (child of {r['parent']})\n"
+                    f"{', '.join(after.get('recommended') or []) or 'no recommendation'}: readiness "
+                    f"{after.get('readiness')}, actionable {'yes' if after.get('actionable') else 'no'}"
+                    + "".join(f"\nwarning: {w}" for w in r.get("warnings") or []))
+            emit({k: v for k, v in r.items() if k != "ok"}, as_json, text)
+            return
 
         def build():
             change = program.human_action_change(kind, target, role, status, episode, parent)

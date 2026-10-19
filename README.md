@@ -20,6 +20,9 @@ uv sync --all-extras
 uv run pdo run examples/vehicle
 ```
 
+To start a decision of your own from reports and SysML models, `pdo init` scaffolds it and `pdo onboard`
+names the next step at every stage (see [Getting started](#getting-started)).
+
 ```
 # alt:B
 
@@ -101,37 +104,68 @@ Every command takes `--json` (`{"ok": true, ...}`, or `{"ok": false, "error": ..
 
 | Command | What it does |
 |---|---|
+| `pdo init DIR [--question Q] [--owner ROLE] [--doc F] [--model F]` | Scaffold a decision program and copy the reports and models into it |
+| `pdo onboard DIR` | Where the decision stands in the three funnels (construct, run, study), and the single next step |
+| `pdo study DIR` | Study the newest episode into `reports/`: Decision Package, flips, sensitivity, value of information, uncertainty |
 | `pdo validate PATH` | Schema, references, units, weights, producers; compiles every episode of a program |
 | `pdo run PATH [-e EP]` | Recommendation, feasibility, utilities, readiness, actionable, pending actions |
 | `pdo explain PATH NODE` | Why a node has its value: inputs, implementation, signature |
 | `pdo graph PATH` | The dependency graph (Mermaid or JSON) |
 | `pdo actions PATH [--role R]` | Pending human actions by role |
-| `pdo program status\|refresh\|record PATH` | The episode tree; selective refresh with verification; record an approval or review |
+| `pdo program status\|refresh\|record PATH` | The episode tree; selective refresh with verification; record a person's approval, review, acceptance, risk treatment or assumption validation |
 | `pdo impact PATH CHANGE.yaml` | Dry-run a change set: delta, impact set, rerun versus reused, before and after |
 | `pdo flip PATH` / `pdo scenarios PATH` | Flip points and weight trade-offs; scenario robustness |
 | `pdo uncertainty PATH` | E[U], Pr(feasible), the chance-constrained decision, scenario robustness |
 | `pdo sensitivity PATH [-p ID.slot] [--figures DIR]` | Response curve and distribution of one input; or tornado, Sobol indices and value of information for all |
 | `pdo docs index\|show FILE [SECTION]` | A report's sections (ids, heading paths, pages, digests); a section's text as quotes are matched |
 | `pdo docs locate FILE QUOTE` | The locator of a quote; refused when the quote is not in the report |
-| `pdo docs extract PATH PROPOSALS.yaml` / `pdo docs revise PATH DOC NEW_FILE` | Values with quotes as a change set (provisional unless accepted); absorb a revised report section by section |
+| `pdo docs extract PATH PROPOSALS.yaml [--baseline]` / `pdo docs revise PATH DOC NEW_FILE` | Values with quotes as a change set (provisional unless accepted), or into the baseline under construction; absorb a revised report section by section |
 | `pdo docs verify PATH` | Check every locator against its document |
 | `pdo dashboard PATH [-o DIR] [--no-flips] [--no-sensitivity]` | Write the read-only dashboard: a self-contained `index.html` (offline it falls back to system fonts) and `dashboard.json` |
 | `pdo package PATH -o DIR [--sensitivity]` / `pdo replay RECORD.json` | Write a Decision Package (optionally with sensitivity and value of information); replay it node by node |
 | `pdo sysml import FILES --map M --out DIR` / `pdo sysml gaps FILES` | Import SysML v2 into a draft state; list what did not map |
 | `pdo bench run\|check bench/vehicle` | The representation benchmark |
+| `pdo bench scenarios [NAME]` | The paper's scenarios: each checks its claims and writes its data, figure (PNG, PDF) and caption to `results/scenarios/<name>/` |
 | `pdo schema describe [CLASS]` / `pdo example list\|copy` | The schema; the bundled examples |
 | `pdo mcp` | Serve every tool over MCP (stdio) |
+
+## Getting started
+
+```bash
+pdo init my-decision --question "Which configuration should we carry into development?" \
+  --owner role:program-manager --doc reports/ --model model/
+pdo onboard my-decision
+```
+
+`pdo onboard` reads the directory and shows three funnels, every step's state, and the single next step
+(who acts, what to do, the command and the MCP tool):
+
+1. **Construct the decision graph.** The question and the roles; the SysML import (`pdo sysml import`);
+   values from the reports, each with the passage that states it (`pdo docs extract --baseline`); the
+   framing, which only the decision owner supplies; the evaluators. `pdo validate` is the gate.
+2. **Run it.** The recommendation, readiness and actionable, and the pending actions that change what is
+   known, each recorded as an episode (`pdo program record`).
+3. **Study it.** `pdo study` writes the Decision Package, flip points, sensitivity, value of information
+   and uncertainty to `reports/`; then the people who own the review and the approval act.
+
+An agent with [skills/decision-onboarding](skills/decision-onboarding/SKILL.md) runs this loop with you.
+See [docs/onboarding.md](docs/onboarding.md).
 
 ## For agents
 
 - **MCP.** `pdo mcp` serves the same operations as tools (`pdo_run`, `pdo_explain`, `pdo_flip`,
   `pdo_impact`, `pdo_apply_change`, `pdo_record_human_action`, `pdo_import_sysml`, `pdo_package`,
-  `pdo_docs_extract`, `pdo_docs_revise`, `pdo_dashboard`, ...).
+  `pdo_docs_extract`, `pdo_docs_revise`, `pdo_init`, `pdo_onboard`, `pdo_study`, ...).
   Each returns `{ok, ...}`, or `{ok: false, error, hint}`. Write tools preview by default and write a
   change set only when asked. To register it, for example with Claude Code:
   `claude mcp add pdo -- uv run --directory /path/to/programmable-decision-ops pdo mcp`. In any harness
   that runs local stdio servers, the command is `pdo mcp` once installed.
-- **Skills.** [skills/sysml-to-decision](skills/sysml-to-decision/SKILL.md) teaches an agent to turn a
+- **Skills.** [skills/decision-onboarding](skills/decision-onboarding/SKILL.md) is the front door: it
+  takes someone from a folder of reports and SysML models to a studied decision, step by step, with
+  `pdo onboard` naming each next step (the other two skills hold the detail of the model and the
+  documents).
+
+  [skills/sysml-to-decision](skills/sysml-to-decision/SKILL.md) teaches an agent to turn a
   SysML v2 model into a decision the kernel can run:
   1. import the mechanical part;
   2. review the mapping gaps;
@@ -191,10 +225,11 @@ Figures are in `results/figures/` (sensitivity figures from `make sensitivity-fi
 ```
 schema/            LinkML schema (core, problem, evidence, evaluation, governance, state, program, record)
 src/pdo/           kernel: load, graph, builtins, run, episodes, actions, flip, uncertainty, package,
-                   sensitivity, dashboard (+ dashboard.html), docs, provenance, sysml, tools,
-                   mcp_server, cli*, bench/
+                   sensitivity, dashboard (+ dashboard.html), docs, provenance, sysml, onboard, study,
+                   tools, mcp_server, cli*, bench/
 docs/semantics.md  the specification the kernel and the benchmark labels are both written against
 docs/dashboard.md  what the dashboard shows and the shape of dashboard.json
+docs/onboarding.md the three funnels, what pdo onboard checks at each step, and pdo study's reports
 examples/          vehicle (trade study and program), fires_sensor (uncertainty)
 skills/            agent skills
 bench/             benchmark suites (independent labels): vehicle (perturbations), provenance (report edits)
@@ -210,6 +245,8 @@ make test            # pytest (slow and live tests: -m slow, -m live)
 make lint            # linkml-lint, identity markers, ruff
 make gen-project     # regenerate models and the identity table after editing schema/
 make bench           # run the benchmarks (perturbations and provenance)
+make scenarios       # the paper's scenarios: claims, data, figures and captions in results/scenarios/
+make proposal-figures  # copy the proposal's three figures (trade study, program refresh, perturbations)
 make example-docs    # rebuild the example's reports from Markdown (needs pandoc and xelatex)
 make dashboards      # dashboards of both examples, in site/
 ```
@@ -219,12 +256,9 @@ also runs `pdo bench check`.
 
 ## Roadmap
 
-- **Dashboard follow-ups.** Response curves in the node details, and an onboarding progress view.
+- **Dashboard follow-ups.** Response curves in the node details.
 - **Finer provenance.** Paragraph- or sentence-level digests to flag fewer unchanged values that share a
   changed section; locators for assumptions and evaluator parameters; scanned PDFs (OCR).
-- **Onboarding.** `pdo init` and an onboarding skill that take someone from a folder of reports and SysML
-  models through three funnels (construct the decision graph, run it, study it), always offering the
-  next step.
 - **More skills.** Decision framing, evidence compilation from documents, evaluator authoring, program
   refresh, and audit.
 - **The agent-extraction experiment and an LLM document baseline.** These test how well agents populate

@@ -15,6 +15,7 @@ outside these rules is a gap ([gaps.md](gaps.md)).
 | the elements listed under `alternatives.ids` (with no `from`) | Alternative | `alternative.listed` |
 | an attribute of the alternatives (dotted path into nested parts) | Measure | `measure.attribute` |
 | a literal number `[unit]` on an alternative's attribute | Observation | `observation.attribute-value` |
+| a value of a measure the mapping marks `observation: false` | nothing (listed in `values_elsewhere`) | `observation.elsewhere` |
 | each model file that supplies observed values | Evidence | `evidence.model-file` |
 | `require constraint { subject.attr <op> literal }` in a `requirement` | Requirement | `requirement.require-constraint` |
 | `in x = literal` / `in x default literal` of an analysis or verification def | Assumption (unvalidated) | `assumption.analysis-parameter` |
@@ -87,6 +88,12 @@ element and line. A value written without a unit takes the measure's unit when t
 mapping or a scalar type, or is `"1"`. Otherwise it is a `unit` gap. A value in a different unit is a
 `unit` gap. Units are matched exactly and never converted. Observations from the model are accepted:
 they are the model's own statements. Their applicability is the default.
+
+When a measure's values come from other evidence (a test report, a configuration sheet), a person says so
+with `observation: false` on that measure in the mapping (rule `observation.elsewhere`). The importer then
+creates the measure but none of its observations, and lists the values it left out in `values_elsewhere`
+(in `sysml-import.json` and the summary). The values are then taken from their documents with `pdo docs
+extract`, each with a locator, and the model and the report never both produce the same value.
 
 ```yaml
 - id: obs:A.tank
@@ -199,7 +206,7 @@ alternatives:
     configA: {id: alt:A, is_incumbent: true}
     configB: alt:B
 measures:                              # attribute key: id, or {id, unit, observation, name, description}
-  tankCapacity: {id: meas:tank-capacity, observation: tank}
+  tankCapacity: {id: meas:tank-capacity, observation: tank}   # observation: false = values from documents
   unitCost: {id: meas:unit-cost, unit: MUSD, observation: cost}
 units:                                 # SysML unit text -> pdo unit (a spelling, never a conversion)
   "N*m": N.m

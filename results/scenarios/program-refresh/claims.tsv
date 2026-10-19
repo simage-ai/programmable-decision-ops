@@ -1,0 +1,6 @@
+claim	expected	observed	holds
+every episode, selectively re-evaluated, equals its full recomputation	20 of 20	20 of 20	true
+every episode's outcome matches its hand-computed expectation (expected.yaml)	21 of 21	21 of 21	true
+a refresh cycle driven by a cost re-quote flips the recommendation B -> A	ep:e10 alt:A	ep:e10 alt:A	true
+each approval stops matching at the next material change, and only then	[ep:e02, ep:e04, ep:e10, ep:e12]	[ep:e02, ep:e04, ep:e10, ep:e12]	true
+a refresh re-evaluates a fraction of the graph	< 50% of computed nodes	15.1%	true

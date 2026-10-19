@@ -1,0 +1,9 @@
+claim	expected	observed	holds
+utilities of A, B and C (research brief)	[0.466667, 0.533333, 0.62]	[0.466667, 0.533333, 0.62]	true
+recommended	[alt:B]	[alt:B]	true
+C fails minimum reliability by g = 0.01	0.01	0.01	true
+B's cost flips the decision to A at 1.30 MUSD, found exactly	1.3 (affine_exact)	1.3 (affine_exact)	true
+the cost weight, traded against reliability, flips it at 0.525	0.525	0.525	true
+the response curve changes recommendation where the flip analysis says	1.3	1.3	true
+B becomes infeasible above its 1.40 MUSD cost cap	> 1.4	1.405	true
+re-running the kernel over the cost weight: A takes over just past 0.525	0.525 < w <= 0.535	0.53	true

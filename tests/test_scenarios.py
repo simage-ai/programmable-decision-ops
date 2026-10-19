@@ -36,6 +36,7 @@ def test_scenarios_write_tables_and_figures(tmp_path, results):
 
 def test_the_proposal_uses_three_of_the_scenario_figures(tmp_path):
     import importlib.util
+    import re
 
     from conftest import ROOT
 
@@ -44,11 +45,13 @@ def test_the_proposal_uses_three_of_the_scenario_figures(tmp_path):
     spec = importlib.util.spec_from_file_location("proposal_figures", ROOT / "scripts" / "proposal_figures.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    assert module.PROPOSAL_FIGURES == ("trade-study", "program-refresh", "perturbations")
+    assert list(module.PROPOSAL_FIGURES) == ["trade-study", "program-refresh", "perturbations"]
+    ids = list(module.PROPOSAL_FIGURES.values())
+    assert all(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", i) for i in ids), "the proposal builder's {{fig:<id>}} syntax"
     written = module.copy_figures(ROOT / "results" / "scenarios", tmp_path)
     assert sorted(p.relative_to(tmp_path).as_posix() for p in written) == sorted(
-        f"figures/{n}/{n}.{ext}" for n in module.PROPOSAL_FIGURES for ext in ("pdf", "png"))
+        f"figures/{i}/{i}.{ext}" for i in ids for ext in ("pdf", "png"))
     assert module.copy_figures(ROOT / "results" / "scenarios", tmp_path) == []
-    assert module.undeclared(tmp_path) == list(module.PROPOSAL_FIGURES)
+    assert module.undeclared(tmp_path) == ids
     PROPOSAL_FIGURES = module.PROPOSAL_FIGURES
     assert set(PROPOSAL_FIGURES) < set(FIGURES), "the others stay generated, outside the proposal's set"

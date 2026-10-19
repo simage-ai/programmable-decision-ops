@@ -5,7 +5,8 @@
 The proposal uses three of the scenario figures (pdo.bench.scenarios): the trade study, the program over
 refresh cycles and the perturbation benchmark. The others (report revisions, uncertainty) stay generated in
 results/scenarios/ and are not part of the proposal's set. Each figure is copied as
-DIR/figures/<id>/<id>.{pdf,png}, only when its bytes changed. The manifest entries and the captions are the
+DIR/figures/<id>/<id>.{pdf,png}, only when its bytes changed; ids use underscores, as the proposal's builder
+requires ({{fig:<id>}} takes letters, digits and underscores). The manifest entries and the captions are the
 proposal's own; this prints the ids the manifest must declare.
 """
 
@@ -18,18 +19,19 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-PROPOSAL_FIGURES = ("trade-study", "program-refresh", "perturbations")
+PROPOSAL_FIGURES = {"trade-study": "trade_study", "program-refresh": "program_refresh",
+                    "perturbations": "perturbations"}  # scenario -> proposal figure id
 FORMATS = ("pdf", "png")
 
 
 def copy_figures(results: Path, proposal_dir: Path) -> list[Path]:
     written = []
-    for name in PROPOSAL_FIGURES:
+    for name, fid in PROPOSAL_FIGURES.items():
         for ext in FORMATS:
             src = results / name / f"{name}.{ext}"
             if not src.exists():
                 raise SystemExit(f"{src} does not exist: run `make scenarios` first")
-            dest = proposal_dir / "figures" / name / f"{name}.{ext}"
+            dest = proposal_dir / "figures" / fid / f"{fid}.{ext}"
             data = src.read_bytes()
             if dest.exists() and dest.read_bytes() == data:
                 continue
@@ -42,9 +44,9 @@ def copy_figures(results: Path, proposal_dir: Path) -> list[Path]:
 def undeclared(proposal_dir: Path) -> list[str]:
     manifest = proposal_dir / "manifest.yaml"
     if not manifest.exists():
-        return list(PROPOSAL_FIGURES)
+        return list(PROPOSAL_FIGURES.values())
     declared = (yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}).get("figures") or {}
-    return [name for name in PROPOSAL_FIGURES if name not in declared]
+    return [fid for fid in PROPOSAL_FIGURES.values() if fid not in declared]
 
 
 def main(argv: list[str] | None = None) -> int:

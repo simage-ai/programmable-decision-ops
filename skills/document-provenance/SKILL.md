@@ -92,7 +92,9 @@ Your job: read the report, propose values with exact quotes, and leave the judge
    warns when the quote does not state the value. Fix refusals by copying the passage exactly.
 5. **Write it with the person's go-ahead:** add `--write --role <their role>`. The values are
    provisional until accepted (`accept: true`, with the owner's role, only when the owner records the
-   change themselves).
+   change themselves). While the decision is under construction (no episode built on the baseline yet),
+   add `--baseline`: the values go into `baseline/documents.yaml` instead of a new episode. For a plain
+   state directory, `--write` writes its `documents.yaml`.
 6. **Check.** `pdo docs verify PROGRAM` must report no errors; `pdo validate` runs the same check.
    `pdo explain PROGRAM y/alt:B/meas:reliability` shows the passage behind the value.
 7. **Make provenance a readiness condition** (once, with the decision owner): add a readiness condition

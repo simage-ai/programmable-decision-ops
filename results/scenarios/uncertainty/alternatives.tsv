@@ -1,0 +1,4 @@
+alternative	point_U	E_U	se	p_feasible	chance
+alt:insert	0.586346	0.577707	0.001593	1.000000	pass
+alt:new-array	0.678205	0.603291	0.002072	0.529000	fail
+alt:refresh	0.557821	0.548100	0.001160	0.974000	pass

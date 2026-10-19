@@ -1,0 +1,14 @@
+parameter	evppi	low	high	above_noise	evidence
+obs:new-array.schedule.value	0.022717	0.014827	0.025342	true	ev:estimate-new-array
+obs:refresh.p-track.value	0.001127	-0.009139	0.001379	false	ev:range-refresh
+obs:refresh.range.value	0.000972	-0.007713	0.001473	false	ev:range-refresh
+obs:insert.p-track.value	0.000224	-0.008787	0.001734	false	ev:range-insert
+asm:threat-rcs-factor.value	0.000000	-0.007447	0.000000	false	-
+obs:new-array.p-track.value	0.000000	-0.009677	0.000000	false	ev:range-new-array
+obs:refresh.cost.value	0.000000	-0.008789	-0.000148	false	ev:estimate-refresh
+obs:refresh.schedule.value	0.000000	-0.010502	0.000000	false	ev:estimate-refresh
+obs:insert.cost.value	-0.000404	-0.012270	0.000290	false	ev:estimate-insert
+obs:insert.range.value	-0.000499	-0.008238	0.001255	false	ev:range-insert
+obs:insert.schedule.value	-0.000546	-0.009932	0.000244	false	ev:estimate-insert
+obs:new-array.range.value	-0.001088	-0.012700	0.000000	false	ev:range-new-array
+obs:new-array.cost.value	-0.001262	-0.008045	-0.000521	false	ev:estimate-new-array

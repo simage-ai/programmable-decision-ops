@@ -1,0 +1,17 @@
+n	funnel	step	actor	action	command
+1	construct	-	person	state the question and the owner; hand over the reports and the model	pdo init
+2	construct	roles	person	say who holds which role	baseline/roles.yaml
+3	construct	models	person	state ids, units, sources of record and the range model	inputs/models/mapping.yaml
+4	construct	models	tool	import the SysML model	pdo sysml import
+5	construct	documents	agent	propose the configuration sheets' values with quotes (owner accepts)	pdo docs extract --baseline
+6	construct	documents	agent	propose the reliability values with quotes (owner accepts A, C)	pdo docs extract --baseline
+7	construct	documents	agent	propose B's reliability (provisional)	pdo docs extract --baseline
+8	construct	framing	person	frame the decision: criteria, weights, rule, readiness, risks	baseline/framing.yaml
+9	construct	valid	kernel	validate and run	pdo validate
+10	run	evidence	person	the test engineer accepts B's reliability	pdo program record
+11	study	study	kernel	study the decision	pdo study
+12	study	authorize	person	the bias reviewer completes the framing review	pdo program record
+13	study	study	kernel	study the decision	pdo study
+14	study	authorize	person	the authority approves B	pdo program record
+15	study	study	kernel	study what will be acted on	pdo study
+16	done	-	kernel	refresh: every episode selectively, verified against full recomputation	pdo program refresh

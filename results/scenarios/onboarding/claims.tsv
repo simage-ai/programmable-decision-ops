@@ -1,0 +1,6 @@
+claim	expected	observed	holds
+built from raw inputs, the decision reproduces the reference trade study	[0.466667, 0.533333, 0.62]	[0.466667, 0.533333, 0.62]	true
+the session ends actionable, every funnel complete	done	done	true
+every value taken from a report carries a locator	9	9	true
+no framing object (criterion, rule, readiness, role) was written by a tool	0	0	true
+every episode verified after the session	True	True	true

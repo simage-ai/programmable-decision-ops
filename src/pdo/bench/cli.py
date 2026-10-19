@@ -7,6 +7,8 @@
                                  impact and cutoff strategies, are all 100%; writes nothing
     pdo bench provenance DIR     section-level edits to indexed reports, absorbed with pdo docs revise;
                                  writes results/bench/<suite>/*.tsv (--check: gate only, write nothing)
+    pdo bench scenarios [NAME]   the paper's scenarios: each checks its claims and writes its data and
+                                 figure under results/scenarios/<name>/; exit 1 if a claim does not hold
 """
 
 from __future__ import annotations
@@ -28,6 +30,7 @@ def register(app: typer.Typer) -> None:
     group = typer.Typer(no_args_is_help=True, help="Representation benchmark: perturbations, strategies, labels.")
     app.add_typer(group, name="bench")
     register_provenance(group)
+    register_scenarios(group)
 
     @group.command("run")
     def run_cmd(suite: Path = SuiteArg, results: Path = ResultsOpt,
@@ -73,6 +76,41 @@ def register(app: typer.Typer) -> None:
             for d in disagreements(result):
                 typer.echo(f"     {d['case']}: {', '.join(d['fields'])}" + (f" ({d['error']})" if d["error"] else ""))
         if not result.passed:
+            raise typer.Exit(1)
+
+
+def register_scenarios(group: typer.Typer) -> None:
+    from pdo.cli import JsonOpt, fail
+
+    @group.command("scenarios")
+    def scenarios_cmd(names: list[str] = typer.Argument(None, help="Scenarios to run (default: all)."),
+                      out: Path = typer.Option(Path("results/scenarios"), "--out", help="Where to write."),
+                      figures: bool = typer.Option(True, "--figures/--no-figures",
+                                                   help="Write PNG and PDF figures (figures extra)."),
+                      check: bool = typer.Option(False, "--check", help="Check the claims only; write nothing."),
+                      as_json: bool = JsonOpt) -> None:
+        """The paper's scenarios: trade study, program refresh, perturbations, report revisions, uncertainty and
+        onboarding. Each checks the claims it supports and writes the data behind its figure."""
+        from pdo.bench.scenarios import SCENARIOS, run_scenario, summary_text, write_results
+
+        chosen = names or list(SCENARIOS)
+        unknown = [n for n in chosen if n not in SCENARIOS]
+        if unknown:
+            fail(f"no scenario {', '.join(unknown)} (scenarios: {', '.join(SCENARIOS)})", as_json)
+        results = [run_scenario(n) for n in chosen]
+        written = [] if check else write_results(results, out, figures=figures)
+        passed = all(r.passed for r in results)
+        if as_json:
+            data = {"passed": passed, "scenarios": [{"name": r.name, "title": r.title, "passed": r.passed,
+                                                      "seconds": round(r.seconds, 2),
+                                                      "claims": [c.__dict__ for c in r.claims]} for r in results],
+                    "written": [str(p) for p in written]}
+            typer.echo(json.dumps({"ok": passed, **data}, indent=1, default=str))
+        else:
+            typer.echo(summary_text(results))
+            if not check:
+                typer.echo(f"wrote {len(written)} changed files under {out}/")
+        if not passed:
             raise typer.Exit(1)
 
 

@@ -62,8 +62,9 @@ def pending_actions(result: RunResult, role: str | None = None) -> list[PendingA
             continue
         target = objects.get(action["target"])
         owner = getattr(target, "owner_role", None)
-        if owner is None and action["kind"] == "review_locator" and target is not None:
-            owner = getattr(objects.get(target.evidence), "owner_role", None)  # whoever owns the document
+        if owner is None and action["kind"] in ("review_locator", "review_applicability") and target is not None:
+            # whoever owns the evidence: the person who may accept or re-anchor a value taken from it
+            owner = getattr(objects.get(getattr(target, "evidence", None)), "owner_role", None)
         owner = fallback if action["kind"] == "approve" else (owner or fallback)
         out[key] = PendingAction(digest(*key), action["kind"], action["target"], owner, action["reason"], source)
     actions = sorted(out.values(), key=lambda a: (a.role or "", a.kind, a.target))

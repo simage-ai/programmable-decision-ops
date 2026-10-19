@@ -2,7 +2,7 @@ SCHEMA := schema/pdo.yaml
 RUN := uv run
 PROPOSAL_DIR ?= ../papers-and-proposals/src/army-nv012
 
-.PHONY: install lint gen-project test bench example-docs proposal-values sensitivity-figures dashboards all
+.PHONY: install lint gen-project test bench scenarios example-docs proposal-values proposal-figures sensitivity-figures dashboards all
 
 install:
 	uv sync --all-extras
@@ -28,6 +28,11 @@ bench:
 	$(RUN) pdo bench run bench/vehicle
 	$(RUN) pdo bench provenance bench/provenance
 
+# The paper's scenarios: each checks its claims and writes its data and figure (PNG and PDF) under
+# results/scenarios/<name>/ (needs the figures extra).
+scenarios:
+	$(RUN) pdo bench scenarios
+
 # The vehicle example's synthetic reports, from their Markdown sources (needs pandoc and xelatex; the
 # built files are committed).
 example-docs:
@@ -36,6 +41,11 @@ example-docs:
 # Proposal numbers: results/proposal/pdo_values.tsv, also copied into the proposal version directory.
 proposal-values: bench
 	$(RUN) python -m scripts.proposal_values --proposal-dir $(PROPOSAL_DIR)
+
+# The proposal's figures: three of the scenario figures (trade study, program refresh, perturbations), copied
+# into the proposal version directory as figures/<id>/<id>.{pdf,png}.
+proposal-figures: scenarios
+	$(RUN) python -m scripts.proposal_figures --proposal-dir $(PROPOSAL_DIR)
 
 # Sensitivity figures for the proposal (seeded, so reproducible on one machine).
 sensitivity-figures:

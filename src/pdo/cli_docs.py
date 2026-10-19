@@ -119,12 +119,15 @@ def register(app: typer.Typer) -> None:
     def extract_cmd(path: Path = PathArg,
                     proposals: Path = typer.Argument(..., help="YAML: evidence, accept, observations with quotes."),
                     write: bool = write_opt, role: str = role_opt, parent: str = parent_opt,
-                    episode_id: str = id_opt, as_of: str = as_of_opt, as_json: bool = JsonOpt) -> None:
+                    episode_id: str = id_opt, as_of: str = as_of_opt,
+                    baseline: bool = typer.Option(False, "--baseline", help="Write into the program's baseline "
+                                                  "(documents.yaml) while no episode is built on it."),
+                    as_json: bool = JsonOpt) -> None:
         """Add or update observations from quoted passages, each located in its evidence's document."""
         from pdo import tools
 
         r = tools.docs_extract(path, str(proposals), write=write, role=role, parent=parent, episode_id=episode_id,
-                               as_of=as_of)
+                               as_of=as_of, baseline=baseline)
         text = ""
         if r.get("ok"):
             rows = []
@@ -133,7 +136,8 @@ def register(app: typer.Typer) -> None:
                 warning = f"  warning: {x['warning']}" if x.get("warning") else ""
                 rows.append(f"  {x['action']:<9} {x['observation']} = {x['value']}  (section {x['section']}{page})"
                             f"{warning}")
-            text = "\n".join(rows) + ("\n" + _preview_text(r) if "episode" in r else f"\n{r.get('note', '')}")
+            tail = _preview_text(r) if "episode" in r else (f"written to {r['file']}" if r["written"] else r["note"])
+            text = "\n".join([*rows, tail])
         _done(r, as_json, text)
 
     @docs_app.command("revise")

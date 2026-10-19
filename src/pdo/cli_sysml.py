@@ -43,6 +43,10 @@ def render_import(result, written: list[Path]) -> str:
     for alt in result.state.get("alternatives", []):
         lines.append(f"  {alt['id']} <- {alt['source_element']}  [{alt['mapping_rule']}]")
     lines.append("  rules: " + (", ".join(result.rules_used) or "none"))
+    if result.values_elsewhere:
+        measures = sorted({v["measure"] for v in result.values_elsewhere})
+        lines.append(f"  {len(result.values_elsewhere)} model values not imported (observation: false; they come from "
+                     f"other evidence): {', '.join(measures)}")
     lines.append(f"{len(result.gaps)} gap{'s' if len(result.gaps) != 1 else ''}" + (":" if result.gaps else ""))
     lines += render_gaps(result.gaps)
     if written:

@@ -242,6 +242,7 @@ make lint            # linkml-lint, identity markers, ruff
 make gen-project     # regenerate models and the identity table after editing schema/
 make bench           # run the benchmarks (perturbations and provenance)
 make scenarios       # the paper's scenarios: claims, data, figures and captions in results/scenarios/
+make proposal-figures  # copy the proposal's three figures (trade study, program refresh, perturbations)
 make example-docs    # rebuild the example's reports from Markdown (needs pandoc and xelatex)
 make dashboards      # dashboards of both examples, in site/
 ```

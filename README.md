@@ -227,6 +227,7 @@ schema/            LinkML schema (core, problem, evidence, evaluation, governanc
 src/pdo/           kernel: load, graph, builtins, run, episodes, actions, flip, uncertainty, package,
                    sensitivity, dashboard (+ dashboard.html), docs, provenance, sysml, onboard, study,
                    tools, mcp_server, cli*, bench/
+CLAUDE.md          a guide for agents working on the code: layout, commands, rules
 docs/semantics.md  the specification the kernel and the benchmark labels are both written against
 docs/dashboard.md  what the dashboard shows and the shape of dashboard.json
 docs/onboarding.md the three funnels, what pdo onboard checks at each step, and pdo study's reports

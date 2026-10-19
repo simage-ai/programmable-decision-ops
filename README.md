@@ -121,6 +121,7 @@ Every command takes `--json` (`{"ok": true, ...}`, or `{"ok": false, "error": ..
 | `pdo package PATH -o DIR [--sensitivity]` / `pdo replay RECORD.json` | Write a Decision Package (optionally with sensitivity and value of information); replay it node by node |
 | `pdo sysml import FILES --map M --out DIR` / `pdo sysml gaps FILES` | Import SysML v2 into a draft state; list what did not map |
 | `pdo bench run\|check bench/vehicle` | The representation benchmark |
+| `pdo bench scenarios [NAME]` | The paper's scenarios: each checks its claims and writes its data, figure (PNG, PDF) and caption to `results/scenarios/<name>/` |
 | `pdo schema describe [CLASS]` / `pdo example list\|copy` | The schema; the bundled examples |
 | `pdo mcp` | Serve every tool over MCP (stdio) |
 
@@ -240,6 +241,7 @@ make test            # pytest (slow and live tests: -m slow, -m live)
 make lint            # linkml-lint, identity markers, ruff
 make gen-project     # regenerate models and the identity table after editing schema/
 make bench           # run the benchmarks (perturbations and provenance)
+make scenarios       # the paper's scenarios: claims, data, figures and captions in results/scenarios/
 make example-docs    # rebuild the example's reports from Markdown (needs pandoc and xelatex)
 make dashboards      # dashboards of both examples, in site/
 ```

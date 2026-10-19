@@ -16,13 +16,22 @@ import yaml
 from conftest import ROOT, VEHICLE
 from typer.testing import CliRunner
 
+from pdo.bench.onboarding import (
+    QUESTION,
+    REPORT,
+    SHEETS,
+    framing,
+    mapping,
+    report_proposals,
+    roles,
+    run_session,
+    sheets_proposals,
+)
 from pdo.cli import app
 from pdo.onboard import OnboardError, init_program, render, status
 
 runner = CliRunner()
-QUESTION = "Which vehicle configuration should the program carry into development?"
 DOCS = VEHICLE / "docs"
-SHEETS, REPORT = "inputs/docs/configuration-sheets.pdf", "inputs/docs/reliability-test-report.docx"
 
 pytest.importorskip("docx")
 pytest.importorskip("pypdf")
@@ -42,69 +51,6 @@ def next_step(d: Path) -> dict:
 def write(path: Path, data: dict) -> Path:
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
     return path
-
-
-def roles() -> list[dict]:
-    return yaml.safe_load((VEHICLE / "baseline" / "governance.yaml").read_text())["roles"]
-
-
-def mapping() -> dict:
-    """The vehicle mapping, as the person completes it: values the reports state come from the reports."""
-    data = yaml.safe_load((VEHICLE / "sysml" / "mapping.yaml").read_text())
-    for key in ("tankCapacity", "fuelEconomy"):
-        data["measures"][key]["observation"] = False
-    data["measures"]["reliability"] = {"id": "meas:reliability", "observation": False}
-    data["evaluations"]["RangeModel"] = {"id": "spec:range-model", "implementation": "evaluators.py:range_model",
-                                         "implementation_version": "1.0"}
-    data["assumptions"]["RangeModel::terrain_factor"] = {
-        "id": "asm:terrain-factor", "critical": True, "validation_status": "validated",
-        "plausible_low": 0.80, "plausible_high": 1.05}
-    data["evidence"] = {"vehicle.sysml": {"id": "ev:sysml-vehicle", "owner_role": "role:systems-engineer"}}
-    return data
-
-
-def framing() -> dict:
-    """What the decision owner states: criteria, weights, rule, scenarios, readiness, risks and a review to do."""
-    out: dict = {}
-    for name in ("decision.yaml", "governance.yaml"):
-        data = yaml.safe_load((VEHICLE / "baseline" / name).read_text())
-        out.update({k: v for k, v in data.items() if k not in ("measures", "requirements", "roles")})
-    for review in out["reviews"]:
-        review["review_status"] = "pending"  # the bias reviewer has not looked yet
-    return out
-
-
-def sheets_proposals() -> dict:
-    evidence = [{"id": f"ev:design-{a}", "name": f"Configuration sheet {a}", "evidence_kind": "specification",
-                 "source_ref": f"Synthetic configuration sheet, vehicle {a}, rev 1", "document_path": SHEETS,
-                 "issued_on": "2026-11-02", "owner_role": "role:systems-engineer"} for a in "ABC"]
-    tanks = {"A": "40", "B": "45", "C": "47.5"}
-    observations = []
-    for a in "ABC":
-        observations += [
-            {"id": f"obs:{a}.tank", "alternative": f"alt:{a}", "measure": "meas:tank-capacity",
-             "value": float(tanks[a]), "evidence": f"ev:design-{a}",
-             "quote": f"configuration {a} holds a usable fuel capacity of {tanks[a]} gal"},
-            {"id": f"obs:{a}.mpg", "alternative": f"alt:{a}", "measure": "meas:fuel-economy", "value": 8.0,
-             "evidence": f"ev:design-{a}", "quote": f"configuration {a} is rated at a fuel economy of 8.0 mi/gal"}]
-    return {"accept": True, "evidence_items": evidence, "observations": observations}
-
-
-def report_proposals() -> tuple[dict, dict]:
-    evidence = [{"id": f"ev:reliability-{a}", "name": f"Reliability test report {a}", "evidence_kind": "test report",
-                 "source_ref": f"Synthetic reliability growth test, vehicle {a}, phase 1", "document_path": REPORT,
-                 "issued_on": "2026-12-10", "owner_role": "role:test-engineer"} for a in "ABC"]
-    quote = {"A": ("0.97", "3.1"), "B": ("0.98", "3.2"), "C": ("0.94", "3.3")}
-
-    def obs(a: str) -> dict:
-        value, section = quote[a]
-        return {"id": f"obs:{a}.reliability", "alternative": f"alt:{a}", "measure": "meas:reliability",
-                "value": float(value), "evidence": f"ev:reliability-{a}", "section": section,
-                "quote": f"Its demonstrated mission reliability is {value}"}
-
-    accepted = {"accept": True, "evidence_items": evidence, "observations": [obs("A"), obs("C")]}
-    proposed = {"observations": [obs("B")]}  # the agent's proposal; the test engineer reviews it later
-    return accepted, proposed
 
 
 def test_vehicle_from_raw_inputs_through_the_three_funnels(tmp_path):
@@ -267,3 +213,10 @@ def test_every_skill_section_onboard_names_exists():
     anchors = {re.sub(r"[^a-z0-9 -]", "", h.lower()).replace(" ", "-") for h in re.findall(r"^## (.+)$", skill, re.M)}
     named = set(re.findall(r'section="([^"]+)"', (ROOT / "src" / "pdo" / "onboard.py").read_text()))
     assert named and named <= anchors, named - anchors
+
+
+def test_the_scripted_session_records_who_acted(tmp_path):
+    session = run_session(tmp_path)
+    assert session.final["stage"] == "done"
+    assert session.actors() == {"person": 7, "agent": 3, "tool": 1, "kernel": 5}
+    assert session.steps[-1].result["all_verified"] is True

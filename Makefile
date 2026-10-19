@@ -2,7 +2,7 @@ SCHEMA := schema/pdo.yaml
 RUN := uv run
 PROPOSAL_DIR ?= ../papers-and-proposals/src/army-nv012
 
-.PHONY: install lint gen-project test bench example-docs proposal-values sensitivity-figures dashboards all
+.PHONY: install lint gen-project test bench scenarios example-docs proposal-values sensitivity-figures dashboards all
 
 install:
 	uv sync --all-extras
@@ -27,6 +27,11 @@ test:
 bench:
 	$(RUN) pdo bench run bench/vehicle
 	$(RUN) pdo bench provenance bench/provenance
+
+# The paper's scenarios: each checks its claims and writes its data and figure (PNG and PDF) under
+# results/scenarios/<name>/ (needs the figures extra).
+scenarios:
+	$(RUN) pdo bench scenarios
 
 # The vehicle example's synthetic reports, from their Markdown sources (needs pandoc and xelatex; the
 # built files are committed).

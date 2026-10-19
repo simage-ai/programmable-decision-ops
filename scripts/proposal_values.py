@@ -152,6 +152,7 @@ def values(result: SuiteResult, root: Path) -> list[tuple[str, str, str, str]]:
     out += example_values(result)
     out += sensitivity_values(root)
     out += provenance_values(root)
+    out += scenario_values()
     out += [("PDO_SCHEMA_CLASSES", str(schema_classes(root / "schema" / "pdo.yaml")), "classes",
              "Classes in the LinkML decision schema (schema/pdo.yaml and its imports)"),
             ("PDO_EXAMPLE_YAML_LINES", str(suite_yaml_lines(suite.program_dir)), "lines",
@@ -276,6 +277,21 @@ def provenance_values(root: Path) -> list[tuple[str, ...]]:
          f"Revisions whose impact set holds no measure, check, value, utility or decision node ({where})"),
     ]
     return [(*row, result.source) for row in rows]
+
+
+def scenario_values() -> list[tuple[str, ...]]:
+    """The scenarios with numbers of their own (pdo.bench.scenarios): onboarding from raw inputs, and the Fires
+    decision under uncertainty. The others restate numbers above."""
+    from pdo.bench.scenarios import run_scenario
+
+    rows = []
+    for name in ("onboarding", "uncertainty"):
+        result = run_scenario(name)
+        if not result.passed:
+            raise SystemExit(f"scenario {name}: a claim does not hold; run pdo bench scenarios {name}")
+        rows += [(key, str(value), unit, description, f"scenario {name}") for key, value, unit, description in
+                 result.values]
+    return rows
 
 
 def table(result: SuiteResult, root: Path) -> str:

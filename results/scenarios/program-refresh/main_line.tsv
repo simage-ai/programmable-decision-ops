@@ -1,0 +1,14 @@
+episode	parent	as_of	trigger	outcome	recommended	readiness	actionable	approval_invalidated	U alt:A	U alt:B	U alt:C	total_nodes	computed	impact	executed_cutoff	verified
+ep:e00	-	2027-01-15	baseline	-	alt:B	ready	false	false	0.466667	0.533333	0.620000	126	57	NA	57	NA
+ep:e01	ep:e00	2027-02-01	approval	readiness_only	alt:B	ready	true	false	0.466667	0.533333	0.620000	127	57	3	2	true
+ep:e02	ep:e01	2027-03-15	cost	recompute_same_winner	alt:B	ready	false	true	0.466667	0.500000	0.620000	127	57	15	14	true
+ep:e03	ep:e02	2027-04-01	approval	readiness_only	alt:B	ready	true	false	0.466667	0.500000	0.620000	128	57	3	2	true
+ep:e04	ep:e03	2027-06-01	evidence	changed_winner	alt:A	pending	false	true	0.466667	NA	0.620000	130	57	15	15	true
+ep:e05	ep:e04	2027-06-20	evidence	changed_winner	alt:B	ready	false	false	0.466667	0.480000	0.620000	130	57	15	15	true
+ep:e06	ep:e05	2027-08-01	cost	recompute_same_winner	alt:B	blocked	false	false	0.466667	0.500000	0.620000	131	57	15	15	true
+ep:e07	ep:e06	2027-08-15	provenance	readiness_only	alt:B	ready	false	false	0.466667	0.500000	0.620000	131	57	6	6	true
+ep:e08	ep:e07	2027-09-01	approval	readiness_only	alt:B	ready	true	false	0.466667	0.500000	0.620000	132	57	3	2	true
+ep:e09	ep:e08	2028-01-15	time	readiness_only	alt:B	pending	false	false	0.466667	0.500000	0.620000	132	57	3	3	true
+ep:e10	ep:e09	2028-02-01	cost	changed_winner	alt:A	ready	false	true	0.466667	0.433333	0.620000	134	57	20	16	true
+ep:e11	ep:e10	2028-03-01	approval	readiness_only	alt:A	ready	true	false	0.466667	0.433333	0.620000	135	57	3	2	true
+ep:e12	ep:e11	2028-06-01	requirement	recompute_same_winner	alt:A	pending	false	true	0.466667	0.433333	0.620000	135	57	16	11	true

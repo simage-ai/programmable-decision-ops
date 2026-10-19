@@ -20,7 +20,9 @@ from typing import Any
 from pdo import __version__
 from pdo import model as m
 from pdo.actions import pending_actions
+from pdo.canonical import digest
 from pdo.graph import Graph
+from pdo.identity_slots import HASHABLE
 from pdo.load import index, items, iter_objects
 from pdo.report import run_summary
 from pdo.run import RunResult
@@ -190,7 +192,7 @@ def layout(graphs: list[Graph]) -> dict:
             return (node.alternative or "~", KIND_ORDER.get(node.kind, 0), nid)
         for row, nid in enumerate(sorted(nids, key=key)):
             node = nodes[nid]
-            out[nid] = {"col": col, "row": row, "kind": node.kind, "label": _label(nid, node),
+            out[nid] = {"col": col, "row": row, "kind": node.kind, "label": _label(nid, node), "fn": node.fn,
                         "alternative": node.alternative, "subject": node.subject}
     run_cols = [c for nid, c in col_of.items() if nodes[nid].kind == "run"]
     names = [_column_name({nodes[n].kind for n in columns.get(c, [])}, c, run_cols) if c in columns else ""
@@ -283,7 +285,32 @@ def _param_label(state, parameter: str) -> dict:
             "unit": getattr(obj, "unit", None)}
 
 
-def _episode(ev, units: dict[str, str], analyses: dict, parent_state=None) -> dict:
+def _pool_objects(state, pool: dict) -> dict[str, str]:
+    """Every schema object of a state, by id, as a key into `pool` (its full content, class included). Objects
+    that do not change between episodes are stored once."""
+    out = {}
+    for _, obj in iter_objects(state):
+        dump = {"class": type(obj).__name__, **obj.model_dump(mode="json", exclude_none=True)}
+        key = digest(dump)[:16]
+        pool.setdefault(key, _clean(dump))
+        out[obj.id] = key
+    return out
+
+
+def _schema(classes: set[str]) -> dict:
+    """What each schema class and slot means (from the LinkML descriptions), for the page's raw views."""
+    out = {}
+    for name in sorted(classes):
+        cls = getattr(m, name, None)
+        if cls is None or not hasattr(cls, "model_fields"):
+            continue
+        slots = {k: " ".join(f.description.split()) for k, f in cls.model_fields.items() if f.description}
+        out[name] = {"description": " ".join((cls.__doc__ or "").split()), "slots": slots,
+                     "hashable": sorted(HASHABLE.get(name, ()))}  # the slots that are part of the computation
+    return out
+
+
+def _episode(ev, units: dict[str, str], analyses: dict, parent_state=None, pools: dict | None = None) -> dict:
     result = ev.run
     graph = result.graph
     summary = run_summary(result)
@@ -302,8 +329,15 @@ def _episode(ev, units: dict[str, str], analyses: dict, parent_state=None) -> di
         "cost": {"executed": len(result.executed),
                  "computed": sum(1 for n in graph.nodes.values() if n.fn != "source"), "total": len(graph.nodes)},
         "author_role": change.author_role if change else None, "changes": _change_ops(change, parent_state),
+        "change_set": _clean(change.model_dump(mode="json", exclude_none=True)) if change else None,
         "evidence": _evidence_rows(ev.state), **_framing(ev.state),
     }
+    if pools is not None:  # raw values and objects, content-addressed: each distinct one is stored once
+        for nid, node_state in episode["nodes"].items():
+            res = result.results[nid]
+            node_state["h"] = res.vdig
+            pools["values"].setdefault(res.vdig, _clean(res.value))
+        episode["objects"] = _pool_objects(ev.state, pools["objects"])
     for f in analyses.get("flips") or []:
         f.update(_param_label(ev.state, f["parameter"]))
         if f.get("counterpart"):
@@ -369,10 +403,12 @@ def build(path: str | Path, *, flips: bool = True, sensitivity: bool = True, unc
     units = {m_.id: m_.unit for m_ in items(state0.measures)}
     episodes = []
     states = {ev.episode: ev.state for ev in evaluations}
+    pools: dict[str, dict] = {"values": {}, "objects": {}}
     for ev in evaluations:
         full = ev.episode == baseline  # global indices and value of information for the baseline only
         analyses = _analyses(ev.run, flips, sensitivity, uncertainty, samples, full_sensitivity=full)
-        episodes.append(_episode(ev, units, analyses, states.get(ev.parent)))
+        episodes.append(_episode(ev, units, analyses, states.get(ev.parent), pools))
+    classes = {o["class"] for o in pools["objects"].values()} | {"ChangeSet", "SourceLocator", "DecisionState"}
     names = {a.id: a.name or a.id for a in items(state0.alternatives)}
     objects = index(state0)
     roles = {r.id: r.name or r.id for r in items(state0.roles)}
@@ -391,6 +427,7 @@ def build(path: str | Path, *, flips: bool = True, sensitivity: bool = True, unc
                                                              for oid, o in objects.items()},
         "layout": layout([ev.run.graph for ev in evaluations]),
         "episodes": episodes,
+        "values": pools["values"], "object_pool": pools["objects"], "schema": _schema(classes),
     }
 
 

@@ -79,8 +79,11 @@ Readiness: READY   Actionable: no (alt:B has no approval)
   each episode it gives the verdict, what changed and its effect, why this recommendation (a decision matrix
   and the must-meet requirements in words), what it waits on and who, what would change it, and where every
   number comes from. The Engineering view shows the compiled graph: every node's status and whether the
-  episode's refresh recomputed or reused it, with the raw tables and analyses. The page draws kernel results
-  and computes nothing. See [docs/dashboard.md](docs/dashboard.md).
+  episode's refresh recomputed or reused it, with the raw tables and analyses. A calculation panel shows any
+  episode's graph top to bottom, from the schema objects to the authorization, with each node's formula
+  filled in with the kernel's numbers and its raw structure; every reference on the page is a typed schema
+  object that opens there. The page draws kernel results and computes nothing. See
+  [docs/dashboard.md](docs/dashboard.md).
 
 ## Examples
 

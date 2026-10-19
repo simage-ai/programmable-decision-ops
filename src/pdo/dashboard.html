@@ -213,6 +213,80 @@ footer { font: 0.74rem var(--f-mono); color: var(--muted); }
 .g-maybe { color: color-mix(in srgb, var(--warn) 70%, var(--ink)); font-weight: 600; }
 details > summary { cursor: pointer; }
 .sources td { font-size: 0.8rem; }
+
+/* structured objects: every reference is a typed schema object (class + id) that opens the calculation */
+.obj { display: inline-flex; align-items: stretch; border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; padding: 0;
+       font: 0.72rem var(--f-mono); background: var(--panel); color: var(--ink); cursor: pointer; vertical-align: 1px;
+       max-width: 100%; text-align: left; }
+.obj .cls { background: var(--accent-soft); color: var(--accent); padding: 1px 5px; font-weight: 500; white-space: nowrap; }
+.obj .oid { padding: 1px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.obj.node .cls { background: var(--paper); color: var(--ink-2); }
+.obj:hover { border-color: var(--accent); }
+.obj:focus-visible, .cellbtn:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.struct { font: 0.76rem var(--f-mono); color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ops { font-size: 0.8rem; } .ops td { vertical-align: middle; } .ops td.slot, .ops td.val { font-family: var(--f-mono); }
+.btn { font: 600 0.82rem var(--f-body); border: 1px solid var(--accent); color: var(--accent); background: var(--panel);
+       border-radius: 6px; padding: 5px 11px; cursor: pointer; }
+.btn:hover { background: var(--accent-soft); }
+.cellbtn { all: unset; cursor: pointer; display: block; border-radius: 4px; }
+.cellbtn:hover { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); }
+.tl-name { font: 600 0.82rem var(--f-display); color: var(--ink); }
+.tl-effects .pill { white-space: normal; }
+.verdict .actions-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* the calculation panel: one episode's dependency graph, top to bottom, one lane per alternative */
+.scrim { position: fixed; inset: 0; background: color-mix(in srgb, var(--ink) 35%, transparent); z-index: 20; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(1240px, 100vw); background: var(--paper); z-index: 21;
+          border-left: 1px solid var(--rule); box-shadow: -8px 0 32px rgba(0,0,0,.18); display: flex; flex-direction: column;
+          padding-top: env(safe-area-inset-top, 0px); padding-right: env(safe-area-inset-right, 0px);
+          padding-bottom: env(safe-area-inset-bottom, 0px); }
+.drawer-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 12px 18px;
+               border-bottom: 1px solid var(--rule); background: var(--panel); flex-wrap: wrap; }
+.drawer-head h2 { font-size: 1.2rem; }
+.drawer-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 420px); }
+.flow { overflow: auto; padding: 8px 18px 48px; display: flex; flex-direction: column; gap: 4px; }
+.inspector { overflow: auto; border-left: 1px solid var(--rule); background: var(--panel); padding: 14px 16px 48px;
+             display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.inspector h4 { margin: 4px 0 0; font: 500 0.7rem var(--f-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+@media (max-width: 860px) {
+  .drawer-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 48%); }
+  .inspector { border-left: none; border-top: 1px solid var(--rule); }
+}
+.stage-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-top: 10px; padding-bottom: 4px;
+              border-bottom: 1px dashed var(--rule); }
+.stage-head .n { font: 600 0.72rem var(--f-mono); color: var(--accent); }
+.stage-head h3 { font-size: 0.95rem; }
+.stage-head .note { font-size: 0.76rem; flex: 1 1 280px; }
+.lanes { display: grid; gap: 8px; padding-top: 6px; }
+.lane { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.lane-title { font: 600 0.72rem var(--f-mono); color: var(--muted); display: flex; align-items: center; gap: 5px; }
+.flow-arrow { text-align: center; color: var(--muted); font-size: 0.85rem; line-height: 1; padding-top: 4px; }
+.card { all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--rule);
+        border-radius: 6px; background: var(--panel); padding: 5px 8px; cursor: pointer; min-width: 0; }
+.card .k { font: 0.64rem var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; display: flex;
+           justify-content: space-between; gap: 6px; }
+.card .t { font: 500 0.78rem var(--f-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .v { font: 0.74rem var(--f-mono); color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card.s-pass { background: var(--good-soft); } .card.s-fail { background: var(--bad-soft); } .card.s-unknown { background: var(--warn-soft); }
+.card.ran { border-color: var(--accent); } .card .ran-mark { color: var(--accent); }
+.card:hover { border-color: var(--accent); }
+.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.card.sel, .obj.sel { box-shadow: 0 0 0 2px var(--accent); }
+.card.up, .obj.up { outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 1px; }
+.card.down, .obj.down { outline: 2px dashed color-mix(in srgb, var(--accent) 70%, transparent); outline-offset: 1px; }
+.flow.tracing .card:not(.sel):not(.up):not(.down), .flow.tracing .obj:not(.sel):not(.up):not(.down) { opacity: 0.32; }
+.flow.only-ran .card:not(.ran) { opacity: 0.32; }
+.groups { display: flex; flex-direction: column; gap: 4px; }
+.group-label { font: 0.66rem var(--f-mono); color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.calc-lines { font: 0.8rem/1.6 var(--f-mono); background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 10px;
+              white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+.inspector pre.raw { font: 0.72rem/1.45 var(--f-mono); background: var(--paper); border: 1px solid var(--rule); border-radius: 6px;
+                     padding: 8px 10px; overflow: auto; margin: 6px 0 0; max-height: 320px; }
+.slots { font-size: 0.76rem; } .slots td { padding: 3px 6px; } .slots td.slot { font-family: var(--f-mono); color: var(--accent); white-space: nowrap; }
+.slots td.slot.inert { color: var(--muted); }
+.slots .desc { color: var(--muted); font-size: 0.72rem; }
+.slots td.val { font-family: var(--f-mono); overflow-wrap: anywhere; }
 </style>
 
 <div class="wrap" id="app">
@@ -335,6 +409,25 @@ details > summary { cursor: pointer; }
   <footer id="footer"></footer>
 </div>
 <div class="tip" id="tip" hidden></div>
+<div class="scrim" id="calc-scrim" hidden></div>
+<section class="drawer" id="calc" role="dialog" aria-modal="true" aria-labelledby="calc-title" hidden>
+  <div class="drawer-head">
+    <div>
+      <div class="eyebrow" id="calc-eyebrow">Calculation</div>
+      <h2 id="calc-title">How this episode was calculated</h2>
+      <p class="note" style="margin:4px 0 0">Every box is a node the kernel compiled from the schema objects; read it top to bottom. Select one to
+        see its calculation, its inputs and its raw structure. Solid blue borders and ↻ mark nodes this episode re-ran.</p>
+    </div>
+    <div class="toolbar">
+      <button class="toggle" id="calc-only" aria-pressed="false" type="button">Only what this episode re-ran</button>
+      <button class="btn" id="calc-close" type="button">Close</button>
+    </div>
+  </div>
+  <div class="drawer-body">
+    <div class="flow" id="calc-flow"></div>
+    <aside class="inspector" id="calc-inspect" aria-live="polite"></aside>
+  </div>
+</section>
 
 <script>
 const DATA = /*__PDO_DATA__*/null;
@@ -429,7 +522,7 @@ const DATA = /*__PDO_DATA__*/null;
       for (const e of eps) {
         const b = el("button", { class: "ep", type: "button", "aria-pressed": String(e.id === current), title: e.description || "" });
         const id = el("span", { class: "id" });
-        id.append(el("span", { class: "dot", style: `background:${statusColor(READY[e.readiness])}`, "aria-hidden": "true" }), document.createTextNode(short(e.id)));
+        id.append(el("span", { class: "dot", style: `background:${statusColor(READY[e.readiness])}`, "aria-hidden": "true" }), document.createTextNode(epName(e)));
         if (e.actionable) id.append(el("span", { class: "small", title: "actionable" }, "· approved"));
         b.append(id, el("span", { class: "when" }, `${e.as_of} · ${e.trigger}`),
                  el("span", { class: "what" }, (choice(e).map(short).join(", ") || "none") + " · " + e.readiness));
@@ -667,7 +760,8 @@ const DATA = /*__PDO_DATA__*/null;
     const ticks = niceTicks(lo, hi);
     axisY(svg, ml, W - mr, y, ticks, (t) => t.toFixed(2));
     const lab = sv("g", { class: "axis" });
-    eps.forEach((e, i) => lab.append(sv("text", { x: x(i), y: H - mb + 16, "text-anchor": "middle" }, short(e.id))));
+    eps.forEach((e, i) => lab.append(sv("text", { x: x(i), y: H - mb + 16, "text-anchor": "middle" }, String(i))));
+    lab.append(sv("text", { x: ml - 6, y: H - mb + 16, "text-anchor": "end" }, "Episode"));
     svg.append(lab);
     const band = sv("g");
     eps.forEach((e, i) => {
@@ -696,7 +790,7 @@ const DATA = /*__PDO_DATA__*/null;
       const r = svg.getBoundingClientRect(); const px = (evt.clientX - r.left) * W / r.width;
       const i = Math.max(0, Math.min(eps.length - 1, Math.round((px - ml) / ((W - ml - mr) / (eps.length - 1)))));
       const e = eps[i];
-      showTip(evt, `${short(e.id)} · ${e.as_of}`, [
+      showTip(evt, `${epName(e)} · ${e.as_of}`, [
         ...alts.map((a) => { const t = e.table.find((q) => q.alternative === a); return { color: altColor(a), value: t && t.utility !== null ? fmt(t.utility) : "unknown", label: short(a) + (e.recommended.includes(a) ? " (recommended)" : "") }; }),
         { value: e.readiness, label: e.actionable ? "· approved" : "" }, { value: e.description || "", label: "" }]);
     });
@@ -878,14 +972,51 @@ const DATA = /*__PDO_DATA__*/null;
       : { st, text: `${val} · ${withUnit(g, r && r.unit)} short` };
   }
 
+  // Episode names: the main line is numbered from the baseline (Episode 0); a branch keeps its id.
+  const mainIndex = Object.fromEntries(mainLine.map((id, i) => [id, i]));
+  const epName = (e) => (e.id in mainIndex ? `Episode ${mainIndex[e.id]}${mainIndex[e.id] === 0 ? " (baseline)" : ""}` : `Branch ${short(e.id)}`);
+  const raw = (e, nid) => (e && e.nodes[nid] ? DATA.values[e.nodes[nid].h] : undefined);
+  const objOf = (e, oid) => (e && e.objects && e.objects[oid] ? DATA.object_pool[e.objects[oid]] : null);
+  const nodeFor = (oid) => (L.nodes[oid] ? oid : L.nodes[oid + "#vf"] ? oid + "#vf" : null);
+  // A schema object as a chip: its class and id. Clicking it opens the calculation at that object.
+  function objChip(e, oid, text) {
+    const o = objOf(e, oid);
+    const b = el("button", { class: "obj", type: "button", title: `${o ? o.class : "object"} ${oid}: open it in the calculation` });
+    b.dataset.node = nodeFor(oid) || "";
+    b.append(el("span", { class: "cls" }, o ? o.class : "Object"), el("span", { class: "oid" }, text || oid));
+    if (nodeFor(oid)) b.addEventListener("click", (ev) => { ev.stopPropagation(); openCalc(nodeFor(oid)); });
+    return b;
+  }
+  // A computed node as a chip: its kind and id.
+  function nodeChip(nid, text) {
+    const n = L.nodes[nid];
+    const b = el("button", { class: "obj node", type: "button", title: `${n ? n.kind : "node"} ${nid}: open it in the calculation` });
+    b.dataset.node = nid;
+    b.append(el("span", { class: "cls" }, n && n.kind !== nid ? n.kind : "node"), el("span", { class: "oid" }, text || nid));
+    b.addEventListener("click", (ev) => { ev.stopPropagation(); openCalc(nid); });
+    return b;
+  }
+  // Readiness in words: what it means for this episode, not just its state.
+  function statusPill(e) {
+    if (e.actionable) return pill("pass", "approved · can act");
+    if (e.readiness === "ready") return pill("pass", "ready for approval");
+    if (e.readiness === "pending") {
+      const roles = [...new Set(e.pending.filter((a) => a.kind !== "approve").map((a) => roleName(a.role)))];
+      return pill("unknown", roles.length ? `waiting on ${roles.join(", ")}` : "pending");
+    }
+    const failed = e.conditions.filter((c) => c.status === "fail").map((c) => objName(c.condition));
+    return pill("fail", `blocked: ${failed[0] || "a check fails"}${failed.length > 1 ? ` (+${failed.length - 1})` : ""}`);
+  }
+
   function timelineItem(e, branch) {
     const li = el("li", { class: "tl-item" });
     li.append(el("span", { class: "tl-marker", style: `background:${statusColor(READY[e.readiness])}`, "aria-hidden": "true" }));
     const p = parentOf(e);
     const b = el("button", { class: "tl-entry", type: "button", "aria-current": String(e.id === current) });
-    const after = branch && p && !mainLine.includes(p.id) ? ` · after ${short(p.id)}` : "";
-    b.append(el("span", { class: "tl-when" }, `${e.as_of} · ${short(e.id)} · ${e.trigger}${after}`));
-    b.append(el("span", { class: "tl-title" }, p ? (e.description || "(no description)") : "Baseline: the trade study as first framed"));
+    const name = el("span", { class: "tl-name" }, epName(e));
+    const after = branch && p && !mainLine.includes(p.id) ? ` · after ${epName(p)}` : branch && p ? ` · from ${epName(p)}` : "";
+    b.append(name, el("span", { class: "tl-when" }, `${e.as_of} · ${e.trigger} · ${e.id}${after}`));
+    b.append(el("span", { class: "tl-title" }, p ? (e.description || "(no description)") : "The trade study as first framed"));
     const fx = el("span", { class: "tl-effects" });
     const rec = choice(e), prec = p ? choice(p) : null;
     const flipped = prec && prec.join() !== rec.join();
@@ -893,14 +1024,14 @@ const DATA = /*__PDO_DATA__*/null;
     if (rec.length === 1) chip.append(el("span", { class: "dot", style: `background:${altColor(rec[0])}` }));
     chip.append(document.createTextNode(flipped ? `${altList(prec) || "none"} → ${altList(rec) || "none"}`
       : rec.length ? `recommends ${altList(rec)}` : "no recommendation"));
-    fx.append(chip, pill(READY[e.readiness], e.readiness));
-    if (e.actionable) fx.append(el("span", { class: "chip" }, "✓ approved"));
-    else if (p && p.approval && !e.approval) fx.append(el("span", { class: "chip" }, "approval lost"));
+    fx.append(chip, statusPill(e));
+    if (!e.actionable && p && p.approval && !e.approval) fx.append(el("span", { class: "chip" }, "approval lost"));
     b.append(fx);
     b.addEventListener("click", () => select(e.id));
     li.append(b);
     return li;
   }
+
   function renderTimeline() {
     const ol = clear($("timeline"));
     const branchesFrom = {};  // main-line episode -> the off-line episodes that fork from it
@@ -950,7 +1081,7 @@ const DATA = /*__PDO_DATA__*/null;
   function renderVerdict(e) {
     const v = clear($("verdict"));
     const rec = choice(e), branch = !mainLine.includes(e.id);
-    v.append(el("div", { class: "eyebrow" }, `Episode ${short(e.id)} · ${e.as_of}${branch ? " · branch off the main line" : ""}`
+    v.append(el("div", { class: "eyebrow" }, `${epName(e)} · ${e.id} · ${e.as_of}${branch ? " · branch off the main line" : ""}`
       + (expectedRule && e.uncertainty ? " · decided on expected score under uncertainty" : "")));
     const h = el("h2");
     if (rec.length === 1) {
@@ -959,8 +1090,16 @@ const DATA = /*__PDO_DATA__*/null;
     } else h.textContent = rec.length ? `Tie between ${altList(rec)}` : "No recommendation";
     v.append(h);
     const st = el("div", { class: "status" });
-    st.append(pill(e.actionable ? "pass" : READY[e.readiness], e.actionable ? "approved" : e.readiness), el("span", {}, statusSentence(e)));
+    st.append(statusPill(e), el("span", {}, statusSentence(e)));
     v.append(st);
+    const row = el("div", { class: "actions-row" });
+    const go = el("button", { class: "btn", type: "button" }, `Show the calculation for ${epName(e)}`);
+    go.addEventListener("click", () => openCalc("decision"));
+    const struct = el("span", { class: "struct" });
+    struct.append(document.createTextNode("computed by"), nodeChip("decision"), nodeChip("readiness"), nodeChip("actionable"));
+    if (e.approval) struct.append(objChip(e, e.approval));
+    row.append(go, struct);
+    v.append(row);
   }
 
   const SLOT_WORDS = { value: "", threshold_value: "threshold", weight: "weight", applicability: "acceptance",
@@ -986,12 +1125,20 @@ const DATA = /*__PDO_DATA__*/null;
     $("changed-title").textContent = p ? "What changed" : "Where it starts";
     if (!p) {
       box.append(el("p", { class: "lead" }, `The baseline: ${alts.length} alternatives judged on ${DATA.criteria.length} weighted criteria `
-        + `and ${DATA.requirements.length} requirements every alternative must meet. Later episodes on the timeline change it one `
-        + "step at a time."));
+        + `and ${DATA.requirements.length} requirements every alternative must meet, read from the program's baseline files. `
+        + "Each later episode is a change set applied to its parent, like a commit."));
+      const counts = {};
+      for (const key of Object.values(e.objects || {})) { const c = DATA.object_pool[key].class; counts[c] = (counts[c] || 0) + 1; }
+      box.append(el("div", { class: "struct" }, "DecisionState: " + Object.entries(counts).sort().map(([c, n]) => `${n} ${c}`).join(" · ")));
       return;
     }
+    const cs = e.change_set || {};
+    const head = el("div", { class: "struct" });
+    head.append(el("span", {}, "ChangeSet"), el("strong", { class: "mono" }, cs.id || e.id), document.createTextNode("parent"));
+    head.append(el("span", { class: "mono" }, `${cs.parent || p.id} (${epName(p)})`), document.createTextNode(`· as_of ${e.as_of} · trigger ${e.trigger} · author_role`));
+    if (e.author_role) head.append(objChip(e, e.author_role, roleName(e.author_role)));
+    box.append(head);
     if (e.description) box.append(el("blockquote", { class: "quote" }, e.description));
-    box.append(el("div", { class: "small" }, `Recorded by ${roleName(e.author_role)} on ${e.as_of} (${e.trigger}), after episode ${short(p.id)}.`));
     const ul = el("ul", { class: "bullets" });
     const add = (text) => ul.append(el("li", {}, text));
     const rec = choice(e), prec = choice(p);
@@ -1001,11 +1148,6 @@ const DATA = /*__PDO_DATA__*/null;
     if (p.approval && e.approval === p.approval) add(`The approval “${objName(e.approval)}” still matches: nothing it covered changed.`);
     else if (p.approval && !e.approval) add(`The approval “${objName(p.approval)}” no longer matches: inputs it covered changed, so it must be renewed.`);
     else if (e.approval && e.approval !== p.approval) add(`New approval: “${objName(e.approval)}”.`);
-    for (const c of e.changes.filter((x) => x.op === "set" && !x.provenance && !/rationale|description|reviewer/.test(x.slot))) add(describeSet(e, c));
-    const added = e.changes.filter((x) => x.op === "add");
-    if (added.length) add(`Added: ${added.map((c) => describeAdd(e, c)).join("; ")}.`);
-    const removed = e.changes.filter((x) => x.op === "remove");
-    if (removed.length) add(`Removed: ${removed.map((c) => objName(c.target)).join(", ")}.`);
     const prov = e.changes.filter((x) => x.provenance);
     if (prov.length) {
       const docs = [...new Set(prov.filter((c) => c.slot === "document_path").map((c) => c.after))];
@@ -1016,6 +1158,27 @@ const DATA = /*__PDO_DATA__*/null;
         + (review.length ? `; awaiting review because their section changed: ${review.join(", ")}.` : "."));
     }
     box.append(ul);
+    // the operations themselves: the change set is structured data, applied as remove → add → assign
+    const t = el("table", { class: "ops" });
+    const hr = el("tr");
+    ["Operation", "Object", "Slot", "Before", "After"].forEach((h) => hr.append(el("th", {}, h)));
+    const thead = el("thead"); thead.append(hr); t.append(thead);
+    const tb = el("tbody");
+    const show = (x) => (x === null || x === undefined ? "—" : typeof x === "object" ? (x.section ? `§ ${x.section} (${x.document_path || ""})` : JSON.stringify(x)) : String(x));
+    for (const c of e.changes) {
+      const tr = el("tr");
+      const o = el("td"); o.append(objChip(c.op === "remove" ? p : e, c.target));
+      tr.append(el("td", { class: "mono" }, c.op === "set" ? "assign" : c.op), o);
+      tr.append(el("td", { class: "slot" }, c.op === "set" ? c.slot : c.kind || ""));
+      tr.append(el("td", { class: "val" }, c.op === "set" ? show(c.before) : ""), el("td", { class: "val" }, c.op === "set" ? show(c.after) : c.op === "add" && c.value !== null && c.value !== undefined ? withUnit(c.value, c.unit) : ""));
+      tb.append(tr);
+    }
+    t.append(tb);
+    const det = el("details");
+    det.append(el("summary", { class: "small" }, `${e.changes.length} operation${e.changes.length === 1 ? "" : "s"} in this change set`));
+    const sc = el("div", { class: "scroll", style: "margin-top:6px" }); sc.append(t); det.append(sc);
+    det.open = e.changes.length <= 6;
+    box.append(det);
   }
 
   function whySentence(e) {
@@ -1066,9 +1229,16 @@ const DATA = /*__PDO_DATA__*/null;
     head.append(el("th", {}, "Criterion"), el("th", { class: "r" }, "Weight"));
     const colHead = (a) => {
       const th = el("th", { class: "alt-col" + (rec.includes(a) ? " rec" : "") });
-      const s = el("span", { class: "alt" }); s.append(el("span", { class: "dot", style: `background:${altColor(a)}` }), document.createTextNode(short(a)));
+      const s = el("span", { class: "alt" }); s.append(el("span", { class: "dot", style: `background:${altColor(a)}` }), document.createTextNode(short(a) + " "), objChip(e, a));
       th.append(s, el("span", { class: "small" }, altName(a)));
       return th;
+    };
+    const cell = (td, nid, ...content) => {  // a cell that opens the node that computed it
+      const b = el("button", { class: "cellbtn", type: "button", title: `${nid}: show how it was calculated` });
+      b.append(...content);
+      b.addEventListener("click", () => openCalc(nid));
+      td.append(b);
+      return td;
     };
     alts.forEach((a) => head.append(colHead(a)));
     const thead = el("thead"); thead.append(head); t.append(thead);
@@ -1076,15 +1246,16 @@ const DATA = /*__PDO_DATA__*/null;
     for (const c of DATA.criteria) {
       const tr = el("tr");
       const m = measureOf[c.measure];
-      const name = el("td"); name.append(document.createTextNode(c.name), el("div", { class: "small" }, m ? m.name : ""));
+      const name = el("td"); name.append(document.createTextNode(c.name + " "), objChip(e, c.id), el("div", { class: "small" }, m ? m.name : ""));
       tr.append(name, el("td", { class: "r" }, withUnit(e.weights[c.id], "%")));
       for (const a of alts) {
         const r = rowOf(e, a), v = r ? r.values[c.id] : null;
         const td = el("td", { class: (rec.includes(a) ? "rec " : "") + (r && r.feasibility === "fail" ? "excluded" : "") });
-        td.append(document.createTextNode(r ? withUnit(r.measures[c.measure], m && m.unit) : "—"));
         const bar = el("span", { class: "bar", title: `value score ${v === null || v === undefined ? "unknown" : score(v)} of 1` });
         if (v !== null && v !== undefined) bar.append(el("span", { style: `width:${Math.max(0, Math.min(1, v)) * 100}%;background:${altColor(a)}` }));
-        td.append(bar);
+        const nid = `v/${c.id}/${a}`;
+        if (r && e.nodes[nid]) cell(td, nid, document.createTextNode(withUnit(r.measures[c.measure], m && m.unit)), bar);
+        else td.append(document.createTextNode(r ? withUnit(r.measures[c.measure], m && m.unit) : "—"), bar);
         tr.append(td);
       }
       tb.append(tr);
@@ -1095,7 +1266,9 @@ const DATA = /*__PDO_DATA__*/null;
       const r = rowOf(e, a);
       const txt = !r ? "—" : r.utility !== null ? score(r.utility) : `${score(r.utility_bounds[0])} to ${score(r.utility_bounds[1])}`;
       const note = rec.includes(a) ? " · recommended" : r && r.feasibility === "fail" ? " · excluded" : r && r.feasibility === "unknown" ? " · unresolved" : "";
-      total.append(el("td", { class: (rec.includes(a) ? "rec " : "") + (r && r.feasibility === "fail" ? "excluded" : "") }, txt + note));
+      const td = el("td", { class: (rec.includes(a) ? "rec " : "") + (r && r.feasibility === "fail" ? "excluded" : "") });
+      if (r && e.nodes[`U/${a}`]) cell(td, `U/${a}`, document.createTextNode(txt + note)); else td.textContent = txt + note;
+      total.append(td);
     }
     tb.append(total);
     t.append(tb);
@@ -1107,14 +1280,15 @@ const DATA = /*__PDO_DATA__*/null;
     for (const [q, req] of Object.entries(e.requirements)) {
       if (!req.mandatory) continue;
       const tr = el("tr");
-      tr.append(el("td", {}, objName(q)), el("td", {}, needs(e, q)));
+      const qn = el("td"); qn.append(document.createTextNode(objName(q) + " "), objChip(e, q));
+      tr.append(qn, el("td", {}, needs(e, q)));
       for (const a of alts) {
         const r = rowOf(e, a);
         const td = el("td", { class: rec.includes(a) ? "rec" : "" });
         if (!r || !(q in r.checks)) { td.textContent = "—"; tr.append(td); continue; }
         const mg = margin(e, r, q);
-        td.append(el("span", { class: { pass: "g-ok", fail: "g-no", unknown: "g-maybe" }[mg.st], "aria-hidden": "true" }, { pass: "✓ ", fail: "✕ ", unknown: "? " }[mg.st]),
-                  document.createTextNode(mg.text));
+        cell(td, `g/${q}/${a}`, el("span", { class: { pass: "g-ok", fail: "g-no", unknown: "g-maybe" }[mg.st], "aria-hidden": "true" }, { pass: "✓ ", fail: "✕ ", unknown: "? " }[mg.st]),
+             document.createTextNode(mg.text));
         tr.append(td);
       }
       mb.append(tr);
@@ -1122,7 +1296,8 @@ const DATA = /*__PDO_DATA__*/null;
     mt.append(mb);
     $("matrix-note").textContent = "Each criterion turns a measured value into a score from 0 (worst considered) to 1 (best); the bar "
       + "shows it. The overall score is the weighted sum. An alternative that fails a must-meet requirement is excluded "
-      + "whatever its score." + (expectedRule ? " Values here are the point estimates; the recommendation uses expected scores under uncertainty." : "");
+      + "whatever its score. Select any cell to see the node that computed it."
+      + (expectedRule ? " Values here are the point estimates; the recommendation uses expected scores under uncertainty." : "");
   }
 
   const ACTION_WORDS = {
@@ -1144,12 +1319,13 @@ const DATA = /*__PDO_DATA__*/null;
     const box = clear($("act"));
     const open = e.conditions.filter((c) => c.status !== "pass"), passing = e.conditions.filter((c) => c.status === "pass");
     if (!open.length) box.append(el("p", { class: "lead" }, e.actionable ? "Nothing is outstanding: every check passes and the approval matches."
-      : "Every readiness check passes."));
+      : "Every readiness check passes; it waits only for an approval."));
     else {
       const ul = el("ul", { class: "list" });
       for (const c of open) {
         const li = el("li");
-        li.append(pill(c.status), el("span", {}, objName(c.condition) + (c.required === false ? " (advisory)" : "")));
+        const name = el("span"); name.append(document.createTextNode(objName(c.condition) + (c.required === false ? " (advisory) " : " ")), objChip(e, c.condition));
+        li.append(pill(c.status), name);
         if (c.reason) li.append(el("span", { class: "why" }, c.reason));
         ul.append(li);
       }
@@ -1160,9 +1336,16 @@ const DATA = /*__PDO_DATA__*/null;
       const byRole = {};
       for (const a of e.pending) (byRole[a.role || ""] = byRole[a.role || ""] || []).push(a);
       for (const [role, acts] of Object.entries(byRole)) {
-        box.append(el("div", { class: "role" }, roleName(role)));
+        const who = el("div", { class: "role" }); who.append(document.createTextNode(roleName(role) + " "));
+        if (role) who.append(objChip(e, role));
+        box.append(who);
         const ul = el("ul", { class: "bullets" });
-        for (const a of acts) ul.append(el("li", {}, (ACTION_WORDS[a.kind] || ((x, y) => `${y.kind.replace(/_/g, " ")} ${objName(y.target)}`))(e, a)));
+        for (const a of acts) {
+          const li = el("li");
+          li.append(document.createTextNode((ACTION_WORDS[a.kind] || ((x, y) => `${y.kind.replace(/_/g, " ")} ${objName(y.target)}`))(e, a) + " "),
+                    el("span", { class: "struct", style: "display:inline-flex" }, `PendingAction ${a.kind} →`), document.createTextNode(" "), objChip(e, a.target));
+          ul.append(li);
+        }
         box.append(ul);
       }
     }
@@ -1170,7 +1353,7 @@ const DATA = /*__PDO_DATA__*/null;
       const det = el("details");
       det.append(el("summary", { class: "small" }, `${passing.length} check${passing.length === 1 ? "" : "s"} pass`));
       const ul = el("ul", { class: "bullets", style: "margin-top:6px" });
-      for (const c of passing) ul.append(el("li", { class: "small" }, objName(c.condition)));
+      for (const c of passing) { const li = el("li", { class: "small" }); li.append(document.createTextNode(objName(c.condition) + " "), objChip(e, c.condition)); ul.append(li); }
       det.append(ul);
       box.append(det);
     }
@@ -1184,6 +1367,12 @@ const DATA = /*__PDO_DATA__*/null;
     return `If ${f.label || f.parameter} ${f.direction === "above" ? "rises above" : "falls below"} ${withUnit(f.flip_number, f.unit)} `
       + `(now ${withUnit(f.baseline_number, f.unit)}, a ${pct}% change${from}), ${outcome}.`;
   }
+  function flipItem(e, f, small) {
+    const li = el("li", small ? { class: "small" } : {});
+    const oid = f.parameter.slice(0, f.parameter.lastIndexOf("."));
+    li.append(document.createTextNode(flipSentence(f) + " "), objChip(e, oid, f.parameter));
+    return li;
+  }
   function renderRobust(e) {
     const box = clear($("robust"));
     const flips = (e.flips || []).filter((f) => f.verified !== false && f.flip_number !== null && f.baseline_number !== null);
@@ -1196,13 +1385,13 @@ const DATA = /*__PDO_DATA__*/null;
         ? `At the point estimates (where ${altList(e.recommended) || "nothing"} ranks first), the smallest single changes that would change that ranking:`
         : "The smallest single changes that would change the recommendation:"));
       const ul = el("ul", { class: "bullets" });
-      sorted.slice(0, 5).forEach((f) => ul.append(el("li", {}, flipSentence(f))));
+      sorted.slice(0, 5).forEach((f) => ul.append(flipItem(e, f)));
       box.append(ul);
       if (sorted.length > 5) {
         const det = el("details");
         det.append(el("summary", { class: "small" }, `${sorted.length - 5} more`));
         const more = el("ul", { class: "bullets", style: "margin-top:6px" });
-        sorted.slice(5).forEach((f) => more.append(el("li", { class: "small" }, flipSentence(f))));
+        sorted.slice(5).forEach((f) => more.append(flipItem(e, f, true)));
         det.append(more);
         box.append(det);
       }
@@ -1219,22 +1408,288 @@ const DATA = /*__PDO_DATA__*/null;
   function renderSources(e) {
     const rows = e.evidence || [];
     const located = rows.filter((r) => r.located).length;
-    $("sources-title").textContent = `Where the numbers come from (${rows.length} values, ${located} traced to a report passage)`;
+    $("sources-title").textContent = `Where the numbers come from (${rows.length} observations, ${located} traced to a report passage)`;
     const t = clear($("sources")), head = el("tr");
-    ["Value", "", "Source", "Status"].forEach((h) => head.append(el("th", {}, h)));
+    ["Observation", "Value", "Evidence", "Source", "Status"].forEach((h) => head.append(el("th", {}, h)));
     const thead = el("thead"); thead.append(head); t.append(thead);
     const tb = el("tbody");
     for (const r of rows) {
       const tr = el("tr");
       const m = measureOf[r.measure];
-      tr.append(el("td", {}, `${short(r.alternative)} · ${m ? m.name : short(r.measure)}`), el("td", { class: "r" }, withUnit(r.value, r.unit)),
-                el("td", {}, r.source));
-      const st = r.applicability !== "accepted" ? r.applicability : !r.current ? "awaiting review" : "accepted";
-      tr.append(el("td", {}, st));
+      const o = el("td"); o.append(objChip(e, r.observation), el("div", { class: "small" }, `${short(r.alternative)} · ${m ? m.name : short(r.measure)}`));
+      const ev = el("td"); ev.append(objChip(e, r.evidence));
+      tr.append(o, el("td", { class: "r" }, withUnit(r.value, r.unit)), ev, el("td", {}, r.source));
+      tr.append(el("td", {}, r.applicability !== "accepted" ? r.applicability : !r.current ? "awaiting review" : "accepted"));
       tb.append(tr);
     }
     t.append(tb);
   }
+
+  /* --- the calculation panel ----------------------------------------------------------------------- */
+  const STAGES = [
+    { kinds: ["source", "clock"], title: "Inputs", note: "Schema objects read from the decision state's YAML files: one node per object (a criterion is two: its value function and its weight). Their hashable slots are the node's value." },
+    { kinds: ["run"], title: "Evaluator runs", note: "Each declared EvaluationSpecification runs its implementation on its inputs." },
+    { kinds: ["measure"], title: "Measures", note: "One value per alternative and measure: an accepted observation, or an evaluator's output." },
+    { kinds: ["check"], title: "Requirement checks", note: "The margin g to each requirement's threshold: g ≤ 0 passes." },
+    { kinds: ["value"], title: "Value scores", note: "Each criterion maps a measure to a score between 0 and 1." },
+    { kinds: ["utility", "feasible"], title: "Overall score and feasibility", note: "U = Σ weight × score; feasible when every mandatory check passes." },
+    { kinds: ["decision"], title: "Decision", note: "The highest U among the feasible alternatives." },
+    { kinds: ["condition"], title: "Readiness checks", note: "Readiness conditions and bias checks, each pass, unknown or fail." },
+    { kinds: ["readiness", "state_digest", "actionable"], title: "Readiness and authorization", note: "Ready, pending or blocked; actionable when an approval matches this state." },
+  ];
+  let calcOpen = false, calcNode = null, onlyRan = false, lastFocus = null, calcEls = {};
+  function edgesOf(e) {
+    const ins = {}, outs = {};
+    for (const [a, b] of L.edges) {
+      if (!e.nodes[a] || !e.nodes[b]) continue;
+      (ins[b] = ins[b] || []).push(a); (outs[a] = outs[a] || []).push(b);
+    }
+    return { ins, outs };
+  }
+  function reach(start, adj) {
+    const seen = new Set(), stack = [...(adj[start] || [])];
+    while (stack.length) { const x = stack.pop(); if (!seen.has(x)) { seen.add(x); stack.push(...(adj[x] || [])); } }
+    return seen;
+  }
+  function laneOf(e, nid) {
+    const n = L.nodes[nid];
+    if (n.alternative && alts.includes(n.alternative)) return n.alternative;
+    if (n.kind === "source") {
+      const o = objOf(e, n.subject || nid);
+      if (o && o.class === "Alternative") return o.id;
+      if (o && o.alternative && alts.includes(o.alternative)) return o.alternative;
+    }
+    return "shared";
+  }
+  const num = (x) => (x === null || x === undefined ? "unknown" : typeof x === "number" ? fmt(x, 6) : String(x));
+  function calcText(e, nid) {
+    const n = L.nodes[nid], x = raw(e, nid) || {}, ins = edgesOf(e).ins[nid] || [];
+    const R = (i) => raw(e, i) || {};
+    switch (n.kind) {
+      case "source": {
+        const part = nid.endsWith("#vf") ? " (its value function)" : nid.endsWith("#w") ? " (its weight)" : "";
+        return [`${x.class || "object"} ${n.subject || nid}${part}`, "A schema object from the decision state. Its hashable slots are",
+                "this node's value, so editing a name or a description changes nothing downstream."];
+      }
+      case "clock": return [`as_of = ${x.as_of}`, "The episode's date: evidence expiry and approval validity are judged against it."];
+      case "run": {
+        const spec = ins.find((i) => R(i).class === "EvaluationSpecification"), sp = spec ? R(spec) : {};
+        const args = (sp.inputs || []).map((b) => {
+          const src = b.measure ? ins.find((i) => i.startsWith("y/") && i.endsWith("/" + b.measure)) : b.ref;
+          return `${b.arg} = ${num(b.measure ? R(src).y : R(src).value)}${b.unit && b.unit !== "1" ? " " + b.unit : ""}`;
+        });
+        const fn = (sp.implementation || "").split(":").pop() || n.fn;
+        const out = x.outputs ? Object.entries(x.outputs).map(([k, v]) => `${k} = ${num(v)}`).join(", ")
+          : `unknown${x.error ? ` (${x.error})` : x.why ? ` (${x.why})` : ""}`;
+        return [`${fn}(${args.join(", ")})`, `  → ${out}`, `implementation ${sp.implementation || "?"} · version ${sp.implementation_version || "?"}`];
+      }
+      case "measure": {
+        const measure = nid.split("/")[2], unit = (measureOf[measure] || {}).unit;
+        const run = ins.find((i) => L.nodes[i] && L.nodes[i].kind === "run");
+        if (run) {
+          const spec = (edgesOf(e).ins[run] || []).find((i) => R(i).class === "EvaluationSpecification");
+          const outArg = ((spec && R(spec).outputs) || []).find((o) => o.measure === measure);
+          return [`y = output ${outArg ? outArg.arg : ""} of ${run}`, `  = ${withUnit(x.y, unit)}`];
+        }
+        const lines = ins.filter((i) => R(i).class === "Observation").map((o) =>
+          `${o}: value ${num(R(o).value)} ${R(o).unit || ""} · applicability ${R(o).applicability || "accepted"}`);
+        return [...lines, `y = ${x.y === null || x.y === undefined ? `unknown${x.why ? ` (${x.why})` : ""}` : withUnit(x.y, unit)}`,
+                "(only an accepted observation gives a value; provisional or missing means unknown)"];
+      }
+      case "check": {
+        const req = ins.find((i) => R(i).class === "Requirement"), y = ins.find((i) => i.startsWith("y/"));
+        const q = R(req), yv = R(y).y, t = q.threshold_value, unit = q.unit && q.unit !== "1" ? " " + q.unit : "";
+        const head = `${req}: y ${CMP[q.comparator] || q.comparator} ${num(t)}${unit}`;
+        if (yv === null || yv === undefined) return [head, "y is unknown, so the check is unknown"];
+        const ge = q.comparator === "ge" || q.comparator === "gt";
+        return [head, `g = ${ge ? "threshold − y" : "y − threshold"} = ${ge ? `${num(t)} − ${num(yv)}` : `${num(yv)} − ${num(t)}`} = ${num(x.g)}`,
+                `g ${x.status === "pass" ? "≤" : ">"} ${num(q.check_tolerance || 0)} → ${x.status}`];
+      }
+      case "value": {
+        const vf = ins.find((i) => i.endsWith("#vf")), y = ins.find((i) => i.startsWith("y/"));
+        const c = R(vf), yv = R(y).y;
+        if (yv === null || yv === undefined) return ["y is unknown, so the score is unknown"];
+        if (c.points && c.points.length) {
+          return [`v = piecewise-linear score of y = ${num(yv)}`, `  through ${c.points.map((pt) => `(${num(pt.x)}, ${num(pt.v)})`).join(", ")}`, `  = ${num(x.v)}`];
+        }
+        return ["v = (y − worst) / (best − worst)", `  = (${num(yv)} − ${num(c.anchor_worst)}) / (${num(c.anchor_best)} − ${num(c.anchor_worst)})`,
+                `  = ${num(x.v)}${c.clip === false ? "" : "   (clipped to 0..1)"}`];
+      }
+      case "utility": {
+        const terms = ins.filter((i) => i.startsWith("v/")).map((v) => `${num(R(v.split("/")[1] + "#w").weight)} × ${num(R(v).v)}`);
+        return ["U = Σ weight × v", `  = ${terms.join(" + ")}`,
+                x.U === null || x.U === undefined ? `  unknown: between ${num(x.lower)} and ${num(x.upper)}` : `  = ${num(x.U)}`];
+      }
+      case "feasible":
+        return [...ins.map((g) => `${g}: ${R(g).status}${R(g).mandatory === false ? " (not mandatory)" : ""}`),
+                `feasible when every mandatory check passes (a known fail outweighs an unknown) → ${x.status}`];
+      case "decision": {
+        const us = x.utilities || {};
+        return [`${x.rule} (${x.rule_kind}), tie tolerance ${num(x.tolerance)}`,
+                ...Object.entries(us).map(([a, u]) => `${a}: U = ${num(u)} · ${(x.feasible || []).includes(a) ? "feasible" : (x.infeasible || []).includes(a) ? "infeasible" : "unresolved"}`),
+                `recommended = the highest U among the feasible → ${(x.recommended || []).join(", ") || "none"}`];
+      }
+      case "condition": {
+        const c = R(n.subject);
+        return [`${n.subject}: predicate ${c.predicate}${c.required === false ? " (advisory)" : ""}`, `→ ${x.status}${x.reason ? `: ${x.reason}` : ""}`];
+      }
+      case "readiness":
+        return ["blocked if a required check fails; pending if one is unknown; otherwise ready",
+                `failed: ${(x.failed || []).join(", ") || "none"}`, `unknown: ${(x.unknown || []).join(", ") || "none"}`, `→ ${x.state}`];
+      case "state_digest": return ["digest of every source object except approvals: what an approval binds to", `→ ${x.digest}`];
+      case "actionable":
+        return ["actionable = ready ∧ an approval by an allowed role matches this state digest ∧ it is still current",
+                `→ ${x.actionable}${x.reason ? `: ${x.reason}` : ""}`];
+    }
+    return [JSON.stringify(x)];
+  }
+  function inspect(e, nid) {
+    const box = clear($("calc-inspect"));
+    const n = L.nodes[nid], st = e.nodes[nid];
+    if (!n || !st) { box.append(el("p", { class: "empty" }, "This node is not in this episode.")); return; }
+    const o = n.kind === "source" ? objOf(e, n.subject || nid) : null;
+    box.append(el("div", { class: "eyebrow" }, o ? `schema object · ${o.class}` : `computed node · ${n.kind}${n.fn && n.fn !== n.kind ? ` · ${n.fn}` : ""}`));
+    box.append(el("h3", { style: "font-size:1.05rem" }, n.label), el("div", { class: "mono small" }, nid));
+    box.append(el("h4", {}, n.kind === "source" ? "What it is" : "Calculation"), el("pre", { class: "calc-lines" }, calcText(e, nid).join("\n")));
+    box.append(el("h4", {}, "In this episode"), el("div", { class: "small" },
+      `${EXEC[st.e] || st.e} · value digest ${st.h ? st.h.slice(0, 12) : "?"}${st.d ? ` · ${st.d}` : ""}`));
+    const g = edgesOf(e);
+    const chipsFor = (ids) => {  // schema objects show their class; computed nodes their kind
+      const c = el("div", { class: "chips" });
+      ids.forEach((i) => c.append(L.nodes[i].kind === "source" ? objChip(e, L.nodes[i].subject || i, `${i} = ${e.nodes[i].v}`)
+        : nodeChip(i, `${i} = ${e.nodes[i].v}`)));
+      return c;
+    };
+    if ((g.ins[nid] || []).length) box.append(el("h4", {}, `Inputs (${g.ins[nid].length})`), chipsFor(g.ins[nid]));
+    if ((g.outs[nid] || []).length) box.append(el("h4", {}, `Feeds (${g.outs[nid].length})`), chipsFor(g.outs[nid]));
+    if (o) {
+      const sch = DATA.schema[o.class] || { description: "", slots: {}, hashable: [] };
+      box.append(el("h4", {}, `${o.class} (schema class)`));
+      if (sch.description) box.append(el("p", { class: "note", style: "margin:0" }, sch.description));
+      const t = el("table", { class: "slots" });
+      for (const [k, v] of Object.entries(o)) {
+        if (k === "class") continue;
+        const tr = el("tr");
+        const hashable = sch.hashable.includes(k);
+        const slot = el("td", { class: "slot" + (hashable ? "" : " inert"), title: hashable ? "hashable: part of the computation" : "unhashable: provenance or prose; changes nothing downstream" }, k);
+        const val = el("td", { class: "val" }, typeof v === "object" ? JSON.stringify(v) : String(v));
+        if (sch.slots[k]) val.append(el("div", { class: "desc" }, sch.slots[k]));
+        tr.append(slot, val);
+        t.append(tr);
+      }
+      box.append(el("div", { class: "small" }, "Blue slots are hashable (they feed the calculation); grey ones are provenance or prose."), t);
+    }
+    const det = el("details");
+    det.append(el("summary", { class: "small" }, "Raw node (as the kernel recorded it)"));
+    det.append(el("pre", { class: "raw" }, JSON.stringify({ id: nid, kind: n.kind, fn: n.fn, inputs: g.ins[nid] || [], execution: st.e,
+                                                             value_digest: st.h, value: raw(e, nid) }, null, 2)));
+    if (o) det.append(el("pre", { class: "raw" }, JSON.stringify(o, null, 2)));
+    box.append(det);
+  }
+  function highlight(e) {
+    const flow = $("calc-flow");
+    const g = edgesOf(e), up = calcNode ? reach(calcNode, g.ins) : new Set(), down = calcNode ? reach(calcNode, g.outs) : new Set();
+    for (const [nid, els] of Object.entries(calcEls)) {
+      for (const x of els) {
+        x.classList.toggle("sel", nid === calcNode); x.classList.toggle("up", up.has(nid)); x.classList.toggle("down", down.has(nid));
+      }
+    }
+    flow.classList.toggle("tracing", !!calcNode);
+    flow.classList.toggle("only-ran", onlyRan);
+  }
+  function card(e, nid) {
+    const n = L.nodes[nid], st = e.nodes[nid];
+    const ran = st.e === "executed";
+    const b = el("button", { class: `card s-${st.s}${ran ? " ran" : ""}`, type: "button", title: nid });
+    const k = el("span", { class: "k" });
+    k.append(el("span", {}, n.kind), el("span", { class: ran ? "ran-mark" : "" }, ran ? "↻ re-ran" : st.e === "failed" ? "failed" : "reused"));
+    const glyph = STATUS[st.s] ? STATUS[st.s][0] + " " : "";
+    const located = (st.src || []).length ? ((st.src || []).every((x) => x.current) ? " ¶" : " ¶?") : "";
+    b.append(k, el("span", { class: "t" }, n.label.replace(/^[^·]+ · /, "") + located), el("span", { class: "v" }, glyph + st.v));
+    b.addEventListener("click", () => { calcNode = nid; highlight(e); inspect(e, nid); });
+    (calcEls[nid] = calcEls[nid] || []).push(b);
+    return b;
+  }
+  function renderCalc() {
+    const e = byId[current];
+    $("calc-eyebrow").textContent = `${epName(e)} · ${e.id} · ${e.as_of}`;
+    $("calc-title").textContent = `How ${epName(e)} was calculated`;
+    const flow = clear($("calc-flow"));
+    calcEls = {};
+    const lanes = [...alts, "shared"];
+    const ids = Object.keys(L.nodes).filter((nid) => e.nodes[nid]);
+    STAGES.forEach((stage, si) => {
+      const here = ids.filter((nid) => stage.kinds.includes(L.nodes[nid].kind));
+      if (!here.length) return;
+      if (si) flow.append(el("div", { class: "flow-arrow", "aria-hidden": "true" }, "↓"));
+      const head = el("div", { class: "stage-head" });
+      head.append(el("span", { class: "n" }, String(si + 1)), el("h3", {}, stage.title), el("span", { class: "note" }, stage.note));
+      flow.append(head);
+      const byLane = Object.fromEntries(lanes.map((l) => [l, []]));
+      for (const nid of here.sort((a, b) => (L.nodes[a].row - L.nodes[b].row))) byLane[laneOf(e, nid)].push(nid);
+      const used = lanes.filter((l) => byLane[l].length);
+      const grid = el("div", { class: "lanes", style: `grid-template-columns:repeat(${used.length}, minmax(150px, 1fr))` });
+      for (const l of used) {
+        const lane = el("div", { class: "lane" });
+        const title = el("div", { class: "lane-title" });
+        if (l !== "shared") title.append(el("span", { class: "dot", style: `background:${altColor(l)}` }), document.createTextNode(`${short(l)} · ${altName(l)}`));
+        else title.append(document.createTextNode(stage.kinds.includes("source") ? "Program-wide objects" : "Program"));
+        lane.append(title);
+        if (stage.kinds.includes("source")) {  // inputs: schema objects as chips, grouped by class
+          const groups = {};
+          for (const nid of byLane[l]) {
+            const o = objOf(e, L.nodes[nid].subject || nid);
+            const cls = L.nodes[nid].kind === "clock" ? "Clock" : (o ? o.class : "Object") + (nid.endsWith("#vf") ? " (value function)" : nid.endsWith("#w") ? " (weight)" : "");
+            (groups[cls] = groups[cls] || []).push(nid);
+          }
+          const gbox = el("div", { class: "groups" });
+          for (const [cls, nids] of Object.entries(groups).sort()) {
+            gbox.append(el("div", { class: "group-label" }, `${cls} × ${nids.length}`));
+            const chips = el("div", { class: "chips" });
+            for (const nid of nids) {
+              const c = el("button", { class: "obj", type: "button", title: `${nid}: ${e.nodes[nid].v}` });
+              c.append(el("span", { class: "oid" }, nid.replace(/#(vf|w)$/, "")));
+              c.addEventListener("click", () => { calcNode = nid; highlight(e); inspect(e, nid); });
+              (calcEls[nid] = calcEls[nid] || []).push(c);
+              chips.append(c);
+            }
+            gbox.append(chips);
+          }
+          lane.append(gbox);
+        } else {
+          for (const nid of byLane[l]) lane.append(card(e, nid));
+        }
+        grid.append(lane);
+      }
+      flow.append(grid);
+    });
+    if (!calcNode || !e.nodes[calcNode]) calcNode = "decision";
+    highlight(e);
+    inspect(e, calcNode);
+  }
+  function openCalc(nid) {
+    if (!calcOpen) lastFocus = document.activeElement;
+    calcOpen = true;
+    calcNode = nid || "decision";
+    $("calc").hidden = false; $("calc-scrim").hidden = false;
+    document.body.style.overflow = "hidden";
+    renderCalc();
+    const target = (calcEls[calcNode] || [])[0];
+    if (target) target.scrollIntoView({ block: "center" });
+    $("calc-close").focus();
+  }
+  function closeCalc() {
+    calcOpen = false;
+    $("calc").hidden = true; $("calc-scrim").hidden = true;
+    document.body.style.overflow = "";
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  $("calc-close").addEventListener("click", closeCalc);
+  $("calc-scrim").addEventListener("click", closeCalc);
+  $("calc-only").addEventListener("click", () => {
+    onlyRan = !onlyRan; $("calc-only").setAttribute("aria-pressed", String(onlyRan)); highlight(byId[current]);
+  });
+  document.addEventListener("keydown", (k) => { if (k.key === "Escape" && calcOpen) closeCalc(); });
 
   function setView(v) {
     view = v;
@@ -1257,6 +1712,7 @@ const DATA = /*__PDO_DATA__*/null;
   }
   function render() {
     const e = byId[current];
+    if (calcOpen) renderCalc();
     if (view === "decision") {
       renderTimeline(); renderVerdict(e); renderChanged(e); renderWhy(e); renderAct(e); renderRobust(e); renderHistory(); renderSources(e);
     } else {

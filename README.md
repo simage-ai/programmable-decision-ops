@@ -75,14 +75,13 @@ Readiness: READY   Actionable: no (alt:B has no approval)
 - **Pending actions by role.** With one person they are a to-do list. In a collaborative harness each
   role is a person to notify.
 - **A read-only dashboard.** `pdo dashboard` writes one self-contained HTML page (and the JSON behind it)
-  with two views. The Decision view, for decision makers and reviewers, tells the program as a timeline. For
-  each episode it gives the verdict, what changed and its effect, why this recommendation (a decision matrix
-  and the must-meet requirements in words), what it waits on and who, what would change it, and where every
-  number comes from. The Engineering view shows the compiled graph: every node's status and whether the
-  episode's refresh recomputed or reused it, with the raw tables and analyses. A calculation panel shows any
-  episode's graph top to bottom, from the schema objects to the authorization, with each node's formula
-  filled in with the kernel's numbers and its raw structure; every reference on the page is a typed schema
-  object that opens there. The page draws kernel results and computes nothing. See
+  that shows the program in the kernel's own terms. The Decision view is a timeline of episodes (change
+  sets, like commits); for each it shows `decision → [alt:A]`, the record of its outputs, the change set's
+  operations and the outputs that changed against the parent, the decision matrix in `y`, `v`, `U`, `g` and
+  `F`, readiness conditions and pending actions, flip points, and every observation with its source. An
+  explain tree opens any value into the nodes it was computed from, with their formulas, down to the schema
+  objects. The Engineering view shows the whole compiled graph: every node's status and whether the
+  episode's refresh recomputed or reused it. The page draws kernel results and computes nothing. See
   [docs/dashboard.md](docs/dashboard.md).
 
 ## Examples

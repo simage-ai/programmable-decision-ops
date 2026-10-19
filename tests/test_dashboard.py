@@ -199,7 +199,7 @@ def test_flips_carry_words(state):
 def test_template_has_both_views():
     text = TEMPLATE.read_text(encoding="utf-8")
     for anchor in ('id="view-decision"', 'id="view-engineering"', 'id="timeline"', 'id="verdict"', 'id="changed"',
-                   'id="why"', 'id="matrix"', 'id="act"', 'id="robust"', 'id="sources"', 'id="graph"'):
+                   'id="matrix"', 'id="musts"', 'id="act"', 'id="robust"', 'id="sources"', 'id="graph"'):
         assert anchor in text, anchor
     assert 'role="tablist"' in text and ".engineering" in text  # the hash keeps the view
 
@@ -222,8 +222,18 @@ def test_raw_values_and_objects_are_content_addressed(program):
     assert program["layout"]["nodes"]["U/alt:B"]["fn"] == "utility"
 
 
-def test_template_has_the_calculation_panel():
+def test_template_has_the_explain_tree():
     text = TEMPLATE.read_text(encoding="utf-8")
-    for anchor in ('id="calc"', 'id="calc-flow"', 'id="calc-inspect"', "function calcText", "function openCalc",
-                   "function objChip", "function statusPill", "const epName"):
+    for anchor in ('id="calc"', 'id="calc-tree"', "function children", "function record", "function pathTo",
+                   "function openCalc", "function objChip", "function statusPill", "const epName"):
         assert anchor in text, anchor
+
+
+def test_decision_view_speaks_in_kernel_terms():
+    """The Decision view shows ids, values and formulas; it has no generated sentences."""
+    text = TEMPLATE.read_text(encoding="utf-8")
+    for canned in ("Recommend ${", "Why ${epName", "would be recommended instead", "Ready for a decision",
+                   "The recommendation is unchanged", "scores ${", "waiting on ${"):
+        assert canned not in text, canned
+    for formula in ("Σ w·v", "decision.recommended", "explain(", "PendingAction.kind"):
+        assert formula in text, formula

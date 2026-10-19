@@ -1,0 +1,28 @@
+# The test engineer reads the revised section 3.3: C stays at 0.94 until the failure review board rules,
+# so the value stands and its locator moves to revision 2 (accept, by the test engineer). Ready again, and
+# actionable on the e08 approval: re-anchoring a value changes no digest. Produced by: pdo docs extract with
+# the observation id, accept: true, --parent ep:r1 --as-of 2027-10-15 --role role:test-engineer --write.
+# Written by pdo docs extract: each locator was computed from its document, never typed.
+# Episodes are never rewritten: to change this, write a new change set.
+id: ep:r2
+parent: ep:r1
+as_of: 2027-10-15
+trigger: evidence
+change_description: 'The test engineer reads the revised section 3.3: C''s reliability stays at 0.94 until the failure
+  review board rules, so the value stands and is re-anchored to revision 2.'
+author_role: role:test-engineer
+assign:
+- target: obs:C.reliability
+  slot: locator
+  new_value:
+    document_path: docs/reliability-test-report-rev2.docx
+    document_digest: VCelCrH3Qc-Ubdm9N5KImJ2K1HA-mx6O
+    section: '3.3'
+    section_path: 3 Results > 3.3 Vehicle C
+    section_digest: QCH14H52LIacAckRKGf4I82NwRQef_ro
+    paragraph: 1
+    quote: Until the board rules, its demonstrated mission reliability is 0.94, below the 0.95 threshold.
+    quote_prefix: 'ssing whether to reclassify it. '
+    quote_suffix: ''
+    char_start: 283
+    char_end: 377

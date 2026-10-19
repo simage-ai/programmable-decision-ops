@@ -63,7 +63,7 @@ def test_record_carries_the_decision(record):
 
 
 def test_record_readiness_actions_and_replay_inputs(record):
-    assert record.readiness.readiness_state == "ready" and len(record.readiness.conditions) == 10
+    assert record.readiness.readiness_state == "ready" and len(record.readiness.conditions) == 11
     assert record.actionable is False and record.actionable_reason == "alt:B has no approval"
     (action,) = record.pending_actions
     assert (action.action_kind, action.target, action.role, action.produced_by) == \

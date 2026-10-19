@@ -16,13 +16,16 @@ imports:
 prefixes:
   linkml: https://w3id.org/linkml/
   pdo: https://w3id.org/pdo/schema/
+  oa: http://www.w3.org/ns/oa#
+  dapper: https://broadinstitute.github.io/dapper/ns#
 
 classes:
   Evidence:
     is_a: NamedThing
     mixins: [SourceRef]
     description: A source document or data product. An empty source_ref means the source is unstated.
-    slots: [evidence_kind, source_ref, document_version, issued_on, valid_until, content_sha256, owner_role]
+    slots: [evidence_kind, source_ref, document_version, issued_on, valid_until, content_sha256, document_path,
+      document_digest, owner_role]
 
   Observation:
     is_a: NamedThing
@@ -30,12 +33,29 @@ classes:
       One value of a measure for an alternative, taken from evidence. A missing value, or an
       applicability other than accepted, makes the value unknown rather than assumed.
     slots: [alternative, measure, value, unit, evidence, applicability, applicability_rationale, uncertainty,
-      owner_role]
+      locator, owner_role]
     slot_usage:
       alternative: {required: true}
       measure: {required: true}
       unit: {required: true}
       evidence: {required: true}
+
+  SourceLocator:
+    description: >-
+      Where in an indexed document a value was taken from: the document and section digests, the section's
+      id and heading path, the page and paragraph, and the exact quote with its surrounding text and its
+      character span in the section text. Written by the pdo docs tools, which refuse a quote that is not
+      in the document; never written by hand. A locator locates a value without being part of it, so it is
+      unhashable (as DAPPER treats representation locators): re-anchoring it to a new version of the
+      document changes no digest, and the locators_current readiness predicate checks it instead.
+    close_mappings: [oa:TextQuoteSelector, oa:TextPositionSelector, dapper:source_locator]
+    slots: [document_path, document_digest, section, section_path, section_digest, page, paragraph, quote,
+      quote_prefix, quote_suffix, char_start, char_end]
+    slot_usage:
+      document_digest: {required: true}
+      section: {required: true}
+      section_digest: {required: true}
+      quote: {required: true}
 
   Assumption:
     is_a: NamedThing
@@ -70,6 +90,60 @@ slots:
   content_sha256:
     mixins: [hashable]
     description: Digest of the source content, so a changed file is a changed input.
+  document_path:
+    mixins: [unhashable]
+    description: >-
+      The indexed document (.docx, .pdf, .md or .txt), relative to the state or program directory. Several
+      evidence items may share one document (e.g. one section each). On a locator, the file of the version
+      the locator was made against.
+  document_digest:
+    mixins: [unhashable]
+    description: >-
+      Digest of an indexed document's headings and section texts (pdo docs index). On Evidence it is the
+      current version; on a locator, the version the locator was made against. Written by the pdo docs
+      tools. Whole-file identity stays with content_sha256; leave it empty for a document whose values
+      carry section locators, so a revision is judged section by section.
+  locator:
+    mixins: [unhashable]
+    range: SourceLocator
+    inlined: true
+    description: The passage of the evidence's document this value was taken from.
+  section:
+    mixins: [unhashable]
+    description: Section id in the document's outline, e.g. "3.2" ("0" is text before the first heading).
+  section_path:
+    mixins: [unhashable]
+    description: Heading path of the section, e.g. "3 Results > 3.2 Vehicle B".
+  section_digest:
+    mixins: [unhashable]
+    description: >-
+      Digest of the section's normalized body text (not its heading). Equal digests in two versions of a
+      document mean the cited text did not change.
+  page:
+    mixins: [unhashable]
+    range: integer
+    description: Page of the quoted paragraph (PDF), 1-based.
+  paragraph:
+    mixins: [unhashable]
+    range: integer
+    description: Paragraph within the section, 1-based.
+  quote:
+    mixins: [unhashable]
+    description: The exact passage stating the value, as normalized by pdo docs (TextQuoteSelector exact).
+  quote_prefix:
+    mixins: [unhashable]
+    description: Up to 32 characters before the quote in the section (TextQuoteSelector prefix).
+  quote_suffix:
+    mixins: [unhashable]
+    description: Up to 32 characters after the quote in the section (TextQuoteSelector suffix).
+  char_start:
+    mixins: [unhashable]
+    range: integer
+    description: Start of the quote in the section text (TextPositionSelector start).
+  char_end:
+    mixins: [unhashable]
+    range: integer
+    description: End of the quote in the section text, exclusive (TextPositionSelector end).
   alternative:
     mixins: [hashable]
     range: Alternative

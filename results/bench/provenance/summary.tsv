@@ -1,0 +1,13 @@
+metric	value	numerator	denominator
+cases	23		
+label_agreement_pct	100.0	23	23
+changed_passage_agreement_pct	100.0	23	23
+values_flagged_section_level	18		
+values_flagged_whole_document	93		
+review_reduction_pct	80.6	75	93
+changed_passage_recall_pct	100.0	12	12
+flag_precision_pct	66.7	12	18
+approvals_kept_pct	100.0	23	23
+cases_without_decision_nodes_in_impact_pct	100.0	23	23
+readiness_pending_iff_flagged_pct	100.0	23	23
+selective_equals_full_pct	100.0	23	23

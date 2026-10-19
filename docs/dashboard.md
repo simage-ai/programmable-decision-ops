@@ -19,7 +19,7 @@ directory unless an earlier dashboard wrote it.
 |---|---|
 | Episode strip | The main line (baseline to newest episode) and the branches. Each chip shows the date, trigger, recommendation and readiness, and marks an approved episode. Selecting one updates every panel; the URL hash (`#e06`) links to it. |
 | Summary | The recommendation (under `expected_mavt`, the expected-utility choice with the point-value choice beside it), readiness, authorization with its reason, how many computed nodes the refresh re-evaluated and whether that matched a full run, and the state digest an approval binds to. |
-| Dependency graph | Every node of the selected episode, in layers. Fill is the status (pass, unknown, fail, value), with a glyph so color is never the only cue. The outline shows how the refresh treated the node: solid if re-evaluated, dashed if reused because its inputs did not change. A bar on the left marks the alternative. "Show inputs" adds the source objects. "Highlight what this episode recomputed" fades everything outside the impact set. Hovering a node highlights its edges; clicking it lists its value, its inputs with their values, and what it feeds. |
+| Dependency graph | Every node of the selected episode, in layers. Fill is the status (pass, unknown, fail, value), with a glyph so color is never the only cue. The outline shows how the refresh treated the node: solid if re-evaluated, dashed if reused because its inputs did not change. A bar on the left marks the alternative. "Show inputs" adds the source objects. "Highlight what this episode recomputed" fades everything outside the impact set. Hovering a node highlights its edges; clicking it lists its value, its inputs with their values, what it feeds and, for a value taken from a report, the document, section, page and quote. `¶` marks such a value; `¶?` marks one whose section changed in a revision and awaits review. |
 | Decision table | U (or its bounds when an input is unknown), feasibility with each failed or unknown requirement and its margin g, and each measure. |
 | Readiness conditions, pending actions | Each condition's status and reason; what people must do, grouped by owning role. |
 | Utility across the program | U per alternative along the main line, with a readiness band and approval marks. A gap means the utility was unknown in that episode. |
@@ -57,7 +57,8 @@ layout        columns (names), nodes: id -> {col, row, kind, label, alternative,
 episodes[]    id, parent, as_of, trigger, description,
               recommended, feasible, infeasible, unresolved, readiness, actionable, actionable_reason,
               approval, state_digest, conditions, pending (actions), table (decision table rows),
-              nodes: id -> {s: status, v: value text, e: exec status, d?: detail},
+              nodes: id -> {s: status, v: value text, e: exec status, d?: detail,
+                            src?: [{observation, document, section, section_path, page, quote, current}]},
               impact (node ids, null for the baseline), verified, cost {executed, computed, total},
               flips, sensitivity {tornado, global, value_of_information, notes}, uncertainty
 ```

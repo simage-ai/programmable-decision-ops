@@ -1,0 +1,31 @@
+# The test engineer accepts revision 3: C's reliability is 0.96, above the 0.95 threshold, so C is
+# feasible and wins (U_C = 0.70). The value changed, so the B approval no longer matches. Produced by:
+# pdo docs extract with the observation id, accept: true, --parent ep:r3 --as-of 2027-12-01
+# --role role:test-engineer --write.
+# Written by pdo docs extract: each locator was computed from its document, never typed.
+# Episodes are never rewritten: to change this, write a new change set.
+id: ep:r4
+parent: ep:r3
+as_of: 2027-12-01
+trigger: evidence
+change_description: 'The test engineer accepts revision 3: the failure review board reclassified one of C''s driveline
+  failures as a test-rig fault, raising C''s demonstrated reliability to 0.96.'
+author_role: role:test-engineer
+assign:
+- target: obs:C.reliability
+  slot: value
+  new_value: 0.96
+- target: obs:C.reliability
+  slot: locator
+  new_value:
+    document_path: docs/reliability-test-report-rev3.docx
+    document_digest: -ULNb9kGUkEFFQg6BH-JYpTYDi1RNmjp
+    section: '3.3'
+    section_path: 3 Results > 3.3 Vehicle C
+    section_digest: kTz7y2cBJNJLniWprBeHl3xeaxAyjxP7
+    paragraph: 1
+    quote: Its demonstrated mission reliability is 0.96, above the 0.95 threshold.
+    quote_prefix: 'ne failure as a test-rig fault. '
+    quote_suffix: ''
+    char_start: 214
+    char_end: 285

@@ -99,7 +99,7 @@ def test_describe_schema_falls_back_to_the_pydantic_models(monkeypatch):
 
 def test_validate_a_program_and_its_episodes():
     r = ok(tools.validate(VEHICLE))
-    assert r["valid"] and r["errors"] == [] and r["episodes"] == 17 and r["objects"] > 0
+    assert r["valid"] and r["errors"] == [] and r["episodes"] == 21 and r["objects"] > 0
 
 
 def test_validate_reports_an_invalid_state_as_a_verdict(tmp_path):
@@ -199,7 +199,8 @@ def test_uncertainty_is_reproducible_by_seed():
 def test_program_status_gives_the_tree_and_the_newest_episode():
     r = ok(tools.program_status(VEHICLE))
     depth = {e["episode"]: e["depth"] for e in r["episodes"]}
-    assert len(depth) == 17 and depth["ep:e00"] == 0 and depth["ep:b1"] == 1 and depth["ep:e12"] == 12
+    assert len(depth) == 21 and depth["ep:e00"] == 0 and depth["ep:b1"] == 1 and depth["ep:e12"] == 12
+    assert depth["ep:r4"] == 12  # e08 is at depth 8
     assert r["newest"] == "ep:e12" and r["episodes"][0]["file"] is None
     assert r["pending_actions"][0]["resolve_with"]["kind"] == "review"
     failed(tools.program_status(VEHICLE / "baseline"), "not a program directory")
@@ -367,7 +368,8 @@ def test_plain_makes_values_json_ready():
 
 EXPECTED_TOOLS = {f"pdo_{name}" for name in (
     "describe_schema", "validate", "run", "explain", "flip", "scenarios", "readiness", "pending_actions",
-    "program_status", "refresh", "impact", "uncertainty", "sensitivity", "list_examples", "apply_change",
+    "program_status", "refresh", "impact", "uncertainty", "sensitivity", "docs_index", "docs_read", "docs_locate",
+    "docs_verify", "docs_extract", "docs_revise", "list_examples", "apply_change",
     "record_human_action",
     "package", "dashboard", "import_sysml", "copy_example")}
 

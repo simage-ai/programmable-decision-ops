@@ -45,5 +45,6 @@ HASHABLE: dict[str, tuple[str, ...]] = {
     'SensitivityEntry': ('evidence', 'evppi', 'evppi_high', 'evppi_low', 'first_order', 'flips_within', 'high_number', 'low_number', 'margin_high', 'margin_low', 'parameter', 'swing', 'total_high', 'total_index', 'total_low', 'worth_resolving'),
     'SensitivitySettings': ('infeasible_value', 'samples', 'seed', 'span'),
     'SlotAssignment': ('new_value', 'slot', 'target'),
+    'SourceLocator': (),
     'UncertaintySpec': ('family', 'high', 'low', 'mean', 'mode', 'sd'),
 }

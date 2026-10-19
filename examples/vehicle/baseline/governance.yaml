@@ -27,6 +27,8 @@ readiness_conditions:
      owner_role: role:cost-analyst}
   - {id: rc:evidence-traceable, name: Evidence behind the recommendation names its source, predicate: evidence_traceable,
      owner_role: role:systems-engineer}
+  - {id: rc:locators-current, name: Values taken from indexed documents cite their current version,
+     predicate: locators_current, owner_role: role:systems-engineer}
   - {id: rc:assumptions-validated, name: Critical assumptions are validated, predicate: assumptions_validated,
      owner_role: role:systems-engineer}
   - {id: rc:risks-treated, name: Significant risks are treated, predicate: risks_treated,

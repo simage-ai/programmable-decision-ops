@@ -1,44 +1,100 @@
 # Synthetic evidence and the observations taken from it. Range is not observed: spec:range-model
 # computes it from usable fuel, fuel economy and the terrain assumption (A 320, B 360, C 380 mi).
+#
+# The configuration sheets (docs/configuration-sheets.pdf) and the phase 1 reliability report
+# (docs/reliability-test-report.docx) are indexed documents: each value taken from them carries a locator
+# (section, page, quote, digests) computed by pdo docs locate, and pdo validate checks every locator
+# against its document. The supplier quotes are cited but not indexed.
 evidence_items:
   - {id: ev:design-A, name: Configuration sheet A, evidence_kind: specification,
      source_ref: "Synthetic configuration sheet, vehicle A, rev 1", document_version: "1",
-     issued_on: 2026-11-02, owner_role: role:systems-engineer}
+     issued_on: 2026-11-02, owner_role: role:systems-engineer,
+     document_path: docs/configuration-sheets.pdf, document_digest: ZApubl4G6TlVwnx9NRG78Qw0RsjsumNH}
   - {id: ev:cost-A, name: Supplier quote A, evidence_kind: cost estimate,
      source_ref: "Synthetic supplier quote, vehicle A, Q4 2026", document_version: "1",
      issued_on: 2026-12-01, valid_until: 2027-12-31, owner_role: role:cost-analyst}
   - {id: ev:reliability-A, name: Reliability test report A, evidence_kind: test report,
      source_ref: "Synthetic reliability growth test, vehicle A, phase 1", document_version: "1",
-     issued_on: 2026-12-10, owner_role: role:test-engineer}
+     issued_on: 2026-12-10, owner_role: role:test-engineer,
+     document_path: docs/reliability-test-report.docx, document_digest: 0LbSkTyahmHXOn_g5mbtAsuKT3aie6Hq}
   - {id: ev:design-B, name: Configuration sheet B, evidence_kind: specification,
      source_ref: "Synthetic configuration sheet, vehicle B, rev 1", document_version: "1",
-     issued_on: 2026-11-02, owner_role: role:systems-engineer}
+     issued_on: 2026-11-02, owner_role: role:systems-engineer,
+     document_path: docs/configuration-sheets.pdf, document_digest: ZApubl4G6TlVwnx9NRG78Qw0RsjsumNH}
   - {id: ev:cost-B, name: Supplier quote B, evidence_kind: cost estimate,
      source_ref: "Synthetic supplier quote, vehicle B, Q4 2026", document_version: "1",
      issued_on: 2026-12-01, valid_until: 2027-12-31, owner_role: role:cost-analyst}
   - {id: ev:reliability-B, name: Reliability test report B, evidence_kind: test report,
      source_ref: "Synthetic reliability growth test, vehicle B, phase 1", document_version: "1",
-     issued_on: 2026-12-10, owner_role: role:test-engineer}
+     issued_on: 2026-12-10, owner_role: role:test-engineer,
+     document_path: docs/reliability-test-report.docx, document_digest: 0LbSkTyahmHXOn_g5mbtAsuKT3aie6Hq}
   - {id: ev:design-C, name: Configuration sheet C, evidence_kind: specification,
      source_ref: "Synthetic configuration sheet, vehicle C, rev 1", document_version: "1",
-     issued_on: 2026-11-02, owner_role: role:systems-engineer}
+     issued_on: 2026-11-02, owner_role: role:systems-engineer,
+     document_path: docs/configuration-sheets.pdf, document_digest: ZApubl4G6TlVwnx9NRG78Qw0RsjsumNH}
   - {id: ev:cost-C, name: Supplier quote C, evidence_kind: cost estimate,
      source_ref: "Synthetic supplier quote, vehicle C, Q4 2026", document_version: "1",
      issued_on: 2026-12-01, valid_until: 2027-12-31, owner_role: role:cost-analyst}
   - {id: ev:reliability-C, name: Reliability test report C, evidence_kind: test report,
      source_ref: "Synthetic reliability growth test, vehicle C, phase 1", document_version: "1",
-     issued_on: 2026-12-10, owner_role: role:test-engineer}
+     issued_on: 2026-12-10, owner_role: role:test-engineer,
+     document_path: docs/reliability-test-report.docx, document_digest: 0LbSkTyahmHXOn_g5mbtAsuKT3aie6Hq}
 
 observations:
-  - {id: obs:A.tank, alternative: alt:A, measure: meas:tank-capacity, value: 40, unit: gal, evidence: ev:design-A}
-  - {id: obs:A.mpg, alternative: alt:A, measure: meas:fuel-economy, value: 8.0, unit: mi/gal, evidence: ev:design-A}
+  - {id: obs:A.tank, alternative: alt:A, measure: meas:tank-capacity, value: 40, unit: gal, evidence: ev:design-A,
+     locator: {document_path: docs/configuration-sheets.pdf, document_digest: ZApubl4G6TlVwnx9NRG78Qw0RsjsumNH,
+       section: "2", section_path: "2 Vehicle A: current production derivative",
+       section_digest: c4Zw1gYx2fN0ACZmcUwUNIefgbI2aOrB, page: 1, paragraph: 1,
+       quote: configuration A holds a usable fuel capacity of 40 gal, quote_prefix: "The fuel system of ",
+       quote_suffix: ". Over the mixed-terrain duty cy", char_start: 19, char_end: 73}}
+  - {id: obs:A.mpg, alternative: alt:A, measure: meas:fuel-economy, value: 8.0, unit: mi/gal, evidence: ev:design-A,
+     locator: {document_path: docs/configuration-sheets.pdf, document_digest: ZApubl4G6TlVwnx9NRG78Qw0RsjsumNH,
+       section: "2", section_path: "2 Vehicle A: current production derivative",
+       section_digest: c4Zw1gYx2fN0ACZmcUwUNIefgbI2aOrB, page: 1, paragraph: 1,
+       quote: configuration A is rated at a fuel economy of 8.0 mi/gal,
+       quote_prefix: "r the mixed-terrain duty cycle, ", quote_suffix: " at gross vehicle weight.", char_start: 110,
+       char_end: 166}}
   - {id: obs:A.cost, alternative: alt:A, measure: meas:unit-cost, value: 1.00, unit: MUSD, evidence: ev:cost-A}
-  - {id: obs:A.reliability, alternative: alt:A, measure: meas:reliability, value: 0.97, unit: "1", evidence: ev:reliability-A}
-  - {id: obs:B.tank, alternative: alt:B, measure: meas:tank-capacity, value: 45, unit: gal, evidence: ev:design-B}
-  - {id: obs:B.mpg, alternative: alt:B, measure: meas:fuel-economy, value: 8.0, unit: mi/gal, evidence: ev:design-B}
+  - {id: obs:A.reliability, alternative: alt:A, measure: meas:reliability, value: 0.97, unit: "1", evidence: ev:reliability-A,
+     locator: {document_path: docs/reliability-test-report.docx, document_digest: 0LbSkTyahmHXOn_g5mbtAsuKT3aie6Hq,
+       section: "3.1", section_path: 3 Results > 3.1 Vehicle A, section_digest: ztsgmIpZZBfEzEC0OB9Ow3sGi2AeziFP,
+       paragraph: 1, quote: Its demonstrated mission reliability is 0.97.,
+       quote_prefix: "res, all in the cooling system. ", quote_suffix: "", char_start: 117, char_end: 162}}
+  - {id: obs:B.tank, alternative: alt:B, measure: meas:tank-capacity, value: 45, unit: gal, evidence: ev:design-B,
+     locator: {document_path: docs/configuration-sheets.pdf, document_digest: ZApubl4G6TlVwnx9NRG78Qw0RsjsumNH,
+       section: "3", section_path: "3 Vehicle B: extended-range hybrid",
+       section_digest: "-rfq1m90BLrlBaIEhXxU7voMkdk-gm6y", page: 1, paragraph: 1,
+       quote: configuration B holds a usable fuel capacity of 45 gal, quote_prefix: "The fuel system of ",
+       quote_suffix: ", including the auxiliary tank. ", char_start: 19, char_end: 73}}
+  - {id: obs:B.mpg, alternative: alt:B, measure: meas:fuel-economy, value: 8.0, unit: mi/gal, evidence: ev:design-B,
+     locator: {document_path: docs/configuration-sheets.pdf, document_digest: ZApubl4G6TlVwnx9NRG78Qw0RsjsumNH,
+       section: "3", section_path: "3 Vehicle B: extended-range hybrid",
+       section_digest: "-rfq1m90BLrlBaIEhXxU7voMkdk-gm6y", page: 1, paragraph: 2,
+       quote: configuration B is rated at a fuel economy of 8.0 mi/gal,
+       quote_prefix: "r the mixed-terrain duty cycle, ", quote_suffix: " at gross vehicle weight, with t",
+       char_start: 140, char_end: 196}}
   - {id: obs:B.cost, alternative: alt:B, measure: meas:unit-cost, value: 1.20, unit: MUSD, evidence: ev:cost-B}
-  - {id: obs:B.reliability, alternative: alt:B, measure: meas:reliability, value: 0.98, unit: "1", evidence: ev:reliability-B}
-  - {id: obs:C.tank, alternative: alt:C, measure: meas:tank-capacity, value: 47.5, unit: gal, evidence: ev:design-C}
-  - {id: obs:C.mpg, alternative: alt:C, measure: meas:fuel-economy, value: 8.0, unit: mi/gal, evidence: ev:design-C}
+  - {id: obs:B.reliability, alternative: alt:B, measure: meas:reliability, value: 0.98, unit: "1", evidence: ev:reliability-B,
+     locator: {document_path: docs/reliability-test-report.docx, document_digest: 0LbSkTyahmHXOn_g5mbtAsuKT3aie6Hq,
+       section: "3.2", section_path: 3 Results > 3.2 Vehicle B, section_digest: nIZ_tfAZ34x4RdhI6npzfWPhdOyqzBkc,
+       paragraph: 1, quote: Its demonstrated mission reliability is 0.98.,
+       quote_prefix: "n the hybrid power electronics. ", quote_suffix: "", char_start: 118, char_end: 163}}
+  - {id: obs:C.tank, alternative: alt:C, measure: meas:tank-capacity, value: 47.5, unit: gal, evidence: ev:design-C,
+     locator: {document_path: docs/configuration-sheets.pdf, document_digest: ZApubl4G6TlVwnx9NRG78Qw0RsjsumNH,
+       section: "4", section_path: "4 Vehicle C: low-cost commercial platform",
+       section_digest: 9tKLJbAKTUiU2C072y3iP_HTHMx_iuqU, page: 1, paragraph: 1,
+       quote: configuration C holds a usable fuel capacity of 47.5 gal, quote_prefix: "The fuel system of ",
+       quote_suffix: ". Over the mixed-terrain duty cy", char_start: 19, char_end: 75}}
+  - {id: obs:C.mpg, alternative: alt:C, measure: meas:fuel-economy, value: 8.0, unit: mi/gal, evidence: ev:design-C,
+     locator: {document_path: docs/configuration-sheets.pdf, document_digest: ZApubl4G6TlVwnx9NRG78Qw0RsjsumNH,
+       section: "4", section_path: "4 Vehicle C: low-cost commercial platform",
+       section_digest: 9tKLJbAKTUiU2C072y3iP_HTHMx_iuqU, page: 1, paragraph: 1,
+       quote: configuration C is rated at a fuel economy of 8.0 mi/gal,
+       quote_prefix: "r the mixed-terrain duty cycle, ", quote_suffix: " at gross vehicle weight.", char_start: 112,
+       char_end: 168}}
   - {id: obs:C.cost, alternative: alt:C, measure: meas:unit-cost, value: 0.95, unit: MUSD, evidence: ev:cost-C}
-  - {id: obs:C.reliability, alternative: alt:C, measure: meas:reliability, value: 0.94, unit: "1", evidence: ev:reliability-C}
+  - {id: obs:C.reliability, alternative: alt:C, measure: meas:reliability, value: 0.94, unit: "1", evidence: ev:reliability-C,
+     locator: {document_path: docs/reliability-test-report.docx, document_digest: 0LbSkTyahmHXOn_g5mbtAsuKT3aie6Hq,
+       section: "3.3", section_path: 3 Results > 3.3 Vehicle C, section_digest: KLwFsDDxVOCJuq5iJ6S6nLwF9nX3apLZ,
+       paragraph: 1, quote: "Its demonstrated mission reliability is 0.94, below the 0.95 threshold.",
+       quote_prefix: "e suspension and the driveline. ", quote_suffix: "", char_start: 127, char_end: 198}}

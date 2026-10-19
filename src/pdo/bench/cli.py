@@ -5,6 +5,8 @@
                                  results/figures/*.png (each only if its content changed)
     pdo bench check SUITE_DIR    exit 1 unless label agreement, and equivalence and soundness of the
                                  impact and cutoff strategies, are all 100%; writes nothing
+    pdo bench provenance DIR     section-level edits to indexed reports, absorbed with pdo docs revise;
+                                 writes results/bench/<suite>/*.tsv (--check: gate only, write nothing)
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ def register(app: typer.Typer) -> None:
 
     group = typer.Typer(no_args_is_help=True, help="Representation benchmark: perturbations, strategies, labels.")
     app.add_typer(group, name="bench")
+    register_provenance(group)
 
     @group.command("run")
     def run_cmd(suite: Path = SuiteArg, results: Path = ResultsOpt,
@@ -70,6 +73,35 @@ def register(app: typer.Typer) -> None:
             for d in disagreements(result):
                 typer.echo(f"     {d['case']}: {', '.join(d['fields'])}" + (f" ({d['error']})" if d["error"] else ""))
         if not result.passed:
+            raise typer.Exit(1)
+
+
+def register_provenance(group: typer.Typer) -> None:
+    from pdo.cli import JsonOpt, fail
+
+    @group.command("provenance")
+    def provenance_cmd(suite: Path = typer.Argument(Path("bench/provenance"), help="A provenance suite directory."),
+                       results: Path = ResultsOpt,
+                       check: bool = typer.Option(False, "--check", help="Gate only: exit 1 unless every rate is "
+                                                                         "100% and no changed passage escapes."),
+                       as_json: bool = JsonOpt) -> None:
+        """Section-level edits to indexed reports: values flagged against the labels and a whole-document policy."""
+        from pdo.bench import provenance as pv
+
+        try:
+            result = pv.run_provenance(suite)
+        except (ValueError, OSError) as exc:
+            fail(str(exc), as_json)
+        written = {} if check else pv.write_tables(result, results)
+        if as_json:
+            data = {"passed": result.passed, "summary": {r[0]: r[1] for r in pv.summary_rows(result)},
+                    "cases": result.rows, "written": sorted(p for p, w in written.items() if w)}
+            typer.echo(json.dumps({"ok": result.passed if check else True, **data}, indent=1, default=str))
+        else:
+            typer.echo(pv.summary_text(result), nl=False)
+            if not check:
+                typer.echo(f"wrote {sum(written.values())} of {len(written)} files under {results}/")
+        if check and not result.passed:
             raise typer.Exit(1)
 
 

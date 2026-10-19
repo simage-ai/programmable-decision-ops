@@ -233,6 +233,10 @@ class ReadinessPredicate(str, Enum):
     """
     Evidence behind the recommendation names its source.
     """
+    locators_current = "locators_current"
+    """
+    Every value located in an indexed document is located in its current version; a value whose section changed in a revision stays pending until a person re-anchors it.
+    """
     assumptions_validated = "assumptions_validated"
     """
     Critical assumptions are validated.
@@ -297,6 +301,10 @@ class ActionKind(str, Enum):
     approve = "approve"
     fix_evaluator = "fix_evaluator"
     run_uncertainty_analysis = "run_uncertainty_analysis"
+    review_locator = "review_locator"
+    """
+    Confirm or revise a value whose report section changed, and re-anchor it.
+    """
 
 
 class FlipMethod(str, Enum):
@@ -680,6 +688,8 @@ class Evidence(SourceRef, NamedThing):
     issued_on: Optional[date] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Evidence'], 'mixins': ['unhashable']} })
     valid_until: Optional[date] = Field(default=None, description="""After this date the evidence is stale and readiness becomes pending until it is refreshed.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Evidence', 'HumanApproval'], 'mixins': ['hashable']} })
     content_sha256: Optional[str] = Field(default=None, description="""Digest of the source content, so a changed file is a changed input.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Evidence'], 'mixins': ['hashable']} })
+    document_path: Optional[str] = Field(default=None, description="""The indexed document (.docx, .pdf, .md or .txt), relative to the state or program directory. Several evidence items may share one document (e.g. one section each). On a locator, the file of the version the locator was made against.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Evidence', 'SourceLocator'], 'mixins': ['unhashable']} })
+    document_digest: Optional[str] = Field(default=None, description="""Digest of an indexed document's headings and section texts (pdo docs index). On Evidence it is the current version; on a locator, the version the locator was made against. Written by the pdo docs tools. Whole-file identity stays with content_sha256; leave it empty for a document whose values carry section locators, so a revision is judged section by section.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Evidence', 'SourceLocator'], 'mixins': ['unhashable']} })
     owner_role: Optional[str] = Field(default=None, description="""The role that must act when this object needs a human (review, acceptance, data).""", json_schema_extra = { "linkml_meta": {'domain_of': ['Requirement',
                        'Evidence',
                        'Observation',
@@ -739,6 +749,7 @@ class Observation(NamedThing):
     applicability: Optional[Applicability] = Field(default=None, description="""Default accepted.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Observation'], 'mixins': ['hashable']} })
     applicability_rationale: Optional[str] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Observation'], 'mixins': ['unhashable']} })
     uncertainty: Optional[UncertaintySpec] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Observation', 'Assumption'], 'mixins': ['hashable']} })
+    locator: Optional[SourceLocator] = Field(default=None, description="""The passage of the evidence's document this value was taken from.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Observation'], 'mixins': ['unhashable']} })
     owner_role: Optional[str] = Field(default=None, description="""The role that must act when this object needs a human (review, acceptance, data).""", json_schema_extra = { "linkml_meta": {'domain_of': ['Requirement',
                        'Evidence',
                        'Observation',
@@ -761,6 +772,34 @@ class Observation(NamedThing):
          'mixins': ['unhashable'],
          'slot_uri': 'dcterms:description'} })
     comments: Optional[list[str]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['NamedThing'], 'mixins': ['unhashable']} })
+
+
+class SourceLocator(ConfiguredBaseModel):
+    """
+    Where in an indexed document a value was taken from: the document and section digests, the section's id and heading path, the page and paragraph, and the exact quote with its surrounding text and its character span in the section text. Written by the pdo docs tools, which refuse a quote that is not in the document; never written by hand. A locator locates a value without being part of it, so it is unhashable (as DAPPER treats representation locators): re-anchoring it to a new version of the document changes no digest, and the locators_current readiness predicate checks it instead.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'close_mappings': ['oa:TextQuoteSelector',
+                            'oa:TextPositionSelector',
+                            'dapper:source_locator'],
+         'from_schema': 'https://w3id.org/pdo/schema/evidence',
+         'slot_usage': {'document_digest': {'name': 'document_digest',
+                                            'required': True},
+                        'quote': {'name': 'quote', 'required': True},
+                        'section': {'name': 'section', 'required': True},
+                        'section_digest': {'name': 'section_digest', 'required': True}}})
+
+    document_path: Optional[str] = Field(default=None, description="""The indexed document (.docx, .pdf, .md or .txt), relative to the state or program directory. Several evidence items may share one document (e.g. one section each). On a locator, the file of the version the locator was made against.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Evidence', 'SourceLocator'], 'mixins': ['unhashable']} })
+    document_digest: str = Field(default=..., description="""Digest of an indexed document's headings and section texts (pdo docs index). On Evidence it is the current version; on a locator, the version the locator was made against. Written by the pdo docs tools. Whole-file identity stays with content_sha256; leave it empty for a document whose values carry section locators, so a revision is judged section by section.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Evidence', 'SourceLocator'], 'mixins': ['unhashable']} })
+    section: str = Field(default=..., description="""Section id in the document's outline, e.g. \"3.2\" (\"0\" is text before the first heading).""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceLocator'], 'mixins': ['unhashable']} })
+    section_path: Optional[str] = Field(default=None, description="""Heading path of the section, e.g. \"3 Results > 3.2 Vehicle B\".""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceLocator'], 'mixins': ['unhashable']} })
+    section_digest: str = Field(default=..., description="""Digest of the section's normalized body text (not its heading). Equal digests in two versions of a document mean the cited text did not change.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceLocator'], 'mixins': ['unhashable']} })
+    page: Optional[int] = Field(default=None, description="""Page of the quoted paragraph (PDF), 1-based.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceLocator'], 'mixins': ['unhashable']} })
+    paragraph: Optional[int] = Field(default=None, description="""Paragraph within the section, 1-based.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceLocator'], 'mixins': ['unhashable']} })
+    quote: str = Field(default=..., description="""The exact passage stating the value, as normalized by pdo docs (TextQuoteSelector exact).""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceLocator'], 'mixins': ['unhashable']} })
+    quote_prefix: Optional[str] = Field(default=None, description="""Up to 32 characters before the quote in the section (TextQuoteSelector prefix).""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceLocator'], 'mixins': ['unhashable']} })
+    quote_suffix: Optional[str] = Field(default=None, description="""Up to 32 characters after the quote in the section (TextQuoteSelector suffix).""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceLocator'], 'mixins': ['unhashable']} })
+    char_start: Optional[int] = Field(default=None, description="""Start of the quote in the section text (TextPositionSelector start).""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceLocator'], 'mixins': ['unhashable']} })
+    char_end: Optional[int] = Field(default=None, description="""End of the quote in the section text, exclusive (TextPositionSelector end).""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceLocator'], 'mixins': ['unhashable']} })
 
 
 class Assumption(NamedThing):
@@ -1553,6 +1592,9 @@ class Claim(ConfiguredBaseModel):
     basis: Optional[ClaimBasis] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Claim'], 'mixins': ['hashable']} })
     produced_by: Optional[str] = Field(default=None, description="""The node (and so the evaluation run) or recorded action that produced the claim.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PendingAction', 'Claim'], 'mixins': ['hashable']} })
     supported_by: Optional[list[str]] = Field(default=None, json_schema_extra = { "linkml_meta": {'domain_of': ['Claim'], 'mixins': ['hashable']} })
+    source_locator: Optional[str] = Field(default=None, description="""The passage a claim's value was taken from: document, section, page and exact quote (from the observation's SourceLocator), marked when it cites an earlier version of the document.""", json_schema_extra = { "linkml_meta": {'close_mappings': ['dapper:source_locator'],
+         'domain_of': ['Claim'],
+         'mixins': ['unhashable']} })
 
 
 # Model rebuild
@@ -1572,6 +1614,7 @@ Scenario.model_rebuild()
 SlotAssignment.model_rebuild()
 Evidence.model_rebuild()
 Observation.model_rebuild()
+SourceLocator.model_rebuild()
 Assumption.model_rebuild()
 UncertaintySpec.model_rebuild()
 EvaluationSpecification.model_rebuild()

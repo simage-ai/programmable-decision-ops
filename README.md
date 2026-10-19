@@ -63,6 +63,12 @@ Readiness: READY   Actionable: no (alt:B has no approval)
   from linear), the response to one input's distribution (spread, P(win), regret), a tornado of the
   decision margin, Sobol first-order and total indices, and value of information (EVPI, and EVPPI per
   input with the evidence that would resolve it).
+- **Values traced to report sections.** Word, PDF and Markdown reports are indexed into sections with
+  content digests. Each value taken from a report carries a locator (document, section, page, exact
+  quote) that `pdo docs` computes, refusing any quote that is not in the document, and `pdo validate`
+  checks. When a report is revised, only the values whose section changed go back to a person, and the
+  `locators_current` readiness condition holds the decision pending until they are reviewed. A
+  revision changes no value, so it invalidates no approval. See [docs/semantics.md](docs/semantics.md).
 - **Decision Packages.** `package.md` for people and `record.json` for machines (it conforms to the
   published record schema and replays node by node), with assessments expressed as claims whose basis
   is computed, semantic (agent interpretation) or human.
@@ -78,7 +84,7 @@ Readiness: READY   Actionable: no (alt:B has no approval)
 
 | Example | Shows |
 |---|---|
-| [examples/vehicle](examples/vehicle) | The research brief's synthetic vehicle trade study (episode `ep:e00`) and a 12-episode decision program built on it (cost revisions, a provisional test report, an unsourced quote, an expiry, a flip to A, re-approvals), plus the brief's four branches. `expected.yaml` holds the hand-computed outcome of every episode. |
+| [examples/vehicle](examples/vehicle) | The research brief's synthetic vehicle trade study (episode `ep:e00`) and a 12-episode decision program built on it (cost revisions, a provisional test report, an unsourced quote, an expiry, a flip to A, re-approvals), plus the brief's four branches. The configuration sheets (PDF) and the reliability report (Word) are indexed documents, and episodes `ep:r1`..`ep:r4` absorb two revisions of the report: the first flags only C's value and keeps B's approval, the second raises C to 0.96 and C wins. `expected.yaml` holds the hand-computed outcome of every episode. |
 | [examples/vehicle/sysml](examples/vehicle/sysml) | The same three configurations as a SysML v2 model, with the mapping that imports it onto the baseline's ids. |
 | [examples/fires_sensor](examples/fires_sensor) | A synthetic counterfire-radar upgrade choice under uncertainty. The detection range follows the radar equation (range ∝ RCS^¼), and the point-value winner fails the chance constraint, so `pdo uncertainty` recommends a different option. |
 
@@ -101,6 +107,10 @@ Every command takes `--json` (`{"ok": true, ...}`, or `{"ok": false, "error": ..
 | `pdo flip PATH` / `pdo scenarios PATH` | Flip points and weight trade-offs; scenario robustness |
 | `pdo uncertainty PATH` | E[U], Pr(feasible), the chance-constrained decision, scenario robustness |
 | `pdo sensitivity PATH [-p ID.slot] [--figures DIR]` | Response curve and distribution of one input; or tornado, Sobol indices and value of information for all |
+| `pdo docs index\|show FILE [SECTION]` | A report's sections (ids, heading paths, pages, digests); a section's text as quotes are matched |
+| `pdo docs locate FILE QUOTE` | The locator of a quote; refused when the quote is not in the report |
+| `pdo docs extract PATH PROPOSALS.yaml` / `pdo docs revise PATH DOC NEW_FILE` | Values with quotes as a change set (provisional unless accepted); absorb a revised report section by section |
+| `pdo docs verify PATH` | Check every locator against its document |
 | `pdo dashboard PATH [-o DIR] [--no-flips] [--no-sensitivity]` | Write the read-only dashboard: a self-contained `index.html` (offline it falls back to system fonts) and `dashboard.json` |
 | `pdo package PATH -o DIR [--sensitivity]` / `pdo replay RECORD.json` | Write a Decision Package (optionally with sensitivity and value of information); replay it node by node |
 | `pdo sysml import FILES --map M --out DIR` / `pdo sysml gaps FILES` | Import SysML v2 into a draft state; list what did not map |
@@ -112,7 +122,7 @@ Every command takes `--json` (`{"ok": true, ...}`, or `{"ok": false, "error": ..
 
 - **MCP.** `pdo mcp` serves the same operations as tools (`pdo_run`, `pdo_explain`, `pdo_flip`,
   `pdo_impact`, `pdo_apply_change`, `pdo_record_human_action`, `pdo_import_sysml`, `pdo_package`,
-  `pdo_dashboard`, ...).
+  `pdo_docs_extract`, `pdo_docs_revise`, `pdo_dashboard`, ...).
   Each returns `{ok, ...}`, or `{ok: false, error, hint}`. Write tools preview by default and write a
   change set only when asked. To register it, for example with Claude Code:
   `claude mcp add pdo -- uv run --directory /path/to/programmable-decision-ops pdo mcp`. In any harness
@@ -124,6 +134,10 @@ Every command takes `--json` (`{"ok": true, ...}`, or `{"ok": false, "error": ..
   3. frame criteria, weights and readiness with the person, never inventing them;
   4. record the agent's own interpretations as provisional;
   5. validate, run, and explain.
+
+  [skills/document-provenance](skills/document-provenance/SKILL.md) teaches it to take values from
+  reports with exact quotes (provisional until a person accepts them), and to absorb revised reports so
+  that only values in changed sections go back to the person.
 
   Skills follow the Agent Skills format (`SKILL.md` with frontmatter) and ship in the wheel under
   `pdo/skills`.
@@ -157,6 +171,15 @@ including:
 - ablations that break equivalence (delta only, one hop, no readiness);
 - an edge-omission curve that simulates compilation errors.
 
+`pdo bench provenance bench/provenance` (also run by `make bench`, and gated in CI with `--check`)
+applies 23 hand-labelled section-level edits to the example's two reports (including three where a value's
+old text survives in another section) and absorbs each with `pdo docs revise`. Every case flags exactly the
+labelled values, and its own changed-passage detection agrees with the labels; 18 values go back for review
+against 93 under a whole-document policy; every value whose quote left its section is flagged (12 of 12),
+and the other 6 flagged values share a changed section; no approval is invalidated and no decision node is
+recomputed in any case. The labels were written by the implementer from the edits; an independent agent
+re-derived the first 20 blind and agreed on all of them, and checked the other 3 afterwards.
+
 Figures are in `results/figures/` (sensitivity figures from `make sensitivity-figures`).
 
 ## Layout
@@ -164,12 +187,13 @@ Figures are in `results/figures/` (sensitivity figures from `make sensitivity-fi
 ```
 schema/            LinkML schema (core, problem, evidence, evaluation, governance, state, program, record)
 src/pdo/           kernel: load, graph, builtins, run, episodes, actions, flip, uncertainty, package,
-                   sensitivity, dashboard (+ dashboard.html), sysml, tools, mcp_server, cli*, bench/
+                   sensitivity, dashboard (+ dashboard.html), docs, provenance, sysml, tools,
+                   mcp_server, cli*, bench/
 docs/semantics.md  the specification the kernel and the benchmark labels are both written against
 docs/dashboard.md  what the dashboard shows and the shape of dashboard.json
 examples/          vehicle (trade study and program), fires_sensor (uncertainty)
 skills/            agent skills
-bench/             benchmark suites (independent labels)
+bench/             benchmark suites (independent labels): vehicle (perturbations), provenance (report edits)
 results/           generated benchmark tables, figures and proposal values
 project/           generated JSON Schema and Pydantic models (regenerate with `make gen-project`)
 ```
@@ -181,7 +205,8 @@ make install         # uv sync --all-extras
 make test            # pytest (slow and live tests: -m slow, -m live)
 make lint            # linkml-lint, identity markers, ruff
 make gen-project     # regenerate models and the identity table after editing schema/
-make bench           # run the benchmark
+make bench           # run the benchmarks (perturbations and provenance)
+make example-docs    # rebuild the example's reports from Markdown (needs pandoc and xelatex)
 make dashboards      # dashboards of both examples, in site/
 ```
 
@@ -190,11 +215,9 @@ also runs `pdo bench check`.
 
 ## Roadmap
 
-- **Dashboard follow-ups.** Response curves and per-section document locators (once document provenance
-  lands) in the node details, and an onboarding progress view.
-- **Document provenance.** A skill and tools that index Word and PDF reports into sections with content
-  digests, attach a locator (document, section, page, quote) to every extracted value, and flag only the
-  observations whose section changed when a report is revised.
+- **Dashboard follow-ups.** Response curves in the node details, and an onboarding progress view.
+- **Finer provenance.** Paragraph- or sentence-level digests to flag fewer unchanged values that share a
+  changed section; locators for assumptions and evaluator parameters; scanned PDFs (OCR).
 - **Onboarding.** `pdo init` and an onboarding skill that take someone from a folder of reports and SysML
   models through three funnels (construct the decision graph, run it, study it), always offering the
   next step.

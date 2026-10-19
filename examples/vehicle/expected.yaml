@@ -265,3 +265,67 @@ episodes:
     unknown_conditions: [bc:framing-review]
     actionable: false
     note: Brief branch, min range 370; A (g = +50) and B (g = +10) fail range, C fails reliability; no recommendation.
+
+  # Report revisions, branching off the approved e08 (B 0.5, A 0.466667, C 0.62 but infeasible). The
+  # phase 1 reliability report is an indexed document; its values carry section locators.
+  ep:r1:
+    parent: ep:e08
+    outcome: readiness_only
+    recommended: [alt:B]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.5, alt:C: 0.62}
+    readiness: pending
+    failed_conditions: []
+    unknown_conditions: [rc:locators-current]
+    actionable: false
+    note: >-
+      Revision 2 of the reliability report edits sections 2 and 3.3. A's and B's locators move to it
+      (sections 3.1 and 3.2 unchanged); C's value (section 3.3) awaits review. No value changes, so the
+      e08 approval still matches, but readiness is pending.
+
+  ep:r2:
+    parent: ep:r1
+    outcome: readiness_only
+    recommended: [alt:B]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.5, alt:C: 0.62}
+    readiness: ready
+    failed_conditions: []
+    unknown_conditions: []
+    actionable: true
+    note: The test engineer confirms C stays at 0.94 and re-anchors it; ready, and the e08 approval holds.
+
+  ep:r3:
+    parent: ep:r2
+    outcome: readiness_only
+    recommended: [alt:B]
+    feasible: [alt:A, alt:B]
+    infeasible: [alt:C]
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.5, alt:C: 0.62}
+    readiness: pending
+    failed_conditions: []
+    unknown_conditions: [rc:locators-current]
+    actionable: false
+    note: Revision 3 changes sections 3.3 and 3.4; only C's value awaits review.
+
+  ep:r4:
+    parent: ep:r3
+    outcome: changed_winner
+    recommended: [alt:C]
+    feasible: [alt:A, alt:B, alt:C]
+    infeasible: []
+    unresolved: []
+    utilities: {alt:A: 0.466667, alt:B: 0.5, alt:C: 0.7}
+    readiness: ready
+    failed_conditions: []
+    unknown_conditions: []
+    actionable: false
+    note: >-
+      C's reliability is 0.96 (v_rel = 0.4, U_C = 0.32 + 0.30 + 0.08 = 0.70) and it now passes min
+      reliability (g = -0.01), so C wins; its quote (valid to 2027-12-31) is current on 2027-12-01. The B
+      approval no longer matches.

@@ -1,0 +1,204 @@
+# Provenance benchmark: section-level edits to the vehicle example's two indexed reports. Each case edits
+# a report's Markdown source, writes the new version as a Word file, and absorbs it into the program at the
+# parent episode with pdo docs revise. Labels were written by hand from the edits alone (never from pdo).
+# An independent agent re-derived the labels of the first 20 cases blind, before reading the runner, and
+# agreed on all of them; it checked the later cases afterwards. Definitions:
+#
+#   flagged           located, applicable observations whose cited section's text changed, so a person
+#                     must review them (the observations whose locator should NOT move automatically)
+#   changed_passages  flagged observations whose quote no longer occurs in the cited section (or the section
+#                     that succeeds it); a quote surviving in some other section does not count
+#
+# At the parent (ep:e01, B approved and actionable) the located, applicable observations are
+#   reliability report  obs:A.reliability (3.1), obs:B.reliability (3.2), obs:C.reliability (3.3)
+#   configuration sheets  obs:A.tank, obs:A.mpg (2), obs:B.tank, obs:B.mpg (3), obs:C.tank, obs:C.mpg (4)
+# A whole-document policy would send every one of them citing the revised report back for review.
+program: ../../examples/vehicle
+parent: ep:e01
+documents:
+  reliability: {path: docs/reliability-test-report.docx, source: docs/src/reliability-test-report-rev1.md}
+  sheets: {path: docs/configuration-sheets.pdf, source: docs/src/configuration-sheets.md}
+
+cases:
+  - id: rel-purpose-wording
+    document: reliability
+    family: unrelated_section
+    edits: [{replace: "All figures are synthetic", with: "All figures here are synthetic"}]
+    expect: {flagged: [], changed_passages: []}
+
+  - id: rel-conditions-temperature
+    document: reliability
+    family: unrelated_section
+    edits: [{replace: "in eight-hour shifts.", with: "in eight-hour shifts, between 5 and 38 degrees C."}]
+    expect: {flagged: [], changed_passages: []}
+
+  - id: rel-a-failure-detail
+    document: reliability
+    family: cited_section_context
+    edits: [{replace: "all in the cooling system", with: "two in the cooling system and one in the fuel pump"}]
+    expect: {flagged: [obs:A.reliability], changed_passages: []}
+
+  - id: rel-b-value-revised
+    document: reliability
+    family: cited_value
+    edits: [{replace: "Its demonstrated mission reliability is 0.98.", with: "Its demonstrated mission reliability is 0.97."}]
+    expect: {flagged: [obs:B.reliability], changed_passages: [obs:B.reliability]}
+
+  - id: rel-c-disputed
+    document: reliability
+    family: cited_value
+    edits:
+      - replace: "Its demonstrated mission reliability is 0.94, below the 0.95 threshold."
+        with: "One failure is under review. Until the board rules, its demonstrated mission reliability is 0.94, below the 0.95 threshold."
+    expect: {flagged: [obs:C.reliability], changed_passages: [obs:C.reliability]}
+
+  - id: rel-summary-table
+    document: reliability
+    family: unrelated_section
+    edits: [{replace: "| C | 2,000 | 6 | 0.94 |", with: "| C | 2,000 | 6 | 0.940 |"}]
+    expect: {flagged: [], changed_passages: []}
+
+  - id: rel-limitations-added
+    document: reliability
+    family: unrelated_section
+    edits: [{replace: "into the production configuration.", with: "into the production configuration. Phase 2 will retest B."}]
+    expect: {flagged: [], changed_passages: []}
+
+  - id: rel-heading-renamed
+    document: reliability
+    family: structure
+    edits: [{replace: "## 3.2 Vehicle B", with: "## 3.2 Vehicle B (extended-range hybrid)"}]
+    expect: {flagged: [], changed_passages: []}
+
+  - id: rel-section-inserted
+    document: reliability
+    family: structure
+    edits:
+      - {replace: "## 3.4 Summary", with: "## 3.5 Summary"}
+      - {replace: "## 3.3 Vehicle C", with: "## 3.4 Vehicle C"}
+      - {replace: "## 3.2 Vehicle B", with: "## 3.3 Vehicle B"}
+      - replace: "## 3.1 Vehicle A"
+        with: "## 3.1 Test articles\n\nAll three articles were pre-production builds.\n\n## 3.2 Vehicle A"
+    expect: {flagged: [], changed_passages: []}
+
+  - id: rel-a-and-c
+    document: reliability
+    family: cited_value
+    edits:
+      - {replace: "all in the cooling system", with: "two in the cooling system and one in the fuel pump"}
+      - replace: "Its demonstrated mission reliability is 0.94, below the 0.95 threshold."
+        with: "Its demonstrated mission reliability is 0.95, at the threshold."
+    expect: {flagged: [obs:A.reliability, obs:C.reliability], changed_passages: [obs:C.reliability]}
+
+  - id: rel-b-section-removed
+    document: reliability
+    family: structure
+    edits:
+      - replace: "## 3.2 Vehicle B\n\nVehicle B, the extended-range hybrid, recorded two essential function failures, both in the hybrid power electronics. Its demonstrated mission reliability is 0.98.\n\n"
+        with: ""
+    expect: {flagged: [obs:B.reliability], changed_passages: [obs:B.reliability]}
+
+  - id: rel-typography
+    document: reliability
+    family: formatting
+    edits: [{replace: "Crow-AMSAA", with: "Crow–AMSAA"}, {replace: "2,000 miles on", with: "2,000  miles on"}]
+    expect: {flagged: [], changed_passages: []}
+
+  - id: rel-c-superseded-appendix
+    document: reliability
+    family: cited_value
+    description: >-
+      C's result is revised and the old paragraph is kept in an appendix: the old text survives elsewhere, but
+      the cited section changed, so C must be reviewed (its locator must not move to the appendix).
+    edits:
+      - replace: "recorded six essential function failures across the suspension and the driveline. Its demonstrated mission reliability is 0.94, below the 0.95 threshold."
+        with: "recorded five essential function failures across the suspension and the driveline. Its demonstrated mission reliability is 0.96, above the 0.95 threshold."
+      - replace: "into the production configuration.\n"
+        with: "into the production configuration.\n\n# Appendix A Superseded phase 1 text\n\nVehicle C, the low-cost commercial platform, recorded six essential function failures across the suspension and the driveline. Its demonstrated mission reliability is 0.94, below the 0.95 threshold.\n"
+    expect: {flagged: [obs:C.reliability], changed_passages: [obs:C.reliability]}
+
+  - id: rel-a-text-moves-to-b
+    document: reliability
+    family: cited_value
+    description: >-
+      A's result is revised and B's section now holds A's old paragraph word for word: both cited sections
+      changed (A's locator must not follow its old text into B's section).
+    edits:
+      - replace: "Vehicle B, the extended-range hybrid, recorded two essential function failures, both in the hybrid power electronics. Its demonstrated mission reliability is 0.98."
+        with: "Vehicle A, the current production derivative, recorded three essential function failures, all in the cooling system. Its demonstrated mission reliability is 0.97."
+      - replace: "## 3.1 Vehicle A\n\nVehicle A, the current production derivative, recorded three essential function failures, all in the cooling system. Its demonstrated mission reliability is 0.97."
+        with: "## 3.1 Vehicle A\n\nVehicle A, the current production derivative, recorded four essential function failures, all in the cooling system. Its demonstrated mission reliability is 0.96."
+    expect: {flagged: [obs:A.reliability, obs:B.reliability], changed_passages: [obs:A.reliability, obs:B.reliability]}
+
+  - id: rel-c-renumbered-superseded
+    document: reliability
+    family: cited_value
+    description: >-
+      A section is inserted (A, B, C and the summary are renumbered), C's result is revised and its old
+      paragraph kept in an appendix: C is found by its heading ("Vehicle C", now 3.4) and has changed, so it
+      must be reviewed; its locator must not follow the old text into the appendix.
+    edits:
+      - {replace: "## 3.4 Summary", with: "## 3.5 Summary"}
+      - {replace: "## 3.3 Vehicle C", with: "## 3.4 Vehicle C"}
+      - {replace: "## 3.2 Vehicle B", with: "## 3.3 Vehicle B"}
+      - replace: "## 3.1 Vehicle A"
+        with: "## 3.1 Test articles\n\nAll three articles were pre-production builds.\n\n## 3.2 Vehicle A"
+      - replace: "recorded six essential function failures across the suspension and the driveline. Its demonstrated mission reliability is 0.94, below the 0.95 threshold."
+        with: "recorded five essential function failures across the suspension and the driveline. Its demonstrated mission reliability is 0.96, above the 0.95 threshold."
+      - replace: "into the production configuration.\n"
+        with: "into the production configuration.\n\n# Appendix A Superseded phase 1 text\n\nVehicle C, the low-cost commercial platform, recorded six essential function failures across the suspension and the driveline. Its demonstrated mission reliability is 0.94, below the 0.95 threshold.\n"
+    expect: {flagged: [obs:C.reliability], changed_passages: [obs:C.reliability]}
+
+  - id: sheets-b-economy
+    document: sheets
+    family: cited_value
+    edits: [{replace: "fuel economy of 8.0 mi/gal at gross vehicle weight, with the hybrid", with: "fuel economy of 8.4 mi/gal at gross vehicle weight, with the hybrid"}]
+    expect: {flagged: [obs:B.mpg, obs:B.tank], changed_passages: [obs:B.mpg]}
+
+  - id: sheets-notes
+    document: sheets
+    family: unrelated_section
+    edits: [{replace: "not yet confirmed by test.", with: "not yet confirmed by test. Confirmation runs are planned."}]
+    expect: {flagged: [], changed_passages: []}
+
+  - id: sheets-scope
+    document: sheets
+    family: unrelated_section
+    edits: [{replace: "the range model uses.", with: "the range model and the cost model use."}]
+    expect: {flagged: [], changed_passages: []}
+
+  - id: sheets-c-tank
+    document: sheets
+    family: cited_value
+    edits: [{replace: "usable fuel capacity of 47.5 gal", with: "usable fuel capacity of 46.0 gal"}]
+    expect: {flagged: [obs:C.mpg, obs:C.tank], changed_passages: [obs:C.tank]}
+
+  - id: sheets-reordered
+    document: sheets
+    family: structure
+    edits:
+      - {move: "# 4 Vehicle C: low-cost commercial platform", before: "# 2 Vehicle A: current production derivative"}
+      - {replace: "# 4 Vehicle C:", with: "# 2 Vehicle C:"}
+      - {replace: "# 3 Vehicle B:", with: "# 4 Vehicle B:"}
+      - {replace: "# 2 Vehicle A:", with: "# 3 Vehicle A:"}
+    expect: {flagged: [], changed_passages: []}
+
+  - id: sheets-a-heading
+    document: sheets
+    family: structure
+    edits: [{replace: "# 2 Vehicle A: current production derivative", with: "# 2 Vehicle A (current production derivative)"}]
+    expect: {flagged: [], changed_passages: []}
+
+  - id: sheets-a-and-c
+    document: sheets
+    family: cited_value
+    edits:
+      - {replace: "configuration A is rated at a fuel economy of 8.0 mi/gal", with: "configuration A is rated at a fuel economy of 7.8 mi/gal"}
+      - {replace: "usable fuel capacity of 47.5 gal", with: "usable fuel capacity of 48.0 gal"}
+    expect: {flagged: [obs:A.mpg, obs:A.tank, obs:C.mpg, obs:C.tank], changed_passages: [obs:A.mpg, obs:C.tank]}
+
+  - id: sheets-identical-reexport
+    document: sheets
+    family: formatting
+    edits: []
+    expect: {flagged: [], changed_passages: []}

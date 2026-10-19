@@ -97,9 +97,15 @@ classes:
       An assessment of a proposition, with the reasoning basis that produced it: computed (an
       evaluator or check), semantic (an agent's interpretation), or human (a recorded judgement).
     exact_mappings: [dapper:Claim]
-    slots: [id, proposition, status, basis, produced_by, supported_by]
+    slots: [id, proposition, status, basis, produced_by, supported_by, source_locator]
 
 slots:
+  source_locator:
+    mixins: [unhashable]
+    close_mappings: [dapper:source_locator]
+    description: >-
+      The passage a claim's value was taken from: document, section, page and exact quote (from the
+      observation's SourceLocator), marked when it cites an earlier version of the document.
   episode:
     mixins: [hashable]
   kernel_version:
@@ -453,6 +459,7 @@ enums:
       approve: {}
       fix_evaluator: {}
       run_uncertainty_analysis: {}
+      review_locator: {description: "Confirm or revise a value whose report section changed, and re-anchor it."}
   FlipMethod:
     permissible_values:
       affine_exact: {}

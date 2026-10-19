@@ -44,6 +44,10 @@ feasibility, utilities, readiness for authorization and the pending human action
   has made the judgement; never on your own initiative.
 - SysML v2: pdo_import_sysml maps a model to a draft state and lists the gaps. Framing (criteria,
   anchors, weights, decision rule, readiness) comes from the decision's owner, never from the model.
+- Reports (Word, PDF, Markdown): read sections with pdo_docs_index and pdo_docs_read, and propose each
+  value with the exact passage that states it (pdo_docs_extract); a quote that is not in the document is
+  refused. Values you propose are provisional until a person accepts them. When a report is revised,
+  pdo_docs_revise moves the locators whose section is unchanged and flags the rest for a person.
 - Paths are files or directories on the server's machine; relative paths resolve against the server's
   working directory. pdo_list_examples gives example paths.
 """
@@ -205,6 +209,40 @@ def pdo_sensitivity(
     return _call(tools.sensitivity, path, episode, param, samples, seed)
 
 
+DocumentPath = Annotated[str, Field(description="A report: .docx, .pdf, .md or .txt.")]
+
+
+def pdo_docs_index(path: DocumentPath) -> dict[str, Any]:
+    """A report's sections: id, heading path, pages, size and content digest, and the document digest. Start
+    here, then read the sections that hold values with pdo_docs_read."""
+    return _call(tools.docs_index, path)
+
+
+def pdo_docs_read(
+    path: DocumentPath,
+    section: Annotated[str | None, Field(description="Section id (e.g. 3.2), heading or heading path; omit for "
+                                                     "every section.")] = None,
+) -> dict[str, Any]:
+    """Section text exactly as pdo matches quotes against it. Copy quotes from here, character for character."""
+    return _call(tools.docs_read, path, section)
+
+
+def pdo_docs_locate(
+    path: DocumentPath,
+    quote: Annotated[str, Field(description="The exact passage that states the value.")],
+    section: Annotated[str | None, Field(description="Search only this section.")] = None,
+) -> dict[str, Any]:
+    """Locate a quote in a report: section, page, paragraph, character span and digests, and the numbers it
+    states. Refused when the quote is not in the report or occurs more than once."""
+    return _call(tools.docs_locate, path, quote, section)
+
+
+def pdo_docs_verify(path: StatePath, episode: Episode = None) -> dict[str, Any]:
+    """Check every locator in a state or program against its document: errors when a quote is not where it
+    says, warnings when a file is not the indexed version or a quote does not state its value."""
+    return _call(tools.docs_verify, path, episode)
+
+
 def pdo_list_examples() -> dict[str, Any]:
     """The example decisions bundled with pdo, with their paths. Copy one with pdo_copy_example before
     changing it."""
@@ -256,6 +294,46 @@ def pdo_package(
     return _call(tools.package, path, episode, out)
 
 
+def pdo_docs_extract(
+    path: StatePath,
+    proposals: Annotated[dict[str, Any] | str, Field(
+        description="Mapping (or YAML text, or a .yaml path): evidence (default evidence id), accept (true only "
+                    "when the person recording it accepts the values), optional evidence_items to add (each with "
+                    "document_path), and observations: [{id, alternative, measure, value, unit, quote, section, "
+                    "evidence}]. An existing observation id updates its value and locator.")],
+    write: Write = False,
+    role: Annotated[str | None, Field(description="The role recording the change (author_role).")] = None,
+    parent: Annotated[str | None, Field(description="Parent episode (default: the newest).")] = None,
+    episode_id: Annotated[str | None, Field(description="The new episode's id (default: the next in sequence).")]
+    = None,
+    as_of: Annotated[str | None, Field(description="The new episode's date, YYYY-MM-DD (default: the parent's).")]
+    = None,
+) -> dict[str, Any]:
+    """Propose values from reports as a change set. Each quote is located in its evidence's document and
+    refused if it is not there; new or changed values are provisional unless accept is true. Previews the
+    episode; with write=true, adds it. Re-anchoring a value in a changed section is a person's judgement:
+    do it only when that person has confirmed the value."""
+    return _call(tools.docs_extract, path, proposals, write, role, parent, episode_id, as_of)
+
+
+def pdo_docs_revise(
+    path: ProgramPath,
+    document: Annotated[str, Field(description="The evidence id of the report, or its document_path.")],
+    new_file: Annotated[str, Field(description="The new version of the report, inside the program directory.")],
+    write: Write = False,
+    role: Annotated[str | None, Field(description="The role recording the change (author_role).")] = None,
+    parent: Annotated[str | None, Field(description="Parent episode (default: the newest).")] = None,
+    episode_id: Annotated[str | None, Field(description="The new episode's id (default: the next in sequence).")]
+    = None,
+    as_of: Annotated[str | None, Field(description="The new episode's date, YYYY-MM-DD (default: the parent's).")]
+    = None,
+) -> dict[str, Any]:
+    """Absorb a new version of a report. Locators whose section text is unchanged move to it; values in
+    changed sections are flagged, and readiness stays pending (locators_current) until a person re-anchors
+    them. No value changes, so no approval is invalidated. Previews; with write=true, writes."""
+    return _call(tools.docs_revise, path, document, new_file, write, role, parent, episode_id, as_of)
+
+
 def pdo_dashboard(
     path: StatePath,
     out: Annotated[str, Field(description="Directory for index.html and dashboard.json (new, or holding only a "
@@ -295,8 +373,9 @@ def pdo_copy_example(
 
 READ_ONLY = (pdo_describe_schema, pdo_validate, pdo_run, pdo_explain, pdo_flip, pdo_scenarios, pdo_readiness,
              pdo_pending_actions, pdo_program_status, pdo_refresh, pdo_impact, pdo_uncertainty, pdo_sensitivity,
-             pdo_list_examples)
-WRITES = (pdo_apply_change, pdo_record_human_action, pdo_package, pdo_dashboard, pdo_import_sysml, pdo_copy_example)
+             pdo_docs_index, pdo_docs_read, pdo_docs_locate, pdo_docs_verify, pdo_list_examples)
+WRITES = (pdo_apply_change, pdo_record_human_action, pdo_docs_extract, pdo_docs_revise, pdo_package, pdo_dashboard,
+          pdo_import_sysml, pdo_copy_example)
 
 
 def build_server():

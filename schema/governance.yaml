@@ -165,6 +165,10 @@ enums:
       coverage: {description: No unresolved alternative could still beat the recommendation.}
       evidence_current: {description: Evidence behind the recommendation has not passed valid_until.}
       evidence_traceable: {description: Evidence behind the recommendation names its source.}
+      locators_current:
+        description: >-
+          Every value located in an indexed document is located in its current version; a value whose
+          section changed in a revision stays pending until a person re-anchors it.
       assumptions_validated: {description: Critical assumptions are validated.}
       risks_treated: {description: Risks at or above threshold are mitigated or accepted by an allowed role.}
       review_status: {description: The referenced review passed and is not stale.}

@@ -2,8 +2,8 @@
 
 Every command takes --json, which prints {"ok": true, ...} (or {"ok": false, "error": ...} and exits 1).
 Feature groups register themselves from their own modules (cli_program, cli_analysis, bench.cli,
-cli_tools, cli_uncertainty, cli_sysml, cli_sensitivity) so they can grow independently; heavy imports
-stay inside command bodies.
+cli_tools, cli_uncertainty, cli_sysml, cli_sensitivity, cli_dashboard, cli_docs, cli_onboard) so they
+can grow independently; heavy imports stay inside command bodies.
 """
 
 from __future__ import annotations
@@ -154,6 +154,7 @@ def _register_groups() -> None:
         cli_analysis,
         cli_dashboard,
         cli_docs,
+        cli_onboard,
         cli_program,
         cli_sensitivity,
         cli_sysml,
@@ -163,7 +164,7 @@ def _register_groups() -> None:
     from pdo.bench import cli as bench_cli
 
     for module in (cli_program, cli_analysis, bench_cli, cli_tools, cli_uncertainty, cli_sysml, cli_sensitivity,
-                   cli_dashboard, cli_docs):
+                   cli_dashboard, cli_docs, cli_onboard):
         module.register(app)
 
 

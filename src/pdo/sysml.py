@@ -55,6 +55,8 @@ RULES = {
     "alternative.listed": "the mapping file lists the alternatives",
     "measure.attribute": "an attribute of the alternatives (dotted path into nested parts) is a measure",
     "observation.attribute-value": "a literal number (with an optional [unit]) on an alternative's attribute",
+    "observation.elsewhere": "the mapping says a measure's values come from other evidence (observation: false), "
+                             "so the model's values for it are not imported",
     "evidence.model-file": "each model file that supplies observed values is one evidence item",
     "requirement.require-constraint": "a require constraint comparing a subject attribute with a literal",
     "assumption.analysis-parameter": "an analysis or verification input with a literal value",
@@ -126,6 +128,7 @@ class ImportResult:
     gaps: list[MappingGap]
     rules_used: list[str]
     sources: list[dict] = field(default_factory=list)  # [{"path": ..., "sha256": ...}]
+    values_elsewhere: list[dict] = field(default_factory=list)  # model values left out: observation: false
 
     def counts(self) -> dict[str, int]:
         return {slot: len(value) for slot, value in self.state.items() if isinstance(value, list)}
@@ -139,7 +142,7 @@ class ImportResult:
     def to_dict(self) -> dict:
         return {"sources": self.sources, "counts": self.counts(), "rules_used": self.rules_used,
                 "gaps": [g.to_dict() for g in self.gaps], "missing_to_run": self.missing_to_run(),
-                "state": self.state}
+                "values_elsewhere": self.values_elsewhere, "state": self.state}
 
 
 # --- tokens -------------------------------------------------------------------------------------------------
@@ -704,10 +707,14 @@ def load_mapping(mapping: Mapping | dict | str | Path | None) -> Mapping:
     units = mapping.get("units") or {}
     if not isinstance(units, dict) or not all(isinstance(v, str) for v in units.values()):
         raise SysMLError("mapping: units must map SysML unit text to pdo unit strings")
+    sections = {s: _entries(s, mapping.get(s), slots) for s, slots in SECTION_SLOTS.items()}
+    for key, entry in sections["measures"].items():
+        if "observation" in entry and entry["observation"] is not False and not isinstance(entry["observation"], str):
+            raise SysMLError(f"mapping: measures.{key}.observation is an id suffix, or false when the values come "
+                             "from other evidence")
     return Mapping(alternatives_from=alts.get("from"), alternatives=_entries("alternatives.ids", alts.get("ids"),
                                                                             ALTERNATIVE_SLOTS),
-                   units={str(k): v for k, v in units.items()},
-                   sections={s: _entries(s, mapping.get(s), slots) for s, slots in SECTION_SLOTS.items()})
+                   units={str(k): v for k, v in units.items()}, sections=sections)
 
 
 def _key_parts(key: str) -> tuple[str, ...]:
@@ -784,6 +791,7 @@ class _Importer:
         self.rules: set[str] = set()
         self.handled: set[Element] = set()
         self.matched_keys: set[tuple[str, str]] = set()
+        self.elsewhere: list[dict] = []
         roots = []
         for src in sources:
             elements, problems = parse(src)
@@ -1325,7 +1333,7 @@ class _Importer:
                              + "\n".join(problems)) from exc
         gaps = sorted(self.gaps.values(), key=lambda g: (g.source_model or "", g.line or 0, g.element, g.kind))
         return ImportResult(state, gaps, sorted(self.rules),
-                            [{"path": s.display, "sha256": s.sha256} for s in self.sources])
+                            [{"path": s.display, "sha256": s.sha256} for s in self.sources], self.elsewhere)
 
     def source_ref(self, el: Element, rule: str) -> dict:
         return {"source_element": el.label, "source_model": el.src.display,
@@ -1403,6 +1411,12 @@ class _Importer:
             if measure is None:
                 continue
             value_el = feature.value_el
+            if measure["observation"] is False:  # a person said these values come from other evidence
+                self.elsewhere.append({"alternative": alts[el], "measure": measure["obj"]["id"],
+                                       "element": value_el.label, "value": _text(value_el.value),
+                                       "source_model": value_el.src.display, "line": value_el.line})
+                self.rules.add("observation.elsewhere")
+                continue
             unit = self.check_unit(literal, measure, value_el, f"the value of {feature.key} on {alts[el]}")
             if unit is None:
                 continue

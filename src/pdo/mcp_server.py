@@ -33,6 +33,8 @@ feasibility, utilities, readiness for authorization and the pending human action
 
 - Every number comes from the kernel. Quote tool results; never compute or adjust a utility, margin
   or status yourself. pdo_explain traces any number to its inputs.
+- New decision, or not sure where one stands: pdo_onboard names the single next step (pdo_init starts a
+  program from the person's reports and SysML models; pdo_study studies it).
 - Start with pdo_validate, then pdo_run. pdo_readiness and pdo_pending_actions say what blocks
   authorization and who must act; each pending action names the tool call that resolves it.
 - A program (program.yaml, baseline/, changes/) is a tree of episodes. Episodes are never edited:
@@ -308,12 +310,16 @@ def pdo_docs_extract(
     = None,
     as_of: Annotated[str | None, Field(description="The new episode's date, YYYY-MM-DD (default: the parent's).")]
     = None,
+    baseline: Annotated[bool, Field(description="Write into the program's baseline (its documents.yaml) instead of "
+                                                "a new episode; only while no episode is built on the baseline, "
+                                                "as when constructing a decision.")] = False,
 ) -> dict[str, Any]:
     """Propose values from reports as a change set. Each quote is located in its evidence's document and
     refused if it is not there; new or changed values are provisional unless accept is true. Previews the
-    episode; with write=true, adds it. Re-anchoring a value in a changed section is a person's judgement:
-    do it only when that person has confirmed the value."""
-    return _call(tools.docs_extract, path, proposals, write, role, parent, episode_id, as_of)
+    episode; with write=true, adds it (or, with baseline=true or for a plain state directory, writes the
+    values into documents.yaml). Re-anchoring a value in a changed section is a person's judgement: do it
+    only when that person has confirmed the value."""
+    return _call(tools.docs_extract, path, proposals, write, role, parent, episode_id, as_of, baseline)
 
 
 def pdo_docs_revise(
@@ -363,6 +369,43 @@ def pdo_import_sysml(
     return _call(tools.import_sysml, paths, mapping, out)
 
 
+def pdo_init(
+    path: Annotated[str, Field(description="The new program directory.")],
+    question: Annotated[str | None, Field(description="The decision in one sentence, as the person states it.")]
+    = None,
+    owner: Annotated[str | None, Field(description="The decision owner's role id, e.g. role:program-manager.")]
+    = None,
+    name: Annotated[str | None, Field(description="A short name for the decision.")] = None,
+    docs: Annotated[list[str] | None, Field(description="Reports (.docx, .pdf, .md, .txt) or directories of them, "
+                                                        "copied into inputs/docs.")] = None,
+    models: Annotated[list[str] | None, Field(description="SysML v2 files (.sysml, and a mapping .yaml) or "
+                                                          "directories, copied into inputs/models.")] = None,
+) -> dict[str, Any]:
+    """Start a decision: scaffold a program directory and copy the person's reports and SysML models into it.
+    Writes only what the person stated (the question and the owner's role); returns the first step."""
+    return _call(tools.init, path, question, owner, name, docs, models)
+
+
+def pdo_onboard(path: ProgramPath) -> dict[str, Any]:
+    """Where a decision stands in the three funnels (construct the decision graph, run it, study it), and the
+    single next step: who acts, what to do, the command and the tool. Call it at the start of every session
+    and after every step."""
+    return _call(tools.onboard, path)
+
+
+def pdo_study(
+    path: StatePath,
+    out: Annotated[str | None, Field(description="Directory to write (default: reports/ in the program).")] = None,
+    samples: Annotated[int | None, Field(description="Draws for sensitivity and uncertainty (default: the rule's).")]
+    = None,
+    seed: Annotated[int | None, Field(description="Random seed (default: the decision rule's).")] = None,
+) -> dict[str, Any]:
+    """Study the newest episode and write reports/: the Decision Package (flips, scenarios, readiness and the run
+    record), sensitivity and value of information, uncertainty under expected_mavt, and study.md with the
+    headline findings. Seeded, so it reproduces."""
+    return _call(tools.study, path, out, samples, seed)
+
+
 def pdo_copy_example(
     name: Annotated[str, Field(description="Example name from pdo_list_examples, e.g. vehicle.")],
     dest: Annotated[str, Field(description="New directory to copy it into (must not exist, or be empty).")],
@@ -373,9 +416,9 @@ def pdo_copy_example(
 
 READ_ONLY = (pdo_describe_schema, pdo_validate, pdo_run, pdo_explain, pdo_flip, pdo_scenarios, pdo_readiness,
              pdo_pending_actions, pdo_program_status, pdo_refresh, pdo_impact, pdo_uncertainty, pdo_sensitivity,
-             pdo_docs_index, pdo_docs_read, pdo_docs_locate, pdo_docs_verify, pdo_list_examples)
+             pdo_docs_index, pdo_docs_read, pdo_docs_locate, pdo_docs_verify, pdo_list_examples, pdo_onboard)
 WRITES = (pdo_apply_change, pdo_record_human_action, pdo_docs_extract, pdo_docs_revise, pdo_package, pdo_dashboard,
-          pdo_import_sysml, pdo_copy_example)
+          pdo_import_sysml, pdo_copy_example, pdo_init, pdo_study)
 
 
 def build_server():
